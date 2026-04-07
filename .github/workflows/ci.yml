@@ -2,45 +2,57 @@ name: CI
 
 on:
   push:
-    branches: [main, "feature/**"]
+    branches:
+      - main
+      - "feature/**"
+      - "fix/**"
+      - "hotfix/**"
   pull_request:
-    branches: [main]
+    branches:
+      - main
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   backend:
-    runs-on: ubuntu-latest
+    name: Backend build
+    runs-on: self-hosted
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '21'
+      - name: Show Java version
+        run: java -version
 
       - name: Build backend
         run: |
           cd politikum-main-backend
-          mvn -DskipTests package
+          mvn -DskipTests clean package
 
   frontend:
-    runs-on: ubuntu-latest
+    name: Frontend build
+    runs-on: self-hosted
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: politikum-main-frontend/package-lock.json
+      - name: Show Node version
+        run: |
+          node -v
+          npm -v
 
-      - name: Install dependencies
+      - name: Install frontend dependencies
         run: |
           cd politikum-main-frontend
-          npm ci
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
 
       - name: Build frontend
         run: |
