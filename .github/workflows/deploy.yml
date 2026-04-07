@@ -10,16 +10,12 @@ concurrency:
 
 jobs:
   deploy:
-    runs-on: [self-hosted, linux, x64]
+    runs-on: self-hosted
     environment: production
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Show commit
-        run: |
-          echo "Deploying commit: $GITHUB_SHA"
 
       - name: Build backend
         run: |
@@ -32,20 +28,20 @@ jobs:
           npm ci
           npm run build
 
-      - name: Install backend artifact
+      - name: Install backend
         run: |
           mkdir -p /opt/politikum/politikum-main-backend/target
           cp politikum-main-backend/target/backend.jar /opt/politikum/politikum-main-backend/target/backend.jar
 
-      - name: Install frontend build
+      - name: Install frontend
         run: |
           mkdir -p /opt/politikum/politikum-main-frontend/dist
           rsync -a --delete politikum-main-frontend/dist/ /opt/politikum/politikum-main-frontend/dist/
 
       - name: Restart services
         run: |
-          systemctl restart politikum-backend
-          systemctl reload nginx
+          sudo systemctl restart politikum-backend
+          sudo systemctl reload nginx
 
       - name: Verify services
         run: |
