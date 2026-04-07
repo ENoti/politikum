@@ -1,0 +1,2986 @@
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { SERVER } from '../api.js';
+import TurnControls from './TurnControls.jsx';
+import ResponsePanel from './ResponsePanel.jsx';
+import { personaName } from '../spineShared.js';
+
+function ActionBoard({ G, ctx, moves, playerID, matchID, ratingsMap = {}, setShowWhereAmI = () => {}, forgetMatch = () => {}, moveInFlight = false, surrender = async () => ({ ok: false }) }) {
+  const isHost = String(playerID) === '0';
+  // H toggles on-screen hotkey hints (badges like (c)/(e)/(1..n)).
+
+  const TokenPips = ({ delta, compact, right, dim }) => {
+    const d = Number(delta || 0);
+    if (!d) return null;
+    const isNeg = d < 0;
+    const n = Math.min(10, Math.abs(d));
+    const more = Math.max(0, Math.abs(d) - 10);
+    return (
+      <div
+        className={
+          "absolute bottom-2 z-20 flex items-center gap-1 " +
+          (right ? "right-2" : "left-2") +
+          (compact ? " scale-[1.0]" : "") +
+          (dim ? " opacity-80" : "")
+        }
+        style={{ pointerEvents: 'none' }}
+      >
+        {Array.from({ length: n }).map((_, i) => (
+          <div
+            key={i}
+            className={
+              "w-3.5 h-3.5 rounded-full border shadow-[0_2px_6px_rgba(0,0,0,0.6)] " +
+              (isNeg ? "bg-red-700/95 border-red-200/50" : "bg-emerald-700/95 border-emerald-200/50")
+            }
+          />
+        ))}
+        {more > 0 && (
+          <div
+            className={
+              "ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-black border " +
+              (isNeg ? "bg-red-900/70 border-red-200/30 text-red-50" : "bg-emerald-900/70 border-emerald-200/30 text-emerald-50")
+            }
+          >
+            ×{more + 10}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const TokenPipsInline = ({ count, neg }) => {
+    const d = Math.abs(Number(count || 0));
+    if (!d) return null;
+    const n = Math.min(10, d);
+    const more = Math.max(0, d - 10);
+    return (
+      <div className="flex items-center gap-1" style={{ pointerEvents: 'none' }}>
+        {Array.from({ length: n }).map((_, i) => (
+          <div
+            key={i}
+            className={
+              "w-3 h-3 rounded-full border shadow-[0_2px_6px_rgba(0,0,0,0.6)] " +
+              (neg ? "bg-red-700/95 border-red-200/50" : "bg-emerald-700/95 border-emerald-200/50")
+            }
+          />
+        ))}
+        {more > 0 && (
+          <div
+            className={
+              "ml-1 px-1.5 py-0.5 rounded-full text-[9px] font-black border " +
+              (neg ? "bg-red-900/70 border-red-200/30 text-red-50" : "bg-emerald-900/70 border-emerald-200/30 text-emerald-50")
+            }
+          >
+            ×{more + 10}
+          </div>
+        )}
+      </div>
+    );
+  };
+  const [goShowAllDetails, setGoShowAllDetails] = useState(false);
+
+  const [showHotkeys, setShowHotkeys] = useState(false);
+  const [soundOn, setSoundOn] = useState(() => {
+    try { return localStorage.getItem('politikum:soundOn') !== '0'; } catch { return true; }
+  });
+
+  const sfx = useMemo(() => {
+    const mk = (file) => {
+      const a = new Audio(`/assets/sfx/${file}`);
+      a.preload = 'auto';
+      return a;
+    };
+    return {
+      draw: mk('card-slide-7.ogg'),
+      play: mk('card-place-2.ogg'),
+      flip: mk('cardflip.ogg'),
+      coin: mk('coin.ogg'),
+      ui: mk('switch_005.ogg'),
+      error: mk('error_008.ogg'),
+      win: mk('win.ogg'),
+      lose: mk('lose.ogg'),
+      fan: mk('card-fan-1.ogg'),
+    };
+  }, []);
+
+  const playSfx = (key, vol = 0.6) => {
+    if (!soundOn) return;
+    const a = sfx?.[key];
+    if (!a) return;
+    try {
+      a.pause();
+      a.currentTime = 0;
+      a.volume = vol;
+      a.play();
+    } catch {}
+  };
+  // Legacy states kept only to avoid touching large JSX blocks.
+  // Hotkey/tutorial overlays are hard-disabled below.
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [pickTargetForAction4, setPickTargetForAction4] = useState(null); // { cardId } (targeting mode)
+  const [pickTargetForAction9, setPickTargetForAction9] = useState(null); // { cardId } (targeting mode)
+  const [placementMode, setPlacementMode] = useState(null); // { cardId, neighborId, side }
+  const [p16DiscardPick, setP16DiscardPick] = useState([]); // array of hand cardIds
+  const [p7FirstPick, setP7FirstPick] = useState(null); // { ownerId, cardId }
+  const [placementModeOpp, setPlacementModeOpp] = useState(null); // { cardId, targetId, neighborId, side }
+  const [pickTargetForPersona9, setPickTargetForPersona9] = useState(null); // { cardId }
+  const [p34WheelIdx, setP34WheelIdx] = useState(0);
+  const [targetAction9Id, setTargetAction9Id] = useState(null);
+  const [targetA7, setTargetA7] = useState(null); // { playerId, cardId }
+  const [targetA13, setTargetA13] = useState(null); // { playerId, cardId }
+  const [targetA17, setTargetA17] = useState(null); // { playerId, cardId }
+  const [targetP5, setTargetP5] = useState(null); // { playerId, cardId }
+  const [targetP11, setTargetP11] = useState(null); // { playerId, cardId }
+  const [targetP13, setTargetP13] = useState(null); // { playerId, cardId }
+  const [targetP14, setTargetP14] = useState(null); // { playerId, cardId }
+  const [targetP21, setTargetP21] = useState(null); // { playerId, cardId }
+  const [targetP26, setTargetP26] = useState(null); // { playerId, cardId }
+  const [targetP28, setTargetP28] = useState(null); // { playerId, cardId }
+  const [targetP37, setTargetP37] = useState(null); // { playerId, cardId }
+  const [targetP40, setTargetP40] = useState(null); // { cardId }
+  const logRef = React.useRef(null);
+  const briefLogRef = React.useRef(null);
+  const partyChatRef = React.useRef(null);
+  const me = (G.players || []).find((p) => String(p.id) === String(playerID));
+  const hand = Array.isArray(me?.hand) ? me.hand : [];
+  const myCoalition = Array.isArray(me?.coalition) ? me.coalition : [];
+  const myDiscard = Array.isArray(me?.discard) ? me.discard : [];
+  const opponents = Array.isArray(G?.players)
+    ? G.players.filter((p) => p && String(p.id ?? '') !== String(playerID) && p.active !== false)
+    : [];
+
+  const crowdedTable = opponents.length >= 2;
+  const veryCrowdedTable = opponents.length >= 3;
+  const opponentGridColumns = opponents.length >= 2 ? 2 : 1;
+  const opponentCardWidth = veryCrowdedTable ? 96 : crowdedTable ? 108 : 124;
+  const opponentMinFanWidth = veryCrowdedTable ? 160 : crowdedTable ? 190 : 220;
+  const opponentFanHeightClass = veryCrowdedTable ? 'h-32' : crowdedTable ? 'h-36' : 'h-40';
+  const opponentsWrapStyle = crowdedTable
+    ? {
+        left: 'clamp(24rem, 31vw, 30rem)',
+        right: 'clamp(6rem, 10vw, 11rem)',
+        display: 'grid',
+        gridTemplateColumns: `repeat(${opponentGridColumns}, minmax(0, 1fr))`,
+        justifyItems: 'center',
+        alignItems: 'start',
+        columnGap: veryCrowdedTable ? '0.5rem' : '0.75rem',
+        rowGap: veryCrowdedTable ? '0.5rem' : '0.75rem',
+      }
+    : { left: 'calc(50% + 6rem)', transform: 'translateX(-50%)' };
+  const sidePanelWidth = veryCrowdedTable ? 'min(340px, 25vw)' : crowdedTable ? 'min(355px, 26vw)' : 'min(370px, 27vw)';
+  const unifiedPanelStyle = {
+    left: '1rem',
+    top: '2.75rem',
+    width: sidePanelWidth,
+    maxWidth: veryCrowdedTable ? '25vw' : crowdedTable ? '26vw' : '27vw',
+  };
+  const eventsPanelBodyMaxHeight = veryCrowdedTable ? 180 : crowdedTable ? 195 : 215;
+  const partyChatBodyMaxHeight = veryCrowdedTable ? 135 : crowdedTable ? 150 : 165;
+  const [bugModal, setBugModal] = useState(false);
+  const [bugText, setBugText] = useState('');
+  const [bugContact, setBugContact] = useState('');
+  const [bugSent, setBugSent] = useState(null);
+
+  // Stable identity even for guests (prevents leaderboard mixing seatId "1" across many people).
+  useEffect(() => {
+    try {
+      const already = String(me?.identity?.playerId || '').trim();
+      if (already) return;
+
+      // Prefer auth-bound player id.
+      let pid = '';
+      try { pid = String(window.localStorage.getItem('politikum.sessionPlayerId') || '').trim(); } catch {}
+
+      if (!pid) {
+        // Guest id: stable per-device.
+        let deviceId = '';
+        try { deviceId = String(window.localStorage.getItem('politikum.deviceId') || '').trim(); } catch {}
+        if (!deviceId) {
+          deviceId = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+          try { window.localStorage.setItem('politikum.deviceId', deviceId); } catch {}
+        }
+        pid = `guest_${deviceId}`;
+        try { window.localStorage.setItem('politikum.sessionPlayerId', pid); } catch {}
+      }
+
+      if (String(ctx?.phase || '') === 'lobby') {
+        try { moves.setPlayerIdentity({ playerId: pid, email: null }); } catch {}
+      }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [String(me?.identity?.playerId || ''), playerID]);
+
+  // ✓ = fully polished (per IMPLEMENTATION.md)
+  const POLISHED = useMemo(() => {
+    const s = new Set([
+      // Events
+      'event_1','event_2','event_3','event_10','event_11','event_12a','event_12b','event_12c','event_15','event_16',
+      // Actions
+      'action_4','action_5','action_6','action_7','action_8','action_9','action_13','action_14','action_17','action_18',
+      // Personas
+      'persona_1','persona_2','persona_3','persona_4','persona_5','persona_6','persona_14','persona_19','persona_20','persona_25','persona_27','persona_29','persona_30','persona_31','persona_35','persona_40','persona_42','persona_44'
+    ]);
+    return s;
+  }, []);
+
+  const isPolishedCard = (card) => {
+    const bid = String(card?.id || '').split('#')[0];
+    return POLISHED.has(bid);
+  };
+  const isMyTurn = String(ctx.currentPlayer) === String(playerID) && !G.gameOver;
+  const current = (G.players || []).find((p) => String(p.id) === String(ctx.currentPlayer));
+  const currentIsBot = String(current?.name || '').startsWith('[B]') || !!current?.isBot;
+
+  // Bot driver election (lock-based): any human tab can drive bot ticks.
+  // We use a localStorage lease so if the previous driver tab sleeps, another tab takes over.
+  const BOT_LOCK_KEY = useMemo(() => {
+    const mid = String(matchID || '');
+    return mid ? `politikum.botDriverLock:${mid}` : 'politikum.botDriverLock';
+  }, [matchID]);
+
+  const isHumanSeat = !(String(me?.name || '').startsWith('[B]') || !!me?.isBot);
+  const activeHumans = useMemo(() => (Array.isArray(G?.players) ? G.players.filter((p) => p?.active && !p?.isBot).length : 0), [G?.players]);
+  const singleHumanVsBot = activeHumans === 1;
+
+  const shouldDriveBots = useMemo(() => {
+    try {
+      if (!currentIsBot) return false;
+      if (!isHumanSeat) return false;
+      const now = Date.now();
+      const raw = window.localStorage.getItem(BOT_LOCK_KEY);
+      let lock = null;
+      try { lock = raw ? JSON.parse(raw) : null; } catch { lock = null; }
+      const holder = String(lock?.playerID || '');
+      const ts = Number(lock?.ts || 0);
+      const alive = ts && (now - ts) < 2500; // 2.5s lease
+      if (!alive || holder === String(playerID)) return true;
+      return false;
+    } catch {
+      return false;
+    }
+  }, [BOT_LOCK_KEY, currentIsBot, isHumanSeat, playerID]);
+
+  // Tick driver election: needed for human-vs-human too (expires response windows + resolves deferred on-enter abilities).
+  const TICK_LOCK_KEY = useMemo(() => {
+    const mid = String(matchID || '');
+    return mid ? `politikum.tickDriverLock:${mid}` : 'politikum.tickDriverLock';
+  }, [matchID]);
+
+  const shouldDriveTick = useMemo(() => {
+    try {
+      if (!isHumanSeat) return false;
+      const now = Date.now();
+      const raw = window.localStorage.getItem(TICK_LOCK_KEY);
+      let lock = null;
+      try { lock = raw ? JSON.parse(raw) : null; } catch { lock = null; }
+      const holder = String(lock?.playerID || '');
+      const ts = Number(lock?.ts || 0);
+      const alive = ts && (now - ts) < 2500;
+      if (!alive || holder === String(playerID)) return true;
+      return false;
+    } catch {
+      return true;
+    }
+  }, [TICK_LOCK_KEY, isHumanSeat, playerID]);
+
+  const refreshTickLease = () => {
+    try {
+      const now = Date.now();
+      window.localStorage.setItem(TICK_LOCK_KEY, JSON.stringify({ playerID: String(playerID), ts: now }));
+    } catch {}
+  };
+
+  const refreshBotLease = () => {
+    try {
+      const now = Date.now();
+      window.localStorage.setItem(BOT_LOCK_KEY, JSON.stringify({ playerID: String(playerID), ts: now }));
+    } catch {}
+  };
+
+  const response = G.response || null;
+  const pending = G.pending || null;
+
+  useEffect(() => {
+    // Drop stale local targeting state whenever turn ownership / phase changes.
+    // Otherwise a placement chosen on the previous turn can survive into the next one
+    // and produce invalid move calls against the new server state.
+    try {
+      if (String(ctx?.phase || '') !== 'action' || !isMyTurn) {
+        setPlacementMode(null);
+        setPlacementModeOpp(null);
+        setPickTargetForAction4(null);
+        setPickTargetForAction9(null);
+        setPickTargetForPersona9(null);
+        setP7FirstPick(null);
+        setP16DiscardPick([]);
+      }
+    } catch {}
+  }, [ctx?.phase, ctx?.currentPlayer, isMyTurn]);
+
+  useEffect(() => {
+    try {
+      const validHand = new Set((me?.hand || []).map((c) => String(c?.id || '')));
+      if (placementMode?.cardId && !validHand.has(String(placementMode.cardId))) setPlacementMode(null);
+      if (placementModeOpp?.cardId && !validHand.has(String(placementModeOpp.cardId))) setPlacementModeOpp(null);
+      if (pickTargetForAction4?.cardId && !validHand.has(String(pickTargetForAction4.cardId))) setPickTargetForAction4(null);
+      if (pickTargetForAction9?.cardId && !validHand.has(String(pickTargetForAction9.cardId))) setPickTargetForAction9(null);
+      if (pickTargetForPersona9?.cardId && !validHand.has(String(pickTargetForPersona9.cardId))) setPickTargetForPersona9(null);
+    } catch {}
+  }, [me?.hand, placementMode, placementModeOpp, pickTargetForAction4, pickTargetForAction9, pickTargetForPersona9]);
+
+  const responseKind = response?.kind || null;
+  const responseExpiresAt = Number(response?.expiresAtMs || 0);
+  const responseSecondsLeft = Math.max(0, Math.ceil((responseExpiresAt - Date.now()) / 1000));
+  // Choice / response windows stay visible until the server clears them.
+  const responseActive = !!responseKind;
+  const haveAction6 = (me?.hand || []).some((c) => c.type === 'action' && String(c.id).split('#')[0] === 'action_6');
+  const haveAction8 = (me?.hand || []).some((c) => c.type === 'action' && String(c.id).split('#')[0] === 'action_8');
+  const haveAction14 = (me?.hand || []).some((c) => c.type === 'action' && String(c.id).split('#')[0] === 'action_14');
+  const responseTargetsMe = !!pending && (pending.kind === 'action_4_discard' || pending.kind === 'action_9_discard_persona') && String(pending.targetId) === String(playerID);
+  const canPersona10Cancel = responseKind === 'cancel_action' && String(response?.allowPersona10By || '') === String(playerID) && responseTargetsMe;
+
+  useEffect(() => {
+    try {
+      const dbg = G?.debugLastMoveReject;
+      if (!dbg) return;
+      if (dbg.move === 'playPersona') console.warn('[playPersona rejected]', dbg);
+      if (dbg.move === 'playAction') console.warn('[playAction rejected]', dbg);
+      if (dbg.move === 'skipResponseWindow') console.warn('[skipResponseWindow rejected]', dbg);
+    } catch {}
+  }, [G?.debugLastMoveReject?.at]);
+
+  // IMPORTANT: don't include expiresAtMs in the key: server/client can drift and update it,
+  // which would re-open the prompt even after user pressed Skip.
+  const responseKey = responseKind ? `${responseKind}:${String(response?.playedBy || '')}:${String(response?.personaCard?.id || response?.actionCard?.id || '')}` : '';
+  const [skippedResponseKey, setSkippedResponseKey] = useState('');
+  useEffect(() => {
+    // clear skip marker when response changes / closes
+    if (!responseKey) { if (skippedResponseKey) setSkippedResponseKey(''); return; }
+    if (skippedResponseKey && skippedResponseKey !== responseKey) setSkippedResponseKey('');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [responseKey]);
+
+  // If the same response window keeps re-opening (rare desync), hide it locally for a while.
+  // Do NOT auto-send skipResponseWindow here: that created stale out-of-band move calls once the
+  // server had already closed the response, leading to noisy INVALID_MOVE logs.
+  useEffect(() => {
+    try {
+      if (!responseActive || !responseKey) return;
+      const k = `politikum.skipResponse:${responseKey}`;
+      const last = Number(window.localStorage.getItem(k) || 0);
+      if (!last) return;
+      if ((Date.now() - last) < 12_000) {
+        try { setSkippedResponseKey(responseKey); } catch {}
+      } else {
+        try { window.localStorage.removeItem(k); } catch {}
+      }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [responseActive, responseKey]);
+
+  const p8SwapSpec = responseKind === 'cancel_persona' ? (response?.persona8Swap || null) : null;
+  const canPersona8Swap = !!p8SwapSpec && String(p8SwapSpec.playerId || '') === String(playerID);
+  const [showEventSplash, setShowEventSplash] = useState(false);
+  const [showActionSplash, setShowActionSplash] = useState(false);
+  const ENABLE_EVENT_SPLASH = true;
+  const ENABLE_ACTION_SPLASH = false;
+  const [sidePanelCollapsed, setSidePanelCollapsed] = useState(false);
+  const [partyChatInput, setPartyChatInput] = useState('');
+  const [eventSplashDeadline, setEventSplashDeadline] = useState(0);
+  const [pushDeadline, setPushDeadline] = useState(0);
+  const [countdownNowMs, setCountdownNowMs] = useState(() => Date.now());
+
+  const [logCollapsed, setLogCollapsed] = useState(true);
+  const [hoverHandIndex, setHoverHandIndex] = useState(null);
+  const [hoverMyCoalition, setHoverMyCoalition] = useState(null);
+  const [hoverOppCoalition, setHoverOppCoalition] = useState({});
+  const [targetedPush, setTargetedPush] = useState(null);
+  const dismissedPushIdsRef = useRef(new Set());
+  const [eventSplashClosedId, setEventSplashClosedId] = useState('');
+  const [yourTurnSplashVisible, setYourTurnSplashVisible] = useState(false);
+  const [yourTurnSplashPhase, setYourTurnSplashPhase] = useState('hidden');
+  const [acknowledgedTurnPromptKey, setAcknowledgedTurnPromptKey] = useState('');
+  const wasMyTurnRef = useRef(false);
+  const myCoalitionNames = useMemo(() => (myCoalition || []).map((c) => String(c?.name || '').trim().toLowerCase()).filter(Boolean), [myCoalition]);
+  const displayCardTitle = (cardOrId, fallback = '') => {
+    const raw = typeof cardOrId === 'string' ? cardOrId : String(cardOrId?.id || '');
+    const bid = String(raw).split('#')[0];
+    const name = typeof cardOrId === 'string' ? '' : String(cardOrId?.name || cardOrId?.text || '').trim();
+    if (name && !/^(persona|action|event)_\d+[a-z]*$/i.test(name)) return name;
+    if (/^persona_\d+$/i.test(bid)) return personaName(bid);
+    if (/^action_\d+$/i.test(bid)) return 'действие';
+    if (/^event_\d+[a-z]*$/i.test(bid)) return 'событие';
+    return fallback || '';
+  };
+  const canSkipCurrentPending = !!(pending && [
+    'persona_3_choice','persona_5_pick_liberal','persona_7_swap_two_in_coalition','persona_11_offer','persona_11_pick_opponent_persona',
+    'persona_13_pick_target','persona_16_discard3_from_hand','persona_17_pick_opponent','persona_17_pick_persona_from_hand',
+    'persona_20_pick_from_discard','persona_21_pick_target_invert','persona_23_choose_self_inflict_draw','persona_26_pick_red_nationalist',
+    'persona_28_pick_non_fbk','persona_32_pick_bounce_target','persona_33_choose_faction','persona_34_guess_topdeck',
+    'persona_37_pick_opponent_persona','persona_45_steal_from_opponent','action_7_block_persona','action_13_shield_persona',
+    'action_17_choose_opponent_persona','action_18_pick_persona_from_discard'
+  ].includes(String(pending?.kind || '')) && String(pending?.playerId || pending?.attackerId || pending?.targetId || '') === String(playerID));
+  const yourTurnPromptKey = `${String(playerID)}:${String(ctx?.turn || 0)}`;
+  const yourTurnPromptActive = !!isMyTurn && !G?.gameOver && !G?.hasDrawn && !G?.pending && !G?.response && !showEventSplash && !targetedPush && acknowledgedTurnPromptKey !== yourTurnPromptKey;
+
+  const myDisplayName = String(me?.name || '').trim();
+  const playerNameById = useMemo(() => {
+    const map = {};
+    for (const p of (G?.players || [])) {
+      const pid = String(p?.id ?? '');
+      if (!pid) continue;
+      map[pid] = String(p?.name || pid).trim() || pid;
+    }
+    return map;
+  }, [G?.players]);
+
+  const summarizeLogLine = (line) => {
+    const raw = String(line || '').replace(/\s+/g, ' ').trim();
+    if (!raw) return '';
+    return raw.length > 120 ? `${raw.slice(0, 117)}…` : raw;
+  };
+
+  const isLineTargetingMe = (line) => {
+    const raw = String(line || '').toLowerCase();
+    if (!raw) return false;
+    const myName = myDisplayName.toLowerCase();
+    const actorName = String(playerNameById[String(playerID)] || '').toLowerCase();
+    if (myName && raw.includes(myName)) {
+      if (actorName && raw.startsWith(actorName)) return false;
+      return true;
+    }
+    if ((myCoalitionNames || []).some((n) => n && raw.includes(n))) return true;
+    if (/(вас|вам|вашу|ваш|ваша|ваше)\b/.test(raw)) return true;
+    return false;
+  };
+
+  const isChoiceBlockingMe = !!responseActive || (!!pending && [
+    String(pending?.targetId || ''),
+    String(pending?.playerId || ''),
+    String(pending?.victimId || ''),
+    String(pending?.defenderId || ''),
+  ].includes(String(playerID)));
+
+  const briefLogLines = useMemo(() => {
+    return (G.log || []).slice(-14).map((line, idx) => ({
+      id: `${idx}:${String(line)}`,
+      text: summarizeLogLine(line),
+      targeted: isLineTargetingMe(line),
+    }));
+  }, [G.log, myDisplayName, playerID, playerNameById]);
+
+
+  const partyChatLines = useMemo(() => {
+    return (G.chat || []).slice(-100).map((m, idx) => ({
+      id: `${idx}:${String(m?.timestamp || '')}:${String(m?.sender || '')}:${String(m?.text || '')}`,
+      sender: String(m?.sender || 'Anon'),
+      text: String(m?.text || ''),
+    }));
+  }, [G.chat]);
+
+  const eventSplashSecondsLeft = showEventSplash ? Math.max(0, Math.ceil((Number(eventSplashDeadline || 0) - Number(countdownNowMs || 0)) / 1000)) : 0;
+  const pushSecondsLeft = targetedPush && !targetedPush.sticky ? Math.max(0, Math.ceil((Number(pushDeadline || 0) - Number(countdownNowMs || 0)) / 1000)) : 0;
+
+  useEffect(() => {
+    if (acknowledgedTurnPromptKey && acknowledgedTurnPromptKey !== yourTurnPromptKey) setAcknowledgedTurnPromptKey('');
+  }, [acknowledgedTurnPromptKey, yourTurnPromptKey]);
+
+  useEffect(() => {
+    const nowMyTurn = !!isMyTurn && !G?.gameOver;
+    const wasMyTurn = !!wasMyTurnRef.current;
+    wasMyTurnRef.current = nowMyTurn;
+    if (!nowMyTurn || wasMyTurn) return;
+    setYourTurnSplashVisible(true);
+    setYourTurnSplashPhase('show');
+  }, [isMyTurn, G?.gameOver, ctx?.turn]);
+
+  useEffect(() => {
+    if (!yourTurnPromptActive) return;
+    setYourTurnSplashVisible(true);
+    setYourTurnSplashPhase('show');
+  }, [yourTurnPromptActive, yourTurnPromptKey]);
+  
+  const [mobileHandSelected, setMobileHandSelected] = useState(null);
+  const endTurnAtRef = useRef(0);
+  const safeEndTurn = () => {
+    const now = Date.now();
+    if ((now - Number(endTurnAtRef.current || 0)) < 700) return;
+    if (!isMyTurn || G?.pending || G?.response || !G?.hasDrawn || !G?.hasPlayed) return;
+    endTurnAtRef.current = now;
+    try { playSfx('ui'); } catch {}
+    try { moves.endTurn(); } catch {}
+  };
+
+  // Auto-pick sole opponent for flows that start with “choose opponent”.
+  useEffect(() => {
+    const only = opponents?.length === 1 ? opponents[0] : null;
+    if (!only) return;
+
+    // action_4/action_9: target player
+    if (pickTargetForAction4) {
+      try { moves.playAction(pickTargetForAction4.cardId, String(only.id)); } catch {}
+      setPickTargetForAction4(null);
+      return;
+    }
+    // action_9 can target yourself too → no auto-pick.
+
+    // persona_9: must be played into opponent coalition
+    if (pickTargetForPersona9) {
+      try { moves.playPersona(pickTargetForPersona9.cardId, undefined, 'right', String(only.id)); } catch {}
+      setPickTargetForPersona9(null);
+      return;
+    }
+
+    // persona_17/p45: target player
+    if (pending?.kind === 'persona_17_pick_opponent' && String(pending?.playerId) === String(playerID)) {
+      try { moves.persona17PickOpponent(String(only.id)); } catch {}
+      return;
+    }
+    if (pending?.kind === 'persona_45_steal_from_opponent' && String(pending?.playerId) === String(playerID)) {
+      try { moves.persona45StealFromOpponent(String(only.id)); } catch {}
+      return;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [opponents, pickTargetForAction4, pickTargetForAction9, pickTargetForPersona9, pending?.kind]);
+
+  const myVpBase = (me?.coalition || []).reduce((s, c) => s + Number(c.baseVp ?? c.vp ?? 0), 0);
+  const myVpTokens = (me?.coalition || []).reduce((s, c) => s + Number(c.vpDelta || 0), 0);
+  const myVpPassives = (me?.coalition || []).reduce((s, c) => s + Number(c.passiveVpDelta || 0), 0);
+  const myCoalitionPoints = (me?.coalition || []).reduce((s, c) => s + Number(c.vp ?? (Number(c.baseVp ?? 0) + Number(c.vpDelta || 0) + Number(c.passiveVpDelta || 0))), 0);
+
+  const pendingTokens = pending?.kind === 'place_tokens_plus_vp' && String(pending?.playerId) === String(playerID);
+  const pendingTokensRemaining = pendingTokens ? Number(pending?.remaining || 0) : 0;
+  const pendingTokensSource = pendingTokens ? String(pending?.sourceCardId || '') : '';
+
+  const pendingTokensBase = String(pendingTokensSource || '').split('#')[0];
+  const pendingTokensSingleTarget = pendingTokensBase === 'event_1';
+  const [pendingTokensTargetId, setPendingTokensTargetId] = useState(null);
+  const [pendingTokensLastSource, setPendingTokensLastSource] = useState('');
+  useEffect(() => {
+    if (!pendingTokens) {
+      if (pendingTokensTargetId) setPendingTokensTargetId(null);
+      if (pendingTokensLastSource) setPendingTokensLastSource('');
+      return;
+    }
+    if (pendingTokensSource !== pendingTokensLastSource) {
+      setPendingTokensLastSource(pendingTokensSource);
+      setPendingTokensTargetId(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingTokens, pendingTokensSource]);
+
+  useEffect(() => {
+    if (pendingTokensBase !== 'persona_40') setTargetP40(null);
+  }, [pendingTokensBase]);
+
+  const pendingPersona45 = pending?.kind === 'persona_45_steal_from_opponent' && String(pending?.playerId) === String(playerID);
+  const pendingPersona45Source = pendingPersona45 ? String(pending?.sourceCardId || '') : '';
+
+  // Auto-pick opponent when only one choice.
+  useEffect(() => {
+    if (!pendingPersona45) return;
+    try {
+      const opps = (G.players || []).filter((pp) => String(pp?.id) !== String(playerID) && pp?.active);
+      if (opps.length === 1) {
+        moves.persona45StealFromOpponent(String(opps[0].id));
+      }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingPersona45]);
+
+  const pendingP21 = pending?.kind === 'persona_21_pick_target_invert' && String(pending?.playerId) === String(playerID);
+  const pendingP21Source = pendingP21 ? String(pending?.sourceCardId || '') : '';
+  const pendingP23 = pending?.kind === 'persona_23_choose_self_inflict_draw' && String(pending?.playerId) === String(playerID);
+  const pendingP23Source = pendingP23 ? String(pending?.sourceCardId || '') : '';
+  const pendingP26 = pending?.kind === 'persona_26_pick_red_nationalist' && String(pending?.playerId) === String(playerID);
+  const pendingP26Source = pendingP26 ? String(pending?.sourceCardId || '') : '';
+  const pendingP28 = pending?.kind === 'persona_28_pick_non_fbk' && String(pending?.playerId) === String(playerID);
+  const pendingP28Source = pendingP28 ? String(pending?.sourceCardId || '') : '';
+
+  const pendingA7 = pending?.kind === 'action_7_block_persona' && String(pending?.attackerId) === String(playerID);
+  const pendingA13 = pending?.kind === 'action_13_shield_persona' && String(pending?.attackerId) === String(playerID);
+  const pendingA17 = pending?.kind === 'action_17_choose_opponent_persona' && String(pending?.attackerId) === String(playerID);
+
+  const pendingP32 = pending?.kind === 'persona_32_pick_bounce_target' && String(pending?.playerId) === String(playerID);
+  const pendingP32Source = pendingP32 ? String(pending?.sourceCardId || '') : '';
+
+  const pendingP37 = pending?.kind === 'persona_37_pick_opponent_persona' && String(pending?.playerId) === String(playerID);
+  const pendingP37Source = pendingP37 ? String(pending?.sourceCardId || '') : '';
+
+  const pendingP13 = pending?.kind === 'persona_13_pick_target' && String(pending?.playerId) === String(playerID);
+  const pendingP13Source = pendingP13 ? String(pending?.sourceCardId || '') : '';
+  const pendingP13AttackerId = pendingP13 ? String(pending?.attackerId || '') : '';
+
+  const pendingP33 = pending?.kind === 'persona_33_choose_faction' && String(pending?.playerId) === String(playerID);
+  const pendingP33Source = pendingP33 ? String(pending?.sourceCardId || '') : '';
+  const pendingP34 = pending?.kind === 'persona_34_guess_topdeck' && String(pending?.playerId) === String(playerID);
+  const pendingP34Source = pendingP34 ? String(pending?.sourceCardId || '') : '';
+  const canUseP39 = isMyTurn && !G.pending && !G.response && (me?.coalition || []).some((c) => String(c.id).split('#')[0] === 'persona_39');
+
+  const p34Remaining = useMemo(() => {
+    if (!pendingP34) return [];
+    const ALL = Array.from({ length: 45 }, (_, i) => `persona_${i + 1}`);
+    const playedOrDiscarded = new Set();
+    const myHand = new Set();
+    try {
+      for (const pp of (G.players || [])) {
+        for (const c of (pp.coalition || [])) playedOrDiscarded.add(String(c.id).split('#')[0]);
+      }
+      for (const c of (G.discard || [])) playedOrDiscarded.add(String(c.id).split('#')[0]);
+      const me2 = (G.players || []).find((pp) => String(pp.id) === String(playerID));
+      for (const c of (me2?.hand || [])) myHand.add(String(c.id).split('#')[0]);
+    } catch {}
+    return ALL.filter((id) => !playedOrDiscarded.has(id) && !myHand.has(id));
+  }, [G, playerID, pendingP34]);
+
+  useEffect(() => {
+    if (!pendingP34) return;
+    setP34WheelIdx(0);
+  }, [pendingP34, p34Remaining.length]);
+
+  const pendingP16 = pending?.kind === 'persona_16_discard3_from_hand' && String(pending?.playerId) === String(playerID);
+  const pendingHandLimit = isMyTurn && !pending && !responseActive && (me?.hand || []).length > 7;
+  const pendingP16Source = pendingP16 ? String(pending?.sourceCardId || '') : '';
+
+  const pendingP12 = pending?.kind === 'persona_12_choose_adjacent_red' && String(pending?.playerId) === String(playerID);
+  const pendingP12Left = pendingP12 ? String(pending?.leftId || '') : '';
+  const pendingP12Right = pendingP12 ? String(pending?.rightId || '') : '';
+
+  const pendingP7 = pending?.kind === 'persona_7_swap_two_in_coalition' && String(pending?.playerId) === String(playerID);
+  const pendingP7Source = pendingP7 ? String(pending?.sourceCardId || '') : '';
+
+  const pendingP11Offer = pending?.kind === 'persona_11_offer' && String(pending?.playerId) === String(playerID);
+  const pendingP11Pick = pending?.kind === 'persona_11_pick_opponent_persona' && String(pending?.playerId) === String(playerID);
+
+  const pendingP17PickOpp = pending?.kind === 'persona_17_pick_opponent' && String(pending?.playerId) === String(playerID);
+  const pendingP17PickCard = pending?.kind === 'persona_17_pick_persona_from_hand' && String(pending?.playerId) === String(playerID);
+  const pendingP17TargetId = pendingP17PickCard ? String(pending?.targetId || '') : '';
+
+  useEffect(() => {
+    if (!pickTargetForAction9) setTargetAction9Id(null);
+  }, [pickTargetForAction9]);
+
+  useEffect(() => {
+    const kind = String(pending?.kind || '');
+    if (!kind) {
+      setTargetA7(null);
+      setTargetA13(null);
+      setTargetA17(null);
+      setTargetP5(null);
+      setTargetP11(null);
+      setTargetP13(null);
+      setTargetP14(null);
+      setTargetP21(null);
+      setTargetP26(null);
+      setTargetP28(null);
+      setTargetP37(null);
+      setTargetP40(null);
+      return;
+    }
+    if (kind !== 'action_7_block_persona') setTargetA7(null);
+    if (kind !== 'action_13_shield_persona') setTargetA13(null);
+    if (kind !== 'action_17_choose_opponent_persona') setTargetA17(null);
+    if (kind !== 'persona_5_pick_liberal') setTargetP5(null);
+    if (kind !== 'persona_11_pick_opponent_persona') setTargetP11(null);
+    if (kind !== 'persona_13_pick_target') setTargetP13(null);
+    if (kind !== 'discard_one_persona_from_any_coalition') setTargetP14(null);
+    if (kind !== 'persona_21_pick_target_invert') setTargetP21(null);
+    if (kind !== 'persona_26_pick_red_nationalist') setTargetP26(null);
+    if (kind !== 'persona_28_pick_non_fbk') setTargetP28(null);
+    if (kind !== 'persona_37_pick_opponent_persona') setTargetP37(null);
+    if (kind !== 'place_tokens_plus_vp') setTargetP40(null);
+  }, [pending?.kind]);
+
+
+  const isImmovablePersona = (card) => card?.type === 'persona' && String(card.id).split('#')[0] === 'persona_31';
+
+  // Hand fan geometry (ported from Citadel MP)
+  const cards = hand;
+  const fanN = Math.max(1, cards.length);
+  const cardW = 144; // ~ w-36
+  const handStep = Math.min(28, Math.max(10, 180 / Math.max(1, fanN - 1)));
+  const handWidth = cardW + (fanN - 1) * handStep;
+
+  const scaleByDist = (dist) => {
+    if (dist == 0) return 2;
+    if (dist == 1) return 1.35;
+    if (dist == 2) return 1.15;
+    return 1;
+  };
+
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      // ignore typing
+      const tag = (e.target?.tagName || '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || e.isComposing) return;
+
+      const key = String(e.key || '').toLowerCase();
+
+      if (key === 'escape') {
+        if (pendingP11Offer) {
+          try { playSfx('ui', 0.25); moves.persona11Skip(); } catch {}
+          return;
+        }
+        if (G.pending?.kind === 'persona_3_choice' && String(playerID) === String(G.pending.playerId)) {
+          try { playSfx('ui', 0.25); moves.persona3Skip(); } catch {}
+          return;
+        }
+      }
+
+      if (key === 'l') {
+        setLogCollapsed((v) => !v);
+        return;
+      }
+      if (key === 'escape') {
+        setShowWhereAmI(false);
+        setPickTargetForAction4(null);
+        setPickTargetForAction9(null);
+        setPlacementMode(null);
+        setP16DiscardPick([]);
+        setP7FirstPick(null);
+        if (pendingP32) { try { moves.persona32CancelBounce(); } catch {} }
+        // generic pending cancel (stability)
+        if (G.pending && String(G.pending.playerId || G.pending.attackerId || G.pending.targetId || '') === String(playerID)) {
+          try { moves.cancelPending(); } catch {}
+        }
+        return;
+      }
+      if (key === 'h') {
+        setShowHotkeys((v) => !v);
+        return;
+      }
+      if (key === 'm') {
+        setSoundOn((v) => {
+          const nv = !v;
+          try { localStorage.setItem('politikum:soundOn', nv ? '1' : '0'); } catch {}
+          return nv;
+        });
+        playSfx('ui', 0.4);
+        return;
+      }
+      if (key === 't') {
+        setShowTutorial((v) => !v);
+        return;
+      }
+      if (key === 'c') {
+        if (!isMyTurn || G.pending || G.hasDrawn) return;
+        playSfx('draw');
+        moves.drawCard();
+        return;
+      }
+      if (key === 'e') {
+        if (!isMyTurn || !G.hasDrawn || !G.hasPlayed) return;
+        safeEndTurn();
+        return;
+      }
+
+      // Response hotkeys
+      if (responseKind && key === '2') {
+        // skip/decline response window (allow actor too)
+        if (responseActive) {
+          try {
+            setSkippedResponseKey(responseKey);
+            window.localStorage.setItem(`politikum.skipResponse:${responseKey}`, String(Date.now()));
+          } catch {}
+          try { moves.skipResponseWindow(); } catch {}
+        }
+        return;
+      }
+      if (responseKind && key === '3') {
+        // p8 swap during cancel_persona window
+        if (responseActive && responseKind === 'cancel_persona' && canPersona8Swap && String(response?.playedBy) !== String(playerID)) {
+          try { moves.persona8SwapWithPlayedPersona(); } catch {}
+        }
+        return;
+      }
+
+      // Fast cancels during response windows
+      if (responseKind && key === '1') {
+        // action_6 cancels actions (anyone)
+        if (responseKind === 'cancel_action' && String(response?.playedBy) !== String(playerID)) {
+          const c6 = (me?.hand || []).find((c) => c.type === 'action' && String(c.id).split('#')[0] === 'action_6');
+          if (c6) moves.playAction(c6.id);
+        }
+        // action_8 cancels persona plays (anyone)
+        if (responseKind === 'cancel_persona' && String(response?.playedBy) !== String(playerID)) {
+          const c8 = (me?.hand || []).find((c) => c.type === 'action' && String(c.id).split('#')[0] === 'action_8');
+          if (c8) moves.playAction(c8.id);
+        }
+        // action_14 cancels the effect of an action that is targeting YOU
+        if (responseKind === 'cancel_action' && responseTargetsMe) {
+          const c14 = (me?.hand || []).find((c) => c.type === 'action' && String(c.id).split('#')[0] === 'action_14');
+          if (c14) moves.playAction(c14.id);
+        }
+        return;
+      }
+
+      // p3: option B hotkey
+      if (G.pending?.kind === 'persona_3_choice' && String(playerID) === String(G.pending.playerId) && key === 'b') {
+        try { moves.persona3ChooseOption('b'); } catch {}
+        return;
+      }
+
+      // p33 choice: faction
+      if (pendingP33) {
+        const map = {
+          '1': 'faction:liberal',
+          '2': 'faction:rightwing',
+          '3': 'faction:leftwing',
+          '4': 'faction:fbk',
+          '5': 'faction:red_nationalist',
+          '6': 'faction:system',
+          '7': 'faction:neutral',
+        };
+
+        // Support both normal digits and numpad.
+        const code = String(e.code || '');
+        const codeDigit = code.startsWith('Digit') ? code.slice(5) : (code.startsWith('Numpad') ? code.slice(6) : '');
+        const k = (key >= '1' && key <= '7') ? key : (codeDigit >= '1' && codeDigit <= '7' ? codeDigit : '');
+
+        if (k) {
+          try { moves.persona33ChooseFaction(map[k]); } catch {}
+          return;
+        }
+      }
+
+      // p34 guess (1..N from remaining unseen personas)
+      if (pendingP34) {
+        const ALL = Array.from({ length: 45 }, (_, i) => `persona_${i + 1}`);
+        const seen = new Set();
+        try {
+          for (const pp of (G.players || [])) {
+            for (const c of (pp.hand || [])) seen.add(String(c.id).split('#')[0]);
+            for (const c of (pp.coalition || [])) seen.add(String(c.id).split('#')[0]);
+          }
+          for (const c of (G.discard || [])) seen.add(String(c.id).split('#')[0]);
+        } catch {}
+        const remaining = ALL.filter((id) => !seen.has(id));
+        const code = String(e.code || '');
+        const codeDigit = code.startsWith('Digit') ? code.slice(5) : (code.startsWith('Numpad') ? code.slice(6) : '');
+        const k = (key >= '1' && key <= '9') ? key : (codeDigit >= '1' && codeDigit <= '9' ? codeDigit : '');
+        if (k) {
+          const idx = Number(k) - 1;
+          const pick = remaining[idx];
+          if (pick) {
+            try { moves.persona34GuessTopdeck(pick); } catch {}
+            return;
+          }
+        }
+        if (key === 'escape') {
+          try { moves.persona34GuessTopdeck('skip'); } catch {}
+          return;
+        }
+      }
+
+      // p39 activate
+      if (canUseP39 && key === 'r') {
+        try { moves.persona39ActivateRecycle(); } catch {}
+        return;
+      }
+
+      // p13 retaliation (out-of-turn): allow skipping with Esc
+      if (pendingP13 && key === 'escape') {
+        try { moves.persona13Skip(); } catch {}
+        return;
+      }
+
+      // p23 choice: 0..3 tokens
+      if (pendingP23 && (key === '1' || key === '2' || key === '3')) {
+        try { moves.persona23ChooseSelfInflict(Number(key)); } catch {}
+        return;
+      }
+      if (pendingP23 && key === 'escape') {
+        try { moves.persona23ChooseSelfInflict(0); } catch {}
+        return;
+      }
+
+      // p16 discard3: press 1..9 to toggle cards, Enter to confirm
+      if (pendingP16) {
+        if (key >= '1' && key <= '9') {
+          const idx = Number(key) - 1;
+          const c = (me?.hand || [])[idx];
+          if (!c) return;
+          setP16DiscardPick((arr) => {
+            const s = new Set(arr || []);
+            if (s.has(c.id)) s.delete(c.id);
+            else s.add(c.id);
+            return Array.from(s).slice(0, 3);
+          });
+          return;
+        }
+        if (key === 'enter') {
+          const ids = (p16DiscardPick || []).slice(0, 3);
+          if (ids.length < Math.min(3, (me?.hand || []).length)) return;
+          try { moves.persona16Discard3FromHand(ids[0], ids[1], ids[2]); } catch {}
+          setP16DiscardPick([]);
+          return;
+        }
+      }
+
+      // Number hotkeys for hand (quick-play): 1..9, 0 = 10
+      if (!responseActive && !pendingP23 && !pendingP16 && (key === '0' || (key >= '1' && key <= '9'))) {
+        const n = key === '0' ? 10 : Number(key);
+        const idx = n - 1;
+        const card = (me?.hand || [])[idx];
+        if (!card) return;
+
+        const baseId = String(card.id).split('#')[0];
+        const canPlayPersona = isMyTurn && G.hasDrawn && card.type === 'persona';
+        const canPlayAction = isMyTurn && G.hasDrawn && !G.hasPlayed && card.type === 'action';
+        if (canPlayPersona) moves.playPersona(card.id);
+        else if (canPlayAction) {
+          if (baseId === 'action_4') setPickTargetForAction4({ cardId: card.id });
+          else if (baseId === 'action_9') setPickTargetForAction9({ cardId: card.id });
+          else moves.playAction(card.id);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isMyTurn, G.hasDrawn, G.hasPlayed, moves, responseKind, responseSecondsLeft, response?.playedBy, playerID, me?.hand, pendingP16, p16DiscardPick]);
+
+  // Drive bot turns.
+  // In single-human-vs-bot games, avoid lease logic entirely: the only human client should always tick the bot.
+  // In other game shapes, fall back to the lease-based single-driver election.
+  useEffect(() => {
+    if (G?.gameOver) return;
+    if (!currentIsBot) return;
+    if (!isHumanSeat) return;
+    if (!singleHumanVsBot && !shouldDriveBots) return;
+
+    let cancelled = false;
+    let inFlight = false;
+
+    const fire = async () => {
+      if (cancelled || inFlight) return;
+      inFlight = true;
+      try {
+        if (!singleHumanVsBot) refreshBotLease();
+
+        const res = await moves.tickBot();
+        console.log('[bot-driver] tickBot result:', res);
+
+        if (res?.ok === false) {
+          console.warn('[bot-driver] tickBot rejected:', res);
+        }
+      } catch (e) {
+        console.error('[bot-driver] tickBot failed:', e);
+      } finally {
+        inFlight = false;
+      }
+    };
+
+    fire(); // immediately kick the bot when entering a bot turn
+
+    const t = setInterval(fire, 900);
+    return () => {
+      cancelled = true;
+      clearInterval(t);
+    };
+  }, [moves, currentIsBot, G?.gameOver, shouldDriveBots, isHumanSeat, singleHumanVsBot]);
+
+  useEffect(() => {
+    console.log('[turn-debug]', {
+      playerID,
+      currentPlayer: ctx?.currentPlayer,
+      currentName: current?.name,
+      currentIsBot,
+      isHumanSeat,
+      singleHumanVsBot,
+      shouldDriveBots,
+      gameOver: G?.gameOver,
+    });
+  }, [playerID, ctx?.currentPlayer, current?.name, currentIsBot, isHumanSeat, singleHumanVsBot, shouldDriveBots, G?.gameOver]);
+
+  // Human-side tick: clears expired response windows + auto-ends stuck turns once response closes.
+  useEffect(() => {
+    if (G?.gameOver) return;
+    if (!shouldDriveTick) return; // single driver
+    const needTick = !!G.response || String(G.pending?.kind || '') === 'resolve_persona_after_response';
+    if (!needTick) return;
+
+    const t = setInterval(() => {
+      refreshTickLease();
+      try { moves.tick(); } catch {}
+    }, 500);
+    return () => clearInterval(t);
+  }, [moves, G?.response, G?.pending?.kind, G?.gameOver, shouldDriveTick]);
+
+  // Event splash: show when lastEvent changes, but do not replay an old event on first render.
+  const lastEventSeenRef = useRef(null);
+  useEffect(() => {
+    const id = G.lastEvent?.id ? String(G.lastEvent.id) : '';
+    if (!id) {
+      setShowEventSplash(false);
+      setEventSplashClosedId('');
+      lastEventSeenRef.current = null;
+      return;
+    }
+
+    if (lastEventSeenRef.current == null) {
+      lastEventSeenRef.current = id;
+      setShowEventSplash(false);
+      return;
+    }
+
+    if (String(lastEventSeenRef.current) !== id) {
+      lastEventSeenRef.current = id;
+      setEventSplashClosedId('');
+      setEventSplashDeadline(Date.now() + 10000);
+      setShowEventSplash(true);
+      return;
+    }
+
+    if (eventSplashClosedId && eventSplashClosedId === id) {
+      setShowEventSplash(false);
+    }
+  }, [G.lastEvent?.id, eventSplashClosedId]);
+
+  useEffect(() => {
+    if (!showEventSplash) return;
+    const t = setTimeout(() => setShowEventSplash(false), 10000);
+    return () => clearTimeout(t);
+  }, [showEventSplash, G.lastEvent?.id]);
+
+
+  useEffect(() => {
+    const t = setInterval(() => setCountdownNowMs(Date.now()), 250);
+    return () => clearInterval(t);
+  }, []);
+
+  // Autoscroll log to bottom on new lines
+  useEffect(() => {
+    const el = logRef.current;
+    if (!el) return;
+    // next tick so layout updates first
+    const t = setTimeout(() => {
+      el.scrollTop = el.scrollHeight;
+    }, 0);
+    return () => clearTimeout(t);
+  }, [(G.log || []).length]);
+
+  useEffect(() => {
+    const el = briefLogRef.current;
+    if (!el) return;
+    const t = setTimeout(() => {
+      el.scrollTop = el.scrollHeight;
+    }, 0);
+    return () => clearTimeout(t);
+  }, [briefLogLines.length]);
+
+  useEffect(() => {
+    const el = partyChatRef.current;
+    if (!el) return;
+    const t = setTimeout(() => {
+      el.scrollTop = el.scrollHeight;
+    }, 0);
+    return () => clearTimeout(t);
+  }, [partyChatLines.length]);
+
+  useEffect(() => {
+    const lines = Array.isArray(G?.log) ? G.log : [];
+    const last = String(lines[lines.length - 1] || '').trim();
+    if (!last) return;
+
+    const pushId = `${lines.length}:${last}`;
+    const targeted = isLineTargetingMe(last);
+    if (!targeted) return;
+    if (dismissedPushIdsRef.current.has(pushId)) return;
+
+    setTargetedPush((prev) => {
+      if (prev?.id === pushId && prev?.sticky === isChoiceBlockingMe) return prev;
+      return {
+        id: pushId,
+        text: summarizeLogLine(last),
+        sticky: isChoiceBlockingMe,
+      };
+    });
+  }, [G?.log, isChoiceBlockingMe, myDisplayName, playerID, playerNameById]);
+
+  useEffect(() => {
+    if (!targetedPush || targetedPush.sticky) return;
+    setPushDeadline(Date.now() + 10000);
+    const t = setTimeout(() => {
+      dismissedPushIdsRef.current.add(targetedPush.id);
+      setTargetedPush((prev) => (prev?.id === targetedPush.id ? null : prev));
+    }, 10000);
+    return () => clearTimeout(t);
+  }, [targetedPush]);
+
+  useEffect(() => {
+    if (!targetedPush?.sticky) return;
+    if (!isChoiceBlockingMe) {
+      dismissedPushIdsRef.current.add(targetedPush.id);
+      setTargetedPush(null);
+    }
+  }, [targetedPush, isChoiceBlockingMe]);
+
+  const [hudToast, setHudToast] = useState('');
+
+  const toast = (t) => {
+    setHudToast(String(t || ''));
+    try { setTimeout(() => setHudToast(''), 1500); } catch {}
+  };
+
+  const copyText = (txt) => {
+    const s = String(txt ?? '');
+
+    // 1) Clipboard API
+    try {
+      const fn = navigator.clipboard?.writeText;
+      if (fn) {
+        fn.call(navigator.clipboard, s);
+        toast('copied');
+        return true;
+      }
+    } catch {}
+
+    // 2) execCommand fallback
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = s;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      ta.style.top = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, s.length);
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      if (ok) { toast('copied'); return true; }
+    } catch {}
+
+    // 3) prompt fallback
+    try { window.prompt('Copy to clipboard:', s); toast('prompt'); return false; } catch {}
+
+    toast('copy failed');
+    return false;
+  };
+
+  const buildBugReport = () => {
+    const appSha = (typeof __GIT_SHA__ !== 'undefined' ? __GIT_SHA__ : 'nogit');
+    const appShort = (typeof __GIT_SHA_SHORT__ !== 'undefined' ? __GIT_SHA_SHORT__ : String(appSha).slice(0, 7));
+    const appBranch = (typeof __GIT_BRANCH__ !== 'undefined' ? __GIT_BRANCH__ : 'nogit');
+    const engShort = (typeof __ENGINE_GIT_SHA_SHORT__ !== 'undefined' ? __ENGINE_GIT_SHA_SHORT__ : 'nogit');
+
+    const pend = (G && (G.pending || (G.pending === 0))) ? G.pending : null;
+    const resp = (G && (G.response || (G.response === 0))) ? G.response : null;
+
+    return {
+      ts: new Date().toISOString(),
+      matchID: matchID || null,
+      playerID: playerID ?? null,
+      app: { branch: appBranch, sha: appSha, short: appShort },
+      engine: { short: engShort },
+      ctx: {
+        phase: ctx?.phase ?? null,
+        currentPlayer: ctx?.currentPlayer ?? null,
+        gameover: ctx?.gameover ?? null,
+      },
+      state: {
+        hasDrawn: !!G?.hasDrawn,
+        hasPlayed: !!G?.hasPlayed,
+        lastEvent: G?.lastEvent?.id ?? null,
+        lastAction: G?.lastAction?.id ?? null,
+      },
+      pending: pend,
+      response: resp,
+    };
+  };
+
+  return (
+    <div className="w-full min-h-screen bg-[url('/assets/ui/table_v2.webp')] bg-cover bg-center text-amber-100">
+      {bugModal && (
+        <div className="fixed inset-0 z-[99999] bg-black/70 backdrop-blur-sm pointer-events-auto flex items-center justify-center" onClick={() => setBugModal(false)}>
+          <div className="w-[min(720px,92vw)] rounded-2xl border border-amber-900/30 bg-black/60 shadow-2xl p-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="text-amber-100 font-black text-sm">Сообщить баг</div>
+                <div className="text-amber-200/70 font-mono text-[12px] mt-1">match: {String(matchID || '').slice(0, 12) || '—'}</div>
+              </div>
+              <button type="button" onClick={() => setBugModal(false)} className="px-3 py-2 rounded-xl bg-slate-800/70 hover:bg-slate-700/80 border border-amber-900/20 text-amber-50 font-black text-[10px] uppercase tracking-widest">Закрыть</button>
+            </div>
+
+            <div className="mt-3 grid gap-2">
+              <textarea
+                value={bugText}
+                onChange={(e) => setBugText(e.target.value)}
+                placeholder="Опиши что случилось (что нажал, что ожидал, что увидел)…"
+                className="w-full h-28 px-3 py-2 rounded-xl bg-black/50 border border-amber-900/30 text-amber-50 text-sm"
+              />
+              <input
+                value={bugContact}
+                onChange={(e) => setBugContact(e.target.value)}
+                placeholder="Контакт (опционально): telegram @ / email"
+                className="w-full px-3 py-2 rounded-xl bg-black/50 border border-amber-900/30 text-amber-50 text-sm"
+              />
+              <div className="flex items-center justify-between gap-2">
+                <button
+                  type="button"
+                  onClick={() => copyText(JSON.stringify(buildBugReport(), null, 2))}
+                  className="px-3 py-2 rounded-xl bg-black/45 hover:bg-black/60 border border-amber-900/25 text-amber-50 font-black text-[11px]"
+                >
+                  Скопировать тех.данные
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const text = String(bugText || '').trim();
+                    if (!text) { setBugSent('Напиши текст'); return; }
+                    setBugSent('Отправляю…');
+                    try {
+                      const payload = {
+                        text,
+                        contact: String(bugContact || '').trim() || null,
+                        matchId: matchID || null,
+                        playerId: (me?.identity?.playerId || me?.name || playerID || null),
+                        name: (me?.name || null),
+                        context: buildBugReport(),
+                        url: String(window.location.href || ''),
+                      };
+                      const res = await fetch(`${SERVER}/public/bugreport`, {
+                        method: 'POST',
+                        headers: { 'content-type': 'application/json' },
+                        body: JSON.stringify(payload),
+                      });
+                      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                      const j = await res.json().catch(() => ({}));
+                      setBugSent(j?.id ? `Отправлено (#${j.id})` : 'Отправлено');
+                      setBugText('');
+                    } catch (e) {
+                      setBugSent(e?.message || String(e));
+                    }
+                  }}
+                  className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-amber-950 font-black text-[11px] uppercase tracking-widest"
+                >
+                  Отправить
+                </button>
+              </div>
+              {!!bugSent && <div className="text-[12px] font-mono text-amber-200/80">{bugSent}</div>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* (admin link removed from in-game UI) */}
+
+      {/* Opponents */}
+      <div className={"fixed top-20 z-[700] pointer-events-auto " + (crowdedTable ? 'grid' : 'flex justify-start gap-6')} style={opponents.length === 1 ? { left: '50%', transform: 'translateX(-50%)' } : opponentsWrapStyle}>
+        {opponents.map((p) => {
+          const hand0 = p.hand || [];
+          const coal = (p.coalition || []);
+          const nHand = (hand0 || []).length;
+          const nCoal = (coal || []).length;
+          const nTotal = nHand + nCoal;
+
+          const pts = (coal || []).reduce((s, c) => s + Number(c.vp || 0), 0); // MVP points
+
+          const oppPid = String(p?.identity?.playerId || '').trim();
+          const oppRating = oppPid ? ratingsMap?.[oppPid] : null;
+
+          // Opponent fan cards
+          const backs = Array.from({ length: nHand }, () => ({ kind: 'back' }));
+          const faces = coal.map((c) => ({ kind: 'face', card: c }));
+
+          // Mobile: don't show hidden (unplayed) hand cards at all.
+          // Desktop: show some backs + all coalition faces.
+          const MAX_SHOW = veryCrowdedTable ? 7 : crowdedTable ? 9 : 10;
+          const backsShown = Math.min(nHand, Math.max(0, MAX_SHOW - faces.length));
+          const oppFanCards = [...backs.slice(0, backsShown), ...faces];
+
+          const show = oppFanCards.length;
+          const stepBack = veryCrowdedTable ? 5 : crowdedTable ? 6 : 8;
+          const flatP5 = opponents.length === 1 && G.pending?.kind === 'persona_5_pick_liberal' && String(playerID) === String(G.pending?.playerId);
+          const stepFace = flatP5 ? (veryCrowdedTable ? 28 : crowdedTable ? 34 : 42) : (veryCrowdedTable ? 18 : crowdedTable ? 22 : 28);
+
+          const calcWidth = () => {
+            const shown = oppFanCards.slice(0, show);
+            let w = opponentCardWidth;
+            for (let i = 1; i < shown.length; i++) {
+              w += shown[i].kind === 'back' ? stepBack : stepFace;
+            }
+            return w;
+          };
+          const width = calcWidth();
+          const hoverIdx = flatP5 ? null : (hoverOppCoalition?.[p.id] ?? null);
+
+          const scaleByDist2 = (dist) => {
+            if (dist === 0) return veryCrowdedTable ? 1.14 : crowdedTable ? 1.24 : 1.45;
+            if (dist === 1) return veryCrowdedTable ? 1.05 : crowdedTable ? 1.1 : 1.14;
+            if (dist === 2) return veryCrowdedTable ? 1.02 : crowdedTable ? 1.05 : 1.08;
+            return 1;
+          };
+
+          return (
+            <div key={p.id} className={"flex flex-col items-center gap-2 relative pt-10 " + (veryCrowdedTable ? 'px-1' : crowdedTable ? 'px-2' : 'px-4')}>
+              {/* name/points as absolute overlay above cards */}
+              {String(p.name || '').trim() && !String(p.name || '').startsWith('[H] Seat') && (
+                <div className="absolute -top-10 left-0 flex items-center gap-2 bg-black/55 border border-amber-900/20 rounded-full px-4 py-1 text-[11px] font-mono font-black tracking-widest text-amber-200/90 z-[2000] whitespace-nowrap justify-center">
+                  <span>{p.name}</span>
+                  {(oppRating != null) && <span className="text-amber-100/80">({oppRating})</span>}
+                  <span className="text-amber-200/50">•</span>
+                  <span className="text-amber-200/80">{pts}p</span>
+                </div>
+              )}
+
+              {/* single opponent fan (coalition + hand) */}
+              <div
+                className={
+                  `relative ${opponentFanHeightClass} pointer-events-auto transition-colors rounded-2xl ` +
+                  
+                  ((pickTargetForAction4 || pickTargetForAction9 || pendingPersona45 || pickTargetForPersona9 || pendingP17PickOpp || (placementModeOpp && String(placementModeOpp.targetId) === String(p.id))) ? "cursor-pointer ring-2 ring-emerald-500/30 hover:ring-emerald-300/50" : "") +
+                  ((targetAction9Id && String(targetAction9Id) === String(p.id)) ? " ring-4 ring-amber-300/80" : "")
+                }
+                style={{ width: Math.max(width, opponentMinFanWidth) }}
+                onClick={() => {
+                  if (pendingP17PickOpp) {
+                    try { moves.persona17PickOpponent(String(p.id)); } catch {}
+                    return;
+                  }
+                  if (pendingPersona45) {
+                    try { moves.persona45StealFromOpponent(String(p.id)); } catch {}
+                    return;
+                  }
+                  if (pickTargetForPersona9) {
+                    try { playSfx('play'); moves.playPersona(pickTargetForPersona9.cardId, undefined, 'right', String(p.id)); } catch {}
+                    setPickTargetForPersona9(null);
+                    return;
+                  }
+                  if (pickTargetForAction4) {
+                    try { moves.playAction(pickTargetForAction4.cardId, String(p.id)); } catch {}
+                    setPickTargetForAction4(null);
+                    return;
+                  }
+                  if (pickTargetForAction9) {
+                    setTargetAction9Id(String(p.id));
+                    return;
+                  }
+
+                }}
+                onPointerMove={(e) => {
+                  if (flatP5) return;
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const x = (e.clientX ?? 0) - rect.left;
+                  // Note: opponent fan has variable spacing; use proportional index for hover.
+                  let idx = Math.max(0, Math.min(show - 1, Math.floor((x / Math.max(1, width)) * show)));
+                  const shown = oppFanCards.slice(0, show);
+                  // Ignore facedown backs completely (no hover effect)
+                  if (shown[idx]?.kind === 'back') {
+                    setHoverOppCoalition((m) => ({ ...(m || {}), [p.id]: null }));
+                    return;
+                  }
+                  setHoverOppCoalition((m) => ({ ...(m || {}), [p.id]: idx }));
+                }}
+                onPointerEnter={() => {
+                  if (flatP5) return;
+                  const shown = oppFanCards.slice(0, show);
+                  const firstFace = shown.findIndex((it) => it.kind === 'face');
+                  setHoverOppCoalition((m) => ({ ...(m || {}), [p.id]: firstFace >= 0 ? firstFace : null }));
+                }}
+                onPointerLeave={() => { if (!flatP5) setHoverOppCoalition((m) => ({ ...(m || {}), [p.id]: null })); }}
+                title={`Total: ${nTotal}`}
+              >
+                {nTotal > 0 && (
+                  <div className="absolute -top-15 left-1/2 -translate-x-1/2 bg-black/70 border border-black/40 text-amber-100 font-mono font-black text-[12px] px-2 py-0.5 rounded-full">{nTotal}</div>
+                )}
+
+                {oppFanCards.slice(0, show).map((it, i) => {
+                  const t = show <= 1 ? 0.5 : i / (show - 1);
+                  const rot = flatP5 ? 0 : (t - 0.5) * 12;
+
+                  // variable spacing: backs tighter, faces looser
+                  const shown = oppFanCards.slice(0, show);
+                  let left = 0;
+                  for (let k = 0; k < i; k++) {
+                    left += (shown[k + 1]?.kind === 'back') ? stepBack : stepFace;
+                  }
+
+                  const dist = (hoverIdx == null) ? 99 : Math.abs(i - hoverIdx);
+                  const isBack = it.kind === 'back';
+                  const scale = (flatP5 || hoverIdx == null) ? 1 : (isBack ? 1 : scaleByDist2(dist));
+                  const z = (hoverIdx == null) ? i : (1000 - dist);
+
+                  const imgRaw = it.kind === 'back' ? '/assets/backing.jpg' : it.card.img;
+                  const img = (typeof imgRaw === 'string' && imgRaw.endsWith('.jpg')) ? imgRaw.slice(0, -4) + '.webp' : imgRaw;
+                  const id = it.kind === 'back' ? 'back' : it.card.id;
+                  const oppPlaceActive = !!placementModeOpp && String(placementModeOpp.targetId) === String(p.id);
+                  const canClickFaceForOppPlace = oppPlaceActive && it.kind === 'face' && it.card?.type === 'persona';
+
+                  const canClickFaceForP8Swap = canPersona8Swap && it.kind === 'face' && String(it.card?.id) === String(p8SwapSpec?.playedPersonaId) && String(p.id) === String(p8SwapSpec?.ownerId);
+
+                  // persona picks (no modal)
+                  const canClickFaceForP21 = pendingP21 && it.kind === 'face' && it.card?.type === 'persona' && !isImmovablePersona(it.card);
+                  const canClickFaceForP26 = pendingP26 && it.kind === 'face' && it.card?.type === 'persona' && Array.isArray(it.card?.tags) && it.card.tags.includes('faction:red_nationalist') && !it.card?.shielded && !isImmovablePersona(it.card);
+                  const canClickFaceForP28 = pendingP28 && it.kind === 'face' && it.card?.type === 'persona' && !(Array.isArray(it.card?.tags) && it.card.tags.includes('faction:fbk')) && !it.card?.shielded && !isImmovablePersona(it.card);
+                  const canClickFaceForP37 = pendingP37 && it.kind === 'face' && it.card?.type === 'persona' && !it.card?.shielded && !isImmovablePersona(it.card);
+                  const canClickFaceForP3A = G.pending?.kind === 'persona_3_choice' && String(playerID) === String(G.pending.playerId) && it.kind === 'face' && it.card?.type === 'persona' && Array.isArray(it.card?.tags) && it.card.tags.includes('faction:leftwing') && !it.card?.shielded && !isImmovablePersona(it.card);
+                  const pendingP3Choice = G.pending?.kind === 'persona_3_choice' && String(playerID) === String(G.pending.playerId);
+                  const pendingA7 = G.pending?.kind === 'action_7_block_persona' && String(playerID) === String(G.pending.attackerId);
+                  const canClickFaceForA7 = pendingA7 && it.kind === 'face' && it.card?.type === 'persona' && !isImmovablePersona(it.card);
+
+                  const pendingA13 = G.pending?.kind === 'action_13_shield_persona' && String(playerID) === String(G.pending.attackerId);
+                  const canClickFaceForA13 = pendingA13 && String(p.id) === String(playerID) && it.kind === 'face' && it.card?.type === 'persona' && !isImmovablePersona(it.card);
+                  const canClickFaceForP7 = pendingP7 && it.kind === 'face' && it.card?.type === 'persona' && !isImmovablePersona(it.card);
+                  const canClickFaceForP14 = pending?.kind === 'discard_one_persona_from_any_coalition' && String(pending?.playerId) === String(playerID) && it.kind === 'face' && it.card?.type === 'persona' && !it.card?.shielded && !isImmovablePersona(it.card);
+                  const canClickFaceForP11 = pendingP11Pick && it.kind === 'face' && it.card?.type === 'persona' && !it.card?.shielded && !isImmovablePersona(it.card);
+                  const canClickFaceForP13 = pendingP13 && String(p.id) === String(pendingP13AttackerId) && it.kind === 'face' && it.card?.type === 'persona' && !it.card?.shielded && !isImmovablePersona(it.card);
+                  const canClickFaceForP5 = G.pending?.kind === 'persona_5_pick_liberal' && String(playerID) === String(G.pending.playerId) && String(p.id) !== String(playerID) && it.kind === 'face' && it.card?.type === 'persona' && !it.card?.shielded && !isImmovablePersona(it.card) && Array.isArray(it.card?.tags) && it.card.tags.includes('faction:liberal');
+
+                  const pendingA17 = G.pending?.kind === 'action_17_choose_opponent_persona' && String(playerID) === String(G.pending.attackerId);
+                  const canClickFaceForA17 = pendingA17 && String(p.id) !== String(playerID) && it.kind === 'face' && it.card?.type === 'persona' && !it.card?.shielded && !isImmovablePersona(it.card);
+
+                  const selectedA7 = targetA7 && String(targetA7.playerId) === String(p.id) && String(targetA7.cardId) === String(it.card?.id);
+                  const selectedA17 = targetA17 && String(targetA17.playerId) === String(p.id) && String(targetA17.cardId) === String(it.card?.id);
+                  const selectedP5 = targetP5 && String(targetP5.playerId) === String(p.id) && String(targetP5.cardId) === String(it.card?.id);
+                  const selectedP11 = targetP11 && String(targetP11.playerId) === String(p.id) && String(targetP11.cardId) === String(it.card?.id);
+                  const selectedP13 = targetP13 && String(targetP13.playerId) === String(p.id) && String(targetP13.cardId) === String(it.card?.id);
+                  const selectedP14 = targetP14 && String(targetP14.playerId) === String(p.id) && String(targetP14.cardId) === String(it.card?.id);
+                  const selectedP21 = targetP21 && String(targetP21.playerId) === String(p.id) && String(targetP21.cardId) === String(it.card?.id);
+                  const selectedP26 = targetP26 && String(targetP26.playerId) === String(p.id) && String(targetP26.cardId) === String(it.card?.id);
+                  const selectedP28 = targetP28 && String(targetP28.playerId) === String(p.id) && String(targetP28.cardId) === String(it.card?.id);
+                  const selectedP37 = targetP37 && String(targetP37.playerId) === String(p.id) && String(targetP37.cardId) === String(it.card?.id);
+
+                  const isSelected = selectedA7 || selectedA17 || selectedP5 || selectedP11 || selectedP13 || selectedP14 || selectedP21 || selectedP26 || selectedP28 || selectedP37;
+
+                  const canClickFace = canClickFaceForOppPlace || canClickFaceForP8Swap || canClickFaceForP21 || canClickFaceForP26 || canClickFaceForP28 || canClickFaceForP37 || canClickFaceForP3A || canClickFaceForA7 || canClickFaceForA13 || canClickFaceForP7 || canClickFaceForP14 || canClickFaceForP11 || canClickFaceForP13 || canClickFaceForP5 || canClickFaceForA17;
+                  return (
+                    <div
+                      key={`${p.id}-${i}-${id}`}
+                      className={"absolute bottom-[20px] aspect-[2/3] rounded-2xl overflow-visible border border-black/40 shadow-2xl " + (canClickFace ? "cursor-pointer ring-2 ring-emerald-400/40" : "") + (isSelected ? " ring-4 ring-amber-300/80" : "")}
+                      style={{ width: opponentCardWidth, left, zIndex: z, transform: `rotate(${rot}deg) scale(${scale})`, transformOrigin: 'center center' }}
+                      title={it.kind === 'back' ? 'карта' : displayCardTitle(it.card)}
+                      onClick={(e) => {
+                        if (!canClickFace) return;
+                        if (canClickFaceForP8Swap) {
+                          try { playSfx('ui', 0.35); moves.persona8SwapWithPlayedPersona(); } catch {}
+                          return;
+                        }
+                        if (canClickFaceForOppPlace) {
+                          // Click left/right half of card to place before/after it.
+                          try {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            const x = e.clientX - rect.left;
+                            const side = (x < rect.width / 2) ? 'left' : 'right';
+                            playSfx('play');
+                            moves.playPersona(placementModeOpp.cardId, it.card.id, side, placementModeOpp.targetId);
+                          } catch {}
+                          setPlacementModeOpp(null);
+                          return;
+                        }
+                        if (canClickFaceForP21) {
+                          setTargetP21({ playerId: String(p.id), cardId: String(it.card.id) });
+                          return;
+                        }
+                        if (canClickFaceForP26) {
+                          setTargetP26({ playerId: String(p.id), cardId: String(it.card.id) });
+                          return;
+                        }
+                        if (canClickFaceForP28) {
+                          setTargetP28({ playerId: String(p.id), cardId: String(it.card.id) });
+                          return;
+                        }
+                        if (canClickFaceForP37) {
+                          setTargetP37({ playerId: String(p.id), cardId: String(it.card.id) });
+                          return;
+                        }
+                        if (canClickFaceForP3A) {
+                          try { playSfx('ui', 0.35); moves.persona3ChooseOption('a', String(p.id), it.card.id); } catch {}
+                          return;
+                        }
+                        if (pendingP3Choice) {
+                          // Option B: click any opponent card to apply the global token-removal effect.
+                          try { playSfx('ui', 0.35); moves.persona3ChooseOption('b'); } catch {}
+                          return;
+                        }
+                        if (canClickFaceForA7) {
+                          setTargetA7({ playerId: String(p.id), cardId: String(it.card.id) });
+                          return;
+                        }
+                        if (canClickFaceForA13) {
+                          try { playSfx('ui', 0.35); moves.shieldPersonaForAction13(it.card.id); } catch {}
+                          return;
+                        }
+                        if (canClickFaceForP7) {
+                          if (!p7FirstPick) {
+                            setP7FirstPick({ ownerId: String(p.id), cardId: it.card.id });
+                            return;
+                          }
+                          if (String(p7FirstPick.ownerId) !== String(p.id)) return;
+                          if (String(p7FirstPick.cardId) === String(it.card.id)) return;
+                          try { playSfx('ui', 0.35); moves.persona7SwapTwoInCoalition(String(p.id), p7FirstPick.cardId, it.card.id); } catch {}
+                          setP7FirstPick(null);
+                          return;
+                        }
+                        if (canClickFaceForP14) {
+                          setTargetP14({ playerId: String(p.id), cardId: String(it.card.id) });
+                          return;
+                        }
+                        if (canClickFaceForP11) {
+                          setTargetP11({ playerId: String(p.id), cardId: String(it.card.id) });
+                          return;
+                        }
+                        if (canClickFaceForP13) {
+                          setTargetP13({ playerId: String(p.id), cardId: String(it.card.id) });
+                          return;
+                        }
+                        if (canClickFaceForP5) {
+                          setTargetP5({ playerId: String(p.id), cardId: String(it.card.id) });
+                          return;
+                        }
+                        if (canClickFaceForA17) {
+                          setTargetA17({ playerId: String(p.id), cardId: String(it.card.id) });
+                          return;
+                        }
+                      }}
+                    >
+                      {it.kind === 'face' && String(it.card?.shieldedBy || '') === 'action_13' && (
+                        <img
+                          src={'/cards/action_13.webp'}
+                          alt={'action_13'}
+                          className="absolute z-30 pointer-events-none select-none opacity-95"
+                          style={{
+                            width: '50%',
+                            aspectRatio: '2 / 3',
+                            right: '6%',
+                            top: '-6%',
+                            transform: 'rotate(-18deg)',
+                          }}
+                          draggable={false}
+                        />
+                      )}
+                      <img src={img} alt={it.kind === 'back' ? 'карта' : displayCardTitle(it.card)} className="relative z-10 w-full h-full object-cover" draggable={false} />
+                      {it.kind === 'face' && (() => {
+                        const plus = Number(it.card?.plusTokens ?? Math.max(0, Number(it.card?.vpDelta || 0)));
+                        const minus = Number(it.card?.minusTokens ?? Math.max(0, -Number(it.card?.vpDelta || 0)));
+                        if (!plus && !minus) return null;
+                        return <div className="absolute left-2 bottom-2 z-20 flex items-center gap-1">{minus > 0 && <div className="w-7 h-7 rounded-full border flex items-center justify-center text-white font-black text-[13px] shadow-[0_2px_10px_rgba(0,0,0,0.6)] bg-red-700/95 border-red-200/50">-{minus}</div>}{plus > 0 && <div className="w-7 h-7 rounded-full border flex items-center justify-center text-white font-black text-[13px] shadow-[0_2px_10px_rgba(0,0,0,0.6)] bg-emerald-700/95 border-emerald-200/50">+{plus}</div>}</div>;
+                      })()}
+                      {(it.kind === 'face' && Number(it.card?.passiveVpDelta || 0) !== 0) && (
+                        <TokenPips delta={it.card.passiveVpDelta} compact right dim />
+                      )}
+                      {it.kind === 'face' && it.card?.blockedAbilities && (
+                        <div className="absolute top-[42px] left-1/2 -translate-x-1/2 flex gap-1 text-[9px] font-mono font-black z-40">
+                          <span className="px-1.5 py-0.5 rounded-full bg-red-800/90 border border-red-300/40 text-red-50 shadow-md">X</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Controls (Citadel-style touchables) */}
+      <TurnControls
+        G={G}
+        ctx={ctx}
+        isMyTurn={isMyTurn}
+        selectedHandCardId={mobileHandSelected}
+        moves={moves}
+        playSfx={playSfx}
+        safeEndTurn={safeEndTurn}
+        clearSelectedHandCard={() => setMobileHandSelected(null)}
+        playerID={playerID}
+        moveInFlight={moveInFlight}
+        onSurrender={async () => { try { await surrender(); } catch {} try { forgetMatch(); } catch {} }}
+      />
+
+      {/* Pending banner */}
+
+      {pendingP11Offer && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[6000] pointer-events-auto select-none">
+          <div className="bg-black/70 border border-amber-900/30 rounded-2xl px-4 py-2 text-amber-100/90 font-mono text-[12px] flex items-center gap-3">
+            <span>Соловьёв: использовать способность или пропустить? (блокирует добор)</span>
+            <button
+              type="button"
+              className="px-3 py-1 rounded-full bg-emerald-700/70 border border-emerald-300/30 hover:bg-emerald-700/90"
+              onClick={() => { try { playSfx('ui', 0.35); moves.persona11Use(); } catch {} }}
+            >
+              Use
+            </button>
+            <button
+              type="button"
+              className="px-3 py-1 rounded-full bg-zinc-700/70 border border-zinc-300/20 hover:bg-zinc-700/90"
+              onClick={() => { try { playSfx('ui', 0.25); moves.persona11Skip(); } catch {} }}
+            >
+              Skip
+            </button>
+          </div>
+        </div>
+      )}
+
+      {G.pending?.kind === 'persona_3_choice' && String(playerID) === String(G.pending.playerId) && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[6000] pointer-events-auto select-none">
+          <div className="bg-black/70 border border-amber-900/30 rounded-2xl px-4 py-2 text-amber-100/90 font-mono text-[12px] flex items-center gap-3">
+            <span>SVTV: выберите левого персонажа для сброса (A) ИЛИ любую карту оппонента для снятия жетонов (B)</span>
+            <button
+              type="button"
+              className="px-3 py-1 rounded-full bg-zinc-700/70 border border-zinc-300/20 hover:bg-zinc-700/90"
+              onClick={() => { try { playSfx('ui', 0.25); moves.persona3Skip(); } catch {} }}
+            >
+              Skip
+            </button>
+          </div>
+        </div>
+      )}
+
+      {pendingP21 && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[6000] pointer-events-none select-none">
+          <div className="pointer-events-auto bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] flex items-center gap-3">
+            <span>Выберите любого персонажа на столе, чтобы инвертировать его жетоны</span>
+            {canSkipCurrentPending && <button type="button" onClick={() => { try { moves.cancelPending(); } catch {} }} className="px-3 py-1 rounded-full bg-zinc-700/70 border border-zinc-300/20 hover:bg-zinc-700/90 text-zinc-100 font-black text-[11px]">Пропустить способность</button>}
+          </div>
+        </div>
+      )}
+
+      {pendingP26 && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[6000] pointer-events-none select-none">
+          <div className="pointer-events-auto bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] flex items-center gap-3">
+            <span>Выберите красно-националистического персонажа для сброса и наследования его +1</span>
+            {canSkipCurrentPending && <button type="button" onClick={() => { try { moves.cancelPending(); } catch {} }} className="px-3 py-1 rounded-full bg-zinc-700/70 border border-zinc-300/20 hover:bg-zinc-700/90 text-zinc-100 font-black text-[11px]">Пропустить способность</button>}
+          </div>
+        </div>
+      )}
+
+      {pendingP28 && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[6000] pointer-events-none select-none">
+          <div className="pointer-events-auto bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] flex items-center gap-3">
+            <span>Выберите персонажа не из ФБК, чтобы забрать до 3 жетонов +1</span>
+            {canSkipCurrentPending && <button type="button" onClick={() => { try { moves.cancelPending(); } catch {} }} className="px-3 py-1 rounded-full bg-zinc-700/70 border border-zinc-300/20 hover:bg-zinc-700/90 text-zinc-100 font-black text-[11px]">Пропустить способность</button>}
+          </div>
+        </div>
+      )}
+
+      {pendingP23 && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[6000] select-none">
+          <div className="pointer-events-auto bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] flex items-center gap-3">
+            <span>{pendingP23Source}: тап по Волкову — минус 1 и добор (до 3).</span>
+            <button
+              type="button"
+              onClick={() => {
+                try { moves.persona23ChooseSelfInflict(0); } catch {}
+              }}
+              className="px-3 py-1 rounded-full bg-zinc-700/70 border border-zinc-300/20 hover:bg-zinc-700/90 text-zinc-100 font-black text-[11px]"
+            >
+              Пропустить способность
+            </button>
+          </div>
+        </div>
+      )}
+
+      {pendingP32 && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[6000] pointer-events-none select-none">
+          <div className="pointer-events-auto bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] flex items-center gap-2">
+            <span>{pendingP32Source}: выбери персону в СВОЕЙ коалиции, чтобы вернуть её в руку</span>
+            <button
+              type="button"
+              className="ml-2 px-3 py-1 rounded-full bg-slate-800/70 hover:bg-slate-700/70 border border-amber-900/20 text-amber-50 font-black text-[11px]"
+              onClick={() => { try { moves.persona32CancelBounce(); } catch {} }}
+            >
+              Отмена
+            </button>
+          </div>
+        </div>
+      )}
+
+      {pendingP37 && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[6000] pointer-events-none select-none">
+          <div className="pointer-events-auto bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] flex items-center gap-3">
+            <span>Выберите персонажа оппонента, чтобы подкупить его (+2) и заблокировать способности</span>
+            {canSkipCurrentPending && <button type="button" onClick={() => { try { moves.cancelPending(); } catch {} }} className="px-3 py-1 rounded-full bg-zinc-700/70 border border-zinc-300/20 hover:bg-zinc-700/90 text-zinc-100 font-black text-[11px]">Пропустить способность</button>}
+          </div>
+        </div>
+      )}
+
+      {pendingP13 && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[6000] pointer-events-none select-none">
+          <div className="pointer-events-auto bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] flex items-center gap-3">
+            <span>Кликните по персоне атакующего, чтобы дать ей -1.</span>
+            {canSkipCurrentPending && <button type="button" onClick={() => { try { moves.cancelPending(); } catch {} }} className="px-3 py-1 rounded-full bg-zinc-700/70 border border-zinc-300/20 hover:bg-zinc-700/90 text-zinc-100 font-black text-[11px]">Пропустить способность</button>}
+          </div>
+        </div>
+      )}
+
+      {pendingP33 && (
+        <div className="fixed inset-0 z-[6000] pointer-events-none select-none">
+          <div className="absolute left-1/2 top-[48%] -translate-x-1/2 -translate-y-1/2 bg-black/70 border border-amber-900/30 rounded-2xl px-5 py-3 text-amber-100/90 font-mono text-[12px] shadow-2xl pointer-events-auto">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                выберите фракцию
+                <span className="ml-3 text-amber-200/70">(1..7)</span>
+              </div>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2 justify-center">
+              {[
+                ['1', 'либералы', 'faction:liberal'],
+                ['2', 'правые', 'faction:rightwing'],
+                ['3', 'левые', 'faction:leftwing'],
+                ['4', 'ФБК', 'faction:fbk'],
+                ['5', 'красные нац.', 'faction:red_nationalist'],
+                ['6', 'система', 'faction:system'],
+                ['7', 'нейтралы', 'faction:neutral'],
+              ].map(([k, label, tag]) => (
+                <button
+                  key={k}
+                  type="button"
+                  className="px-3 py-1 rounded-full bg-amber-600/80 hover:bg-amber-500/80 border border-amber-200/20 text-amber-950 font-black text-[11px] pointer-events-auto"
+                  onClick={() => { try { moves.persona33ChooseFaction(tag); } catch {} }}
+                  title={`(${k})`}
+                >
+                  {k} · {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+            {pendingP34 && (() => {
+        const remaining = p34Remaining || [];
+        return (
+          <div className="fixed inset-0 z-[6000] pointer-events-auto select-none bg-black/40 backdrop-blur-sm">
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(760px,95vw)] max-h-[80vh] overflow-auto bg-black/80 border border-amber-900/30 rounded-2xl px-5 py-4 text-amber-100/90 shadow-2xl">
+              <div className="flex items-center justify-between gap-4">
+                <div className="font-mono text-[12px]">Милов: выберите имя следующего персонажа в колоде</div>
+                <button type="button" className="px-3 py-1 rounded-full bg-slate-800/70 hover:bg-slate-700/70 border border-amber-900/20 text-amber-50 font-black text-[11px]" onClick={() => { try { moves.persona34GuessTopdeck('skip'); } catch {} }}>
+                  Пропустить
+                </button>
+              </div>
+              <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-2">
+                {remaining.map((bid) => (
+                  <button
+                    key={bid}
+                    type="button"
+                    className="px-3 py-2 rounded-xl bg-black/40 hover:bg-black/60 border border-amber-900/25 text-amber-50 text-sm font-semibold text-left"
+                    onClick={() => { try { moves.persona34GuessTopdeck(bid); } catch {} }}
+                  >
+                    {personaName(bid)}
+                  </button>
+                ))}
+              </div>
+              {!remaining.length && <div className="mt-4 text-amber-200/70 text-sm">Подходящих персон в колоде не осталось.</div>}
+            </div>
+          </div>
+        );
+      })()}
+
+      {pendingP16 && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9600] pointer-events-none select-none">
+          <div className="pointer-events-auto bg-black/60 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] flex items-center gap-3">
+            <span>Сбросьте 3 карты ({(p16DiscardPick || []).length}/3)</span>
+            <button
+              type="button"
+              onClick={() => {
+                const ids = (p16DiscardPick || []).slice(0, 3);
+                if (ids.length < 3) return;
+                try { moves.persona16Discard3FromHand?.(ids[0], ids[1], ids[2]); } catch {}
+                setP16DiscardPick([]);
+              }}
+              className={("px-3 py-1 rounded-full border font-black text-[11px] " + ((p16DiscardPick || []).length >= 3 ? "bg-red-600/90 border-red-300/30 text-red-50" : "bg-red-900/40 border-red-900/20 text-red-200/40"))}
+              disabled={(p16DiscardPick || []).length < 3}
+            >
+              Сбросить
+            </button>
+          </div>
+        </div>
+      )}
+
+      {pendingHandLimit && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9600] pointer-events-none select-none">
+          <div className="bg-black/60 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px]">
+            Сбросьте лишние карты ({(me?.hand || []).length} / 7)
+          </div>
+        </div>
+      )}
+      {/* Targeting prompt (action_4 only) */}
+      {!!pickTargetForAction4 && (
+        <div className="fixed inset-0 z-[3200] pointer-events-none select-none">
+          <div className="absolute left-1/2 top-[48%] -translate-x-1/2 -translate-y-1/2 bg-black/55 border border-amber-900/20 rounded-2xl px-5 py-4 backdrop-blur-sm shadow-2xl">
+            <div className="text-amber-200/80 text-[10px] uppercase tracking-[0.3em] font-black">Action 4</div>
+            <div className="mt-2 text-amber-100/85 text-sm font-mono whitespace-pre">{`Pick an opponent. They will discard 1 coalition card of their choice.
+Click their hand. (Esc to cancel)`}</div>
+          </div>
+        </div>
+      )}
+
+      {/* Response window UI */}
+      <ResponsePanel
+        canPersona10Cancel={canPersona10Cancel}
+        canPersona8Swap={canPersona8Swap}
+        haveAction14={haveAction14}
+        haveAction6={haveAction6}
+        haveAction8={haveAction8}
+        me={me}
+        moves={moves}
+        playerID={playerID}
+        response={response}
+        responseActive={responseActive}
+        responseKey={responseKey}
+        responseKind={responseKind}
+        responseSecondsLeft={responseSecondsLeft}
+        responseTargetsMe={responseTargetsMe}
+        setSkippedResponseKey={setSkippedResponseKey}
+        skippedResponseKey={skippedResponseKey}
+      />
+
+      {pickTargetForAction9 && targetAction9Id && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9600] pointer-events-auto select-none">
+          <div className="flex items-center gap-3 bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
+            <span>Вывод во внешний контур: подтвердить выбор цели</span>
+            <button
+              type="button"
+              className="px-3 py-1 rounded-full text-[11px] font-black border border-emerald-400/40 bg-emerald-700/60 hover:bg-emerald-600/70"
+              onClick={() => {
+                try { playSfx('ui', 0.35); moves.playAction(pickTargetForAction9.cardId, targetAction9Id); } catch {}
+                setPickTargetForAction9(null);
+                setTargetAction9Id(null);
+              }}
+            >
+              Подтвердить
+            </button>
+            <button
+              type="button"
+              className="px-3 py-1 rounded-full text-[11px] font-black border border-amber-900/20 bg-slate-800/60 hover:bg-slate-700/60"
+              onClick={() => { setTargetAction9Id(null); setPickTargetForAction9(null); }}
+            >
+              Отмена
+            </button>
+          </div>
+        </div>
+      )}
+
+      {(pendingA7 && targetA7) && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9600] pointer-events-auto select-none">
+          <div className="flex items-center gap-3 bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
+            <span>Action 7: confirm persona</span>
+            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-emerald-400/40 bg-emerald-700/60 hover:bg-emerald-600/70" onClick={() => {
+              try { playSfx('ui', 0.35); moves.blockPersonaForAction7(String(targetA7.playerId), String(targetA7.cardId)); } catch {}
+              setTargetA7(null);
+            }}>Confirm</button>
+            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-amber-900/20 bg-slate-800/60 hover:bg-slate-700/60" onClick={() => setTargetA7(null)}>Отмена</button>
+          </div>
+        </div>
+      )}
+
+      {(pendingA13 && targetA13) && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9600] pointer-events-auto select-none">
+          <div className="flex items-center gap-3 bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
+            <span>Action 13: confirm shield</span>
+            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-emerald-400/40 bg-emerald-700/60 hover:bg-emerald-600/70" onClick={() => {
+              try { playSfx('ui', 0.35); moves.shieldPersonaForAction13(String(targetA13.cardId)); } catch {}
+              setTargetA13(null);
+            }}>Confirm</button>
+            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-amber-900/20 bg-slate-800/60 hover:bg-slate-700/60" onClick={() => setTargetA13(null)}>Отмена</button>
+          </div>
+        </div>
+      )}
+
+      {(pendingA17 && targetA17) && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9600] pointer-events-auto select-none">
+          <div className="flex items-center gap-3 bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
+            <span>Экшен 17: подтвердить цель</span>
+            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-emerald-400/40 bg-emerald-700/60 hover:bg-emerald-600/70" onClick={() => {
+              try { playSfx('ui', 0.35); moves.applyAction17ToPersona(String(targetA17.cardId)); } catch {}
+              setTargetA17(null);
+            }}>Confirm</button>
+            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-amber-900/20 bg-slate-800/60 hover:bg-slate-700/60" onClick={() => setTargetA17(null)}>Отмена</button>
+          </div>
+        </div>
+      )}
+
+      {targetP5 && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9600] pointer-events-auto select-none">
+          <div className="flex items-center gap-3 bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
+            <span>П5: подтвердить либеральную цель</span>
+            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-emerald-400/40 bg-emerald-700/60 hover:bg-emerald-600/70" onClick={() => {
+              try { playSfx('ui', 0.35); moves.persona5PickLiberal(String(targetP5.playerId), String(targetP5.cardId)); } catch {}
+              setTargetP5(null);
+            }}>Confirm</button>
+            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-amber-900/20 bg-slate-800/60 hover:bg-slate-700/60" onClick={() => setTargetP5(null)}>Отмена</button>
+          </div>
+        </div>
+      )}
+
+      {targetP11 && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9600] pointer-events-auto select-none">
+          <div className="flex items-center gap-3 bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
+            <span>p11: confirm persona discard</span>
+            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-emerald-400/40 bg-emerald-700/60 hover:bg-emerald-600/70" onClick={() => {
+              try { playSfx('ui', 0.35); moves.persona11DiscardOpponentPersona(String(targetP11.playerId), String(targetP11.cardId)); } catch {}
+              setTargetP11(null);
+            }}>Confirm</button>
+            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-amber-900/20 bg-slate-800/60 hover:bg-slate-700/60" onClick={() => setTargetP11(null)}>Отмена</button>
+          </div>
+        </div>
+      )}
+
+      {targetP13 && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9600] pointer-events-auto select-none">
+          <div className="flex items-center gap-3 bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
+            <span>p13: confirm target</span>
+            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-emerald-400/40 bg-emerald-700/60 hover:bg-emerald-600/70" onClick={() => {
+              try { playSfx('ui', 0.35); moves.persona13PickTarget(String(targetP13.playerId), String(targetP13.cardId)); } catch {}
+              setTargetP13(null);
+            }}>Confirm</button>
+            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-amber-900/20 bg-slate-800/60 hover:bg-slate-700/60" onClick={() => setTargetP13(null)}>Отмена</button>
+          </div>
+        </div>
+      )}
+
+      {targetP14 && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9600] pointer-events-auto select-none">
+          <div className="flex items-center gap-3 bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
+            <span>p14: confirm discard</span>
+            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-emerald-400/40 bg-emerald-700/60 hover:bg-emerald-600/70" onClick={() => {
+              try { playSfx('ui', 0.35); moves.discardPersonaFromCoalition(String(targetP14.playerId), String(targetP14.cardId)); } catch {}
+              setTargetP14(null);
+            }}>Confirm</button>
+            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-amber-900/20 bg-slate-800/60 hover:bg-slate-700/60" onClick={() => setTargetP14(null)}>Отмена</button>
+          </div>
+        </div>
+      )}
+
+      {targetP21 && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9600] pointer-events-auto select-none">
+          <div className="flex items-center gap-3 bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
+            <span>p21: confirm invert</span>
+            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-emerald-400/40 bg-emerald-700/60 hover:bg-emerald-600/70" onClick={() => {
+              try { playSfx('ui', 0.35); moves.persona21InvertTokens(String(targetP21.playerId), String(targetP21.cardId)); } catch {}
+              setTargetP21(null);
+            }}>Confirm</button>
+            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-amber-900/20 bg-slate-800/60 hover:bg-slate-700/60" onClick={() => setTargetP21(null)}>Отмена</button>
+          </div>
+        </div>
+      )}
+
+      {targetP26 && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9600] pointer-events-auto select-none">
+          <div className="flex items-center gap-3 bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
+            <span>p26: confirm purge</span>
+            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-emerald-400/40 bg-emerald-700/60 hover:bg-emerald-600/70" onClick={() => {
+              try { playSfx('ui', 0.35); moves.persona26PurgeRedNationalist(String(targetP26.playerId), String(targetP26.cardId)); } catch {}
+              setTargetP26(null);
+            }}>Confirm</button>
+            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-amber-900/20 bg-slate-800/60 hover:bg-slate-700/60" onClick={() => setTargetP26(null)}>Отмена</button>
+          </div>
+        </div>
+      )}
+
+      {targetP28 && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9600] pointer-events-auto select-none">
+          <div className="flex items-center gap-3 bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
+            <span>p28: confirm steal</span>
+            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-emerald-400/40 bg-emerald-700/60 hover:bg-emerald-600/70" onClick={() => {
+              try { playSfx('ui', 0.35); moves.persona28StealPlusTokens(String(targetP28.playerId), String(targetP28.cardId), 3); } catch {}
+              setTargetP28(null);
+            }}>Confirm</button>
+            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-amber-900/20 bg-slate-800/60 hover:bg-slate-700/60" onClick={() => setTargetP28(null)}>Отмена</button>
+          </div>
+        </div>
+      )}
+
+      {targetP37 && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9600] pointer-events-auto select-none">
+          <div className="flex items-center gap-3 bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
+            <span>p37: confirm bribe</span>
+            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-emerald-400/40 bg-emerald-700/60 hover:bg-emerald-600/70" onClick={() => {
+              try { playSfx('ui', 0.35); moves.persona37BribeAndSilence(String(targetP37.playerId), String(targetP37.cardId)); } catch {}
+              setTargetP37(null);
+            }}>Confirm</button>
+            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-amber-900/20 bg-slate-800/60 hover:bg-slate-700/60" onClick={() => setTargetP37(null)}>Отмена</button>
+          </div>
+        </div>
+      )}
+
+      {(pendingTokens && pendingTokensBase === 'persona_40' && targetP40) && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9600] pointer-events-auto select-none">
+          <div className="flex items-center gap-3 bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
+            <span>p40: confirm token</span>
+            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-emerald-400/40 bg-emerald-700/60 hover:bg-emerald-600/70" onClick={() => {
+              try { playSfx('ui', 0.35); moves.applyPendingToken(String(targetP40.cardId)); } catch {}
+              setTargetP40(null);
+            }}>Confirm</button>
+            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-amber-900/20 bg-slate-800/60 hover:bg-slate-700/60" onClick={() => setTargetP40(null)}>Отмена</button>
+          </div>
+        </div>
+      )}
+
+      {/* Tutorial: simple center-board text (toggle T) */}
+      {showTutorial && (
+        <div className="fixed inset-0 z-[3200] pointer-events-none select-none">
+          <div className="absolute left-1/2 top-[48%] -translate-x-1/2 -translate-y-1/2 bg-black/55 border border-amber-900/20 rounded-2xl px-5 py-4 backdrop-blur-sm shadow-2xl">
+            <div className="text-amber-200/80 text-[10px] uppercase tracking-[0.3em] font-black">Tutorial (T)</div>
+            <div className="mt-2 text-amber-100/85 text-sm font-mono whitespace-pre">
+              {`1) Взять карту: C (или клик по колоде)\n2) Сыграть: клик по карте (или 1..9, 0=10)\n3) Закончить ход: E (или клик по печенью)\n\nL — логи · H — подсказки`}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Action_4 / Action_9 discard prompt (target chooses) */}
+      {(G.pending?.kind === 'action_4_discard' || G.pending?.kind === 'action_9_discard_persona') && String(playerID) === String(G.pending.targetId) && !(responseActive && responseKind === 'cancel_action' && haveAction14 && responseTargetsMe) && (
+        <div className="fixed inset-0 z-[3199] pointer-events-none select-none">
+          <div className="absolute left-1/2 top-[48%] -translate-x-1/2 -translate-y-1/2 bg-black/55 border border-amber-900/20 rounded-2xl px-5 py-4 backdrop-blur-sm shadow-2xl">
+            <div className="text-amber-200/80 text-[10px] uppercase tracking-[0.3em] font-black">Выбор сброса</div>
+            <div className="mt-2 text-amber-100/85 text-sm font-mono whitespace-pre text-center">
+              {G.pending?.kind === 'action_9_discard_persona'
+                ? 'Кликни по ПЕРСОНЕ в своей коалиции, чтобы сбросить её.'
+                : 'Кликни по карте в своей коалиции, чтобы сбросить её.'}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Event_12b: each affected player discards 1 card from hand */}
+      {G.pending?.kind === 'event_12b_discard_from_hand' && Array.isArray(G.pending.targetIds) && G.pending.targetIds.includes(String(playerID)) && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9500] pointer-events-none select-none">
+          <div className="pointer-events-auto bg-black/70 border border-amber-900/30 rounded-2xl px-4 py-3 text-amber-100/90 font-mono text-[12px] shadow-2xl flex items-center gap-3">
+            <span>Секс-скандал: выбери карту в руке и сбрось её</span>
+            <button
+              type="button"
+              onClick={() => {
+                if (!mobileHandSelected) return;
+                try { playSfx('ui', 0.25); moves.discardFromHandForEvent12b(mobileHandSelected); } catch {}
+                setMobileHandSelected(null);
+              }}
+              className={("px-3 py-1 rounded-full border font-black text-[11px] " + (mobileHandSelected ? "bg-red-600/90 border-red-300/30 text-red-50" : "bg-red-900/40 border-red-900/20 text-red-200/40"))}
+              disabled={!mobileHandSelected}
+            >
+              Сбросить
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Hand limit: discard down to 7 (no modal) */}
+      {G.pending?.kind === 'discard_down_to_7' && String(playerID) === String(G.pending.playerId) && (
+        <div className="fixed top-[62%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-[12000] pointer-events-none select-none">
+          <div className="pointer-events-auto bg-black/70 border border-amber-900/30 rounded-2xl px-4 py-3 text-amber-100/90 font-mono text-[12px] shadow-2xl flex items-center gap-3">
+            <span>У тебя больше 7 карт: выбери карту на руке и сбрось её</span>
+            <button
+              type="button"
+              onClick={() => {
+                if (!mobileHandSelected) return;
+                try { playSfx('ui', 0.25); moves.discardFromHandDownTo7(mobileHandSelected); } catch {}
+                setMobileHandSelected(null);
+              }}
+              className={("px-3 py-1 rounded-full border font-black text-[11px] " + (mobileHandSelected ? "bg-red-600/90 border-red-300/30 text-red-50" : "bg-red-900/40 border-red-900/20 text-red-200/40"))}
+              disabled={!mobileHandSelected}
+            >
+              Сбросить
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Persona prompts (no modals) */}
+
+      {pendingP12 && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9500] pointer-events-none select-none">
+          <div className="pointer-events-auto bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
+            Савин (p12): выберите соседнего красно-националистического персонажа, чтобы дать ему +2
+          </div>
+        </div>
+      )}
+
+            {pendingP7 && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9500] pointer-events-none select-none">
+          <div className="pointer-events-auto bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl flex items-center gap-3">
+            <span>
+              p7: {p7FirstPick ? 'pick SECOND persona (same coalition)' : 'pick FIRST persona'}
+            </span>
+            {p7FirstPick && (
+              <button
+                type="button"
+                className="pointer-events-auto px-3 py-1 rounded-full text-[11px] font-black border border-amber-900/20 bg-slate-800/60 hover:bg-slate-700/60"
+                onClick={() => setP7FirstPick(null)}
+              >
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Persona_5 target prompt */}
+      {G.pending?.kind === 'persona_5_pick_liberal' && String(playerID) === String(G.pending.playerId) && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9500] pointer-events-none select-none">
+          <div className="pointer-events-auto bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
+            p5: выберите ЛИБЕРАЛЬНОГО персонажа в коалиции оппонента
+          </div>
+        </div>
+      )}
+
+      {/* Persona_14 discard prompt (no modal) */}
+      {G.pending?.kind === 'discard_one_persona_from_any_coalition' && String(playerID) === String(G.pending.playerId) && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9500] pointer-events-none select-none">
+          <div className="pointer-events-auto bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
+            p14: выберите любого персонажа на столе, чтобы сбросить его
+          </div>
+        </div>
+      )}
+
+      {/* Persona_11 (Solovei): no top pill (use card glow/scale instead) */}
+
+      {/* Persona_17 pick opponent */}
+      {pendingP17PickOpp && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9500] pointer-events-none select-none">
+          <div className="pointer-events-auto bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
+            p17: выберите оппонента, чтобы раскрыть его руку и украсть 1 персонажа
+          </div>
+        </div>
+      )}
+
+      {/* Persona_17 pick persona from revealed hand */}
+      {pendingP17PickCard && (() => {
+        const target = (G.players || []).find((pp) => String(pp.id) === String(pendingP17TargetId));
+        const cards = (target?.hand || []).filter((c) => c?.type === 'persona');
+        return (
+          <div className="fixed inset-x-0 top-14 z-[9600] flex items-start justify-center pointer-events-none select-none">
+            <div className="pointer-events-auto bg-black/75 border border-amber-900/30 rounded-3xl shadow-2xl p-4 max-w-[96vw]">
+              <div className="text-amber-200/70 text-[11px] font-mono font-black tracking-widest">p17: pick a persona from {target?.name || pendingP17TargetId}</div>
+              <div className="mt-3 flex gap-3 flex-wrap justify-center">
+                {cards.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    className="w-40 aspect-[2/3] rounded-2xl overflow-hidden border border-emerald-400/40 hover:border-emerald-300 cursor-pointer shadow-2xl hover:scale-[1.02] transition-transform"
+                    onClick={() => { try { moves.persona17StealPersonaFromHand(c.id); } catch {} }}
+                    title={displayCardTitle(c)}
+                  >
+                    <img src={c.img} alt={displayCardTitle(c)} className="w-full h-full object-cover" draggable={false} />
+                  </button>
+                ))}
+                {!cards.length && (
+                  <div className="text-amber-200/70 text-sm">No personas in hand.</div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Persona_45: choose opponent (no modal) */}
+      {pendingPersona45 && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9500] pointer-events-none select-none">
+          <div className="pointer-events-auto bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
+            {pendingPersona45Source}: выберите оппонента, чтобы украсть 1 случайную карту
+          </div>
+        </div>
+      )}
+
+      {canPersona8Swap && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9500] pointer-events-none select-none">
+          <div className="pointer-events-auto bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
+            persona_8: выберите только что сыгранного персонажа, чтобы ПОМЕНЯТЬСЯ с ним местами
+          </div>
+        </div>
+      )}
+
+      {canPersona10Cancel && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9500] pointer-events-none select-none">
+          <div className="pointer-events-auto bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
+            Вы можете позвать маму Наки чтобы отменить действие
+          </div>
+        </div>
+      )}
+
+      {/* Event_16: discard one of YOUR personas, then draw 1 (no modal) */}
+      {G.pending?.kind === 'event_16_discard_self_persona_then_draw1' && String(playerID) === String(G.pending.playerId) && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9500] pointer-events-none select-none">
+          <div className="pointer-events-auto bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
+            СОБЫТИЕ {G.pending.sourceCardId}: выберите персонажа в ВАШЕЙ коалиции, чтобы сбросить его (затем взять 1 карту)
+          </div>
+        </div>
+      )}
+
+      {/* Action_7: click a persona on the table to block (no modal) */}
+      {G.pending?.kind === 'action_7_block_persona' && String(playerID) === String(G.pending.attackerId) && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9500] pointer-events-none select-none">
+          <div className="pointer-events-auto bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
+            Экшен 7: ткни по любой персоне на столе чтобы запретить ей способности
+          </div>
+        </div>
+      )}
+
+      {/* Action_13: shield one of YOUR personas (no modal) */}
+      {G.pending?.kind === 'action_13_shield_persona' && String(playerID) === String(G.pending.attackerId) && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9500] pointer-events-none select-none">
+          <div className="pointer-events-auto bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
+            Белое пальто: ткни по персоне в СВОЕЙ коалиции чтобы защитить
+          </div>
+        </div>
+      )}
+
+      {/* Action_17: click any opponent persona on the table (no modal) */}
+      {G.pending?.kind === 'action_17_choose_opponent_persona' && String(playerID) === String(G.pending.attackerId) && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9500] pointer-events-none select-none">
+          <div className="pointer-events-auto bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
+            Экшен 17: выберите персонажа любого оппонента (Esc — отмена)
+          </div>
+        </div>
+      )}
+
+      {/* Action_18: return persona from discard to hand */}
+      {G.pending?.kind === 'action_18_pick_persona_from_discard' && String(playerID) === String(G.pending.attackerId) && (
+        <div className="fixed inset-0 z-[3200] flex items-center justify-center bg-transparent backdrop-filter pointer-events-auto">
+          <div className="bg-black/70 border border-amber-900/30 rounded-3xl shadow-2xl p-5 w-[860px] max-w-[96vw]">
+            <div className="text-amber-200/80 text-[10px] uppercase tracking-[0.3em] font-black">Экшен 18 — Возврат из сброса</div>
+            <div className="mt-2 text-amber-100/80 text-sm">Выберите персонажа из сброса, чтобы вернуть его в руку.</div>
+            <div className="mt-4 flex flex-wrap gap-3 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2">
+              {(G.discard || []).filter((c) => c.type === 'persona' && !isImmovablePersona(c)).map((c) => (
+                <button
+                  key={c.id}
+                  className="w-40 aspect-[2/3] rounded-2xl overflow-hidden border border-black/40 shadow-2xl hover:scale-[1.02] transition-transform"
+                  onClick={() => moves.pickPersonaFromDiscardForAction18(c.id)}
+                  title={displayCardTitle(c)}
+                >
+                  <img src={c.img} alt={displayCardTitle(c)} className="w-full h-full object-cover" draggable={false} />
+                </button>
+              ))}
+              {!(G.discard || []).some((c) => c.type === 'persona' && !isImmovablePersona(c)) && (
+                <div className="text-amber-200/70 text-sm">В сбросе нет персонажей.</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Persona_20: take any card from discard to hand */}
+      {G.pending?.kind === 'persona_20_pick_from_discard' && String(playerID) === String(G.pending.playerId) && (
+        <div className="fixed inset-0 z-[3200] flex items-center justify-center bg-transparent backdrop-filter pointer-events-auto">
+          <div className="bg-black/70 border border-amber-900/30 rounded-3xl shadow-2xl p-5 w-[860px] max-w-[96vw]">
+            <div className="text-amber-200/80 text-[10px] uppercase tracking-[0.3em] font-black">Быков (p20) — Взять из сброса</div>
+            <div className="mt-2 text-amber-100/80 text-sm">Выберите 1 карту действия из сброса, чтобы взять её в руку.</div>
+            <div className="mt-4 flex flex-wrap gap-3 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2">
+              {(G.discard || []).filter((c) => c.type === 'action').map((c) => (
+                <button
+                  key={c.id}
+                  className="w-40 aspect-[2/3] rounded-2xl overflow-hidden border border-black/40 shadow-2xl hover:scale-[1.02] transition-transform"
+                  onClick={() => moves.persona20PickFromDiscard(c.id)}
+                  title={displayCardTitle(c)}
+                >
+                  <img src={c.img} alt={displayCardTitle(c)} className="w-full h-full object-cover" draggable={false} />
+                </button>
+              ))}
+              {!(G.discard || []).length && (
+                <div className="text-amber-200/70 text-sm">В сбросе нет карт.</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Game over overlay */}
+      {G.gameOver && (
+        <div
+          className="fixed inset-0 z-[3000] flex items-start justify-center bg-black/65 backdrop-blur-sm pointer-events-auto overflow-y-auto py-12"
+        >
+          <div className="fixed top-3 left-1/2 -translate-x-1/2 z-[3100] pointer-events-auto">
+            <button
+              type="button"
+              onClick={async () => {
+                const m = String(matchID || '').match(/^t_([^_]+)_(\d+)_/);
+                const tid = m ? m[1] : null;
+                const tableId = m ? m[2] : null;
+                if (tid && tableId) {
+                  try {
+                    await fetch(`${SERVER}/public/tournament/${tid}/table/${tableId}/sync_result`, { method: 'POST' });
+                  } catch {}
+                  try { window.location.hash = `#/tournament/${tid}`; } catch {}
+                } else {
+                  // Leave match state (client-side). Also clear persisted last match so reload doesn't re-open gameover.
+                  try {
+                    window.localStorage.removeItem('politikum.lastMatchID');
+                    window.localStorage.removeItem('politikum.lastPlayerID');
+                    window.localStorage.removeItem('politikum.lastCredentials');
+                  } catch {}
+                  try { window.location.hash = ''; } catch {}
+                  try { window.location.reload(); } catch {}
+                }
+              }}
+              className="px-4 py-2 rounded-full bg-black/60 border border-amber-900/30 text-amber-100/90 font-mono font-black text-[12px] hover:bg-black/70"
+              title={String(matchID || '').startsWith('t_') ? 'Назад в турнир' : 'Назад в лобби'}
+            >
+              {String(matchID || '').startsWith('t_') ? 'Назад в турнир' : 'Назад в лобби'}
+            </button>
+          </div>
+          <div className="bg-black/70 border border-amber-900/30 rounded-3xl shadow-2xl p-6 w-[1100px] max-w-[96vw] relative max-h-[90vh] overflow-y-auto">
+            {/* hitbox debug removed */}
+            <button
+              type="button"
+              onClick={() => setGoShowAllDetails((v) => !v)}
+              className="absolute top-4 right-4 z-[3200] px-3 py-2 rounded-xl bg-black/50 hover:bg-black/65 border border-amber-900/25 text-amber-100 font-mono font-black text-[11px]"
+              title="Показать детали расчёта"
+            >
+              Детали
+            </button>
+            <div className="text-amber-200/80 text-[10px] uppercase tracking-[0.3em] font-black text-center">КОНЕЦ ИГРЫ</div>
+            {(() => {
+              const active = (G.players || [])
+                .filter((p) => !!p?.active)
+                .filter((p) => {
+                  const n = String(p?.name || '').trim();
+                  if (!n) return false;
+                  if (n.startsWith('[H] Seat')) return false;
+                  return true;
+                });
+              const scoreNow = (p) => (p?.coalition || []).reduce((s, c) => s + Number(c.vp || 0), 0);
+              const scores = active.map((p) => ({ id: String(p.id), name: String(p.name || p.id), score: scoreNow(p) }));
+              const best = Math.max(...scores.map((x) => x.score), -Infinity);
+              const winners = scores.filter((x) => x.score === best);
+              const isTie = winners.length >= 2;
+              const label = isTie ? 'Победила ДРУЖБА!' : 'Победитель';
+              const names = winners.map((x) => x.name).join(' · ');
+              return (
+                <div className="mt-2 text-amber-100 font-serif text-2xl font-bold text-center">
+                  {label} {names}
+                </div>
+              );
+            })()}
+            {Array.isArray(G.history) && G.history.length >= 2 && (() => {
+              const hist = G.history;
+              // Use the same ordering for legend + chart: sort by final score DESC.
+              const colors = ['#f59e0b', '#22c55e', '#60a5fa', '#f472b6', '#a78bfa'];
+              const scoreNow = (pid) => {
+                const p = (G.players || []).find((pp) => String(pp.id) === String(pid));
+                return (p?.coalition || []).reduce((s, c) => s + Number(c.vp || 0), 0);
+              };
+              const playerIds = (G.players || [])
+                .filter((p) => !!p?.active)
+                .filter((p) => {
+                  const n = String(p?.name || '').trim();
+                  if (!n) return false;
+                  if (n.startsWith('[H] Seat')) return false;
+                  return true;
+                })
+                .map((p) => String(p.id))
+                .sort((a, b) => scoreNow(b) - scoreNow(a));
+
+              const leftIds = playerIds.slice(0, Math.ceil(playerIds.length / 2));
+              const rightIds = playerIds.slice(Math.ceil(playerIds.length / 2));
+
+              const Fan = ({ pid, color }) => {
+                const p = (G.players || []).find((pp) => String(pp.id) === String(pid));
+                const coal = (p?.coalition || []).filter((c) => c.type === 'persona');
+                const show = Math.min(12, coal.length);
+                const stepFace = 40;
+                const width = 140 + Math.max(0, (show - 1)) * stepFace;
+                const hoverIdx = hoverOppCoalition?.[`go-${pid}`] ?? null;
+
+                const scaleByDist2 = (_dist) => 1; // no zoom on win screen
+
+                return (
+                  <div className="flex flex-col items-center gap-2 relative pt-10 pointer-events-auto">
+                    <div className="absolute -top-10 left-0 flex items-center gap-2 bg-black/55 border border-amber-900/20 rounded-full px-4 py-1 text-[11px] font-mono font-black tracking-widest z-[2000] whitespace-nowrap justify-center" style={{ color }}>
+                      <span>{p?.name || pid}</span>
+                      <span className="opacity-50">•</span>
+                      <span>{scoreNow(pid)} очк</span>
+                    </div>
+                    <div
+                      className="relative h-52 pointer-events-none select-none"
+                      style={{ width: Math.max(width, 260) }}
+                      // no hover-zoom on win screen
+                    >
+                      {coal.slice(0, show).map((c, i) => {
+                        const t = show <= 1 ? 0.5 : i / (show - 1);
+                        const rot = (t - 0.5) * 12;
+                        const left = i * stepFace;
+                        const dist = (hoverIdx == null) ? 99 : Math.abs(i - hoverIdx);
+                        const scale = (hoverIdx == null) ? 1 : scaleByDist2(dist);
+                        const z = (hoverIdx == null) ? i : (1000 - dist);
+                        return (
+                          <div
+                            key={c.id}
+                            className="absolute bottom-0 w-40 aspect-[2/3] rounded-2xl overflow-hidden border border-black/40 shadow-2xl pointer-events-none"
+                            style={{ left, zIndex: z, transform: `rotate(${rot}deg) scale(${scale})`, transformOrigin: 'center center' }}
+                          >
+                            <img src={c.img} alt={displayCardTitle(c)} className="w-full h-full object-cover pointer-events-none" draggable={false} />
+                            {(Number(c.vpDelta || 0) !== 0) && (
+                              <div className={
+                                "absolute left-2 bottom-2 w-8 h-8 rounded-full border flex items-center justify-center text-white font-black text-[14px] " +
+                                (Number(c.vpDelta || 0) < 0 ? "bg-red-700/90 border-red-200/30" : "bg-emerald-700/90 border-emerald-200/30")
+                              }>
+                                {c.vpDelta}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Per-player details section (toggled by top-right button) */}
+                    {goShowAllDetails && (
+                      <div className="w-full max-w-[520px] px-1">
+                        <div className="mt-1 space-y-0.5 text-[10px] font-mono text-amber-100/70">
+                          {coal.map((c) => {
+                            const base = Number(c.baseVp ?? 0);
+                            const tok = Number(c.vpDelta || 0);
+                            const pas = Number(c.passiveVpDelta || 0);
+                            const total = Number(c.vp ?? (base + tok + pas));
+                            return (
+                              <div key={c.id} className="flex items-baseline justify-between gap-3">
+                                <span className="truncate">{String(c.name || c.id)}</span>
+                                <span className="shrink-0 tabular-nums">
+                                  {base}{tok ? ` ${tok > 0 ? '+' : ''}${tok}` : ''}{pas ? ` ${pas > 0 ? '+' : ''}${pas}` : ''} = {total}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* per-player details button removed */}
+                  </div>
+                );
+              };
+
+              return (
+                <>
+                  {/* Score history chart (turn vs VP) */}
+                  {(() => {
+                    const turns = hist.map((h) => Number(h.turn || 0));
+                    const minT = Math.min(...turns);
+                    const maxT = Math.max(...turns);
+
+                    const allScores = hist.flatMap((h) => playerIds.map((pid) => Number(h.scores?.[pid] ?? 0)));
+                    const minY = Math.min(0, ...allScores);
+                    const maxY = Math.max(1, ...allScores);
+
+                    const W = 460, H = 160, pad = 18;
+                    const sx = (t) => pad + ((t - minT) / Math.max(1, (maxT - minT))) * (W - pad * 2);
+                    const sy = (v) => (H - pad) - ((v - minY) / Math.max(1, (maxY - minY))) * (H - pad * 2);
+
+                    const pathFor = (pid) => {
+                      const pts = hist.map((h) => ({ x: sx(Number(h.turn || 0)), y: sy(Number(h.scores?.[pid] ?? 0)) }));
+                      return pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+                    };
+
+                    return (
+                      <div className="mt-4">
+                        <div className="text-amber-200/60 text-[10px] uppercase tracking-[0.3em] font-black text-center">История успеха</div>
+                        <svg width={W} height={H} className="mt-2 mx-auto block rounded-xl bg-black/25 border border-amber-900/20">
+                          {/* axes */}
+                          <line x1={pad} y1={H - pad} x2={W - pad} y2={H - pad} stroke="rgba(251,191,36,0.25)" />
+                          <line x1={pad} y1={pad} x2={pad} y2={H - pad} stroke="rgba(251,191,36,0.25)" />
+
+                          {/* axis labels */}
+                          <text x={W / 2} y={H - 2} textAnchor="middle" fontSize={9} fill="rgba(251,191,36,0.55)" fontFamily="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace">ход</text>
+                          <text x={6} y={H / 2} textAnchor="middle" fontSize={9} fill="rgba(251,191,36,0.55)" fontFamily="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace" transform={`rotate(-90 6 ${H / 2})`}>очки</text>
+
+                          {/* ticks */}
+                          {(() => {
+                            const ticksY = 4;
+                            const out = [];
+                            for (let i = 0; i <= ticksY; i++) {
+                              const v = minY + ((maxY - minY) * i) / ticksY;
+                              const y = sy(v);
+                              out.push(
+                                <g key={`y-${i}`}>
+                                  <line x1={pad - 4} y1={y} x2={pad} y2={y} stroke="rgba(251,191,36,0.25)" />
+                                  <text x={pad - 7} y={y + 3} textAnchor="end" fontSize={9} fill="rgba(251,191,36,0.55)" fontFamily="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace">{Math.round(v)}</text>
+                                </g>
+                              );
+                            }
+                            const ticksX = Math.min(6, Math.max(1, maxT - minT));
+                            for (let i = 0; i <= ticksX; i++) {
+                              const t = minT + Math.round(((maxT - minT) * i) / ticksX);
+                              const x = sx(t);
+                              out.push(
+                                <g key={`x-${i}`}>
+                                  <line x1={x} y1={H - pad} x2={x} y2={H - pad + 4} stroke="rgba(251,191,36,0.25)" />
+                                  <text x={x} y={H - pad + 14} textAnchor="middle" fontSize={9} fill="rgba(251,191,36,0.55)" fontFamily="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace">{t}</text>
+                                </g>
+                              );
+                            }
+                            return out;
+                          })()}
+
+                          {playerIds.map((pid, i) => (
+                            <path key={pid} d={pathFor(pid)} fill="none" stroke={colors[i % colors.length]} strokeWidth={2.5} opacity={0.95} />
+                          ))}
+                        </svg>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Final coalitions: single bottom row */}
+                  <div className="mt-6 flex justify-evenly gap-6 items-end flex-wrap">
+                    {playerIds.map((pid, i) => (
+                      <Fan key={pid} pid={pid} color={colors[i % colors.length]} />
+                    ))}
+                  </div>
+
+                  {/* Global details removed: now rendered under each player */}
+                </>
+              );
+            })()}
+
+            {/* fallback if no history */}
+            {(!Array.isArray(G.history) || G.history.length < 2) && (
+              <div className="mt-4 text-amber-100/80 text-sm font-mono whitespace-pre">
+                {(G.players || [])
+                  .filter((p) => !!p?.active)
+                  .filter((p) => {
+                    const n = String(p?.name || '').trim();
+                    if (!n) return false;
+                    if (n.startsWith('[H] Seat')) return false;
+                    return true;
+                  })
+                  .map((p) => {
+                    const pts = (p.coalition || []).reduce((s, c) => s + Number(c.vp || 0), 0);
+                    return `${p.name}: ${pts} очк (коалиция ${(p.coalition || []).length})`;
+                  }).join('\n')}
+              </div>
+            )}
+
+            {/* (removed) */}
+          </div>
+        </div>
+      )}
+
+      {/* Your turn splash */}
+      {yourTurnSplashVisible && yourTurnPromptActive && (
+        <div className="fixed inset-0 z-[9790] pointer-events-none flex items-center justify-center">
+          <div className="relative rounded-[32px] border border-amber-300/35 bg-black/70 backdrop-blur-xl shadow-[0_0_80px_rgba(251,191,36,0.22)] px-8 py-6 text-center pointer-events-auto min-w-[360px]">
+            <div className="absolute inset-0 blur-3xl bg-amber-400/20 rounded-full scale-150" />
+            <div className="relative text-[12px] uppercase tracking-[0.6em] text-amber-200/70 font-black">Politikum</div>
+            <div className="relative mt-2 text-[44px] md:text-[60px] leading-none font-black tracking-[0.12em] text-amber-100 drop-shadow-[0_0_20px_rgba(251,191,36,0.35)]">ВАШ ХОД</div>
+            <div className="relative mt-3 text-sm md:text-base text-amber-200/80 font-semibold">Возьмите обязательную карту начала хода</div>
+            <div className="relative mt-5 flex items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={async () => {
+                  try { playSfx('draw'); } catch {}
+                  setAcknowledgedTurnPromptKey(yourTurnPromptKey);
+                  const res = await moves.beginTurnDraw?.();
+                  if (res?.ok === false) { setAcknowledgedTurnPromptKey(''); return; }
+                  setYourTurnSplashVisible(false);
+                }}
+                className="px-5 py-3 rounded-2xl bg-emerald-700/80 hover:bg-emerald-600/85 border border-emerald-300/30 text-emerald-50 font-black text-sm shadow-xl"
+              >Взять карту</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Targeted action push */}
+      {targetedPush && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9800] pointer-events-auto">
+          <div className="min-w-[360px] max-w-[720px] rounded-2xl border border-amber-700/30 bg-black/80 backdrop-blur-md shadow-2xl px-4 py-3 text-amber-50">
+            <div className="flex items-start gap-3">
+              <div className="flex-1">
+                <div className="text-[10px] uppercase tracking-[0.25em] text-amber-200/60 font-black">Внимание</div>
+                <div className="mt-1 text-sm font-semibold leading-5">{targetedPush.text}</div>
+                <div className="mt-1 text-[11px] text-amber-200/70">{targetedPush.sticky ? 'Ожидается выбор игроков — уведомление останется, пока состояние не завершится.' : `Уведомление исчезнет через ${pushSecondsLeft} сек.`}</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => { if (targetedPush?.id) dismissedPushIdsRef.current.add(targetedPush.id); setTargetedPush(null); }}
+                className="shrink-0 rounded-xl bg-amber-600 hover:bg-amber-500 text-amber-950 font-black text-[11px] uppercase tracking-widest px-3 py-2"
+              >
+                Выразить озабоченность
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Brief events log + party chat */}
+      <div className="fixed z-[920] pointer-events-auto" style={unifiedPanelStyle}>
+        <div className="rounded-2xl border border-amber-900/20 bg-black/55 backdrop-blur-md shadow-2xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-amber-900/10 flex items-center justify-between gap-2">
+            <div>
+              <div className="text-[11px] uppercase tracking-widest text-amber-200/70 font-black">События · Чат партии</div>
+              <div className="text-[10px] text-amber-200/45 font-mono">логи сверху, чат снизу</div>
+            </div>
+            <button type="button" onClick={() => setSidePanelCollapsed((v) => !v)} className="px-2 py-1 rounded-lg bg-black/30 border border-amber-900/20 text-amber-100/80 text-[11px] font-black">{sidePanelCollapsed ? 'Развернуть' : 'Свернуть'}</button>
+          </div>
+          {!sidePanelCollapsed && (
+            <>
+              <div className="px-4 pt-3 pb-2 border-b border-amber-900/10">
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="text-[11px] uppercase tracking-widest text-amber-200/70 font-black">События</div>
+                  <div className="text-[10px] text-amber-200/50 font-mono">автопрокрутка</div>
+                </div>
+                <div ref={briefLogRef} className="overflow-y-auto custom-scrollbar space-y-3" style={{ maxHeight: eventsPanelBodyMaxHeight }}>
+                  {briefLogLines.length === 0 ? (
+                    <div className="text-[13px] text-amber-100/50 font-mono">Пока тихо.</div>
+                  ) : briefLogLines.map((item) => (
+                    <div key={item.id} className={"rounded-xl border px-3 py-3 text-[13px] leading-6 font-mono " + (item.targeted ? "border-amber-500/40 bg-amber-500/10 text-amber-50" : "border-amber-900/20 bg-black/20 text-amber-100/80")}>
+                      {item.text}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="px-4 pt-3 pb-2">
+                <div className="text-[11px] uppercase tracking-widest text-amber-200/70 font-black mb-2">Чат партии</div>
+                <div ref={partyChatRef} className="overflow-y-auto custom-scrollbar space-y-2" style={{ maxHeight: partyChatBodyMaxHeight }}>
+                  {partyChatLines.length === 0 ? (
+                    <div className="text-[13px] text-amber-100/50 font-mono">Пока нет сообщений.</div>
+                  ) : partyChatLines.map((m) => (
+                    <div key={m.id} className="rounded-xl border border-amber-900/20 bg-black/20 px-3 py-2">
+                      <div className="text-[11px] text-amber-200/60 font-mono">{m.sender}</div>
+                      <div className="text-[13px] text-amber-50/90 font-serif whitespace-pre-wrap break-words">{m.text}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <form className="px-4 py-3 border-t border-amber-900/10 flex gap-2" onSubmit={(e) => {
+                e.preventDefault();
+                const msg = String(partyChatInput || '').trim();
+                if (!msg) return;
+                try { moves.submitChat(msg, String(me?.name || playerID)); } catch {}
+                setPartyChatInput('');
+              }}>
+                <input value={partyChatInput} onChange={(e) => setPartyChatInput(e.target.value)} placeholder="Сообщение в чат партии…" className="flex-1 px-3 py-2 rounded-xl bg-black/50 border border-amber-900/30 text-amber-50 text-sm" />
+                <button type="submit" className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-100 font-black text-xs uppercase">Отправить</button>
+              </form>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Total VP + Deck count */}
+      {(
+        <div className="fixed z-[9500] pointer-events-none select-none bottom-4 right-4 flex flex-col items-end gap-3">
+          {[
+            { key: 'discard', title: 'Сброс', value: Array.isArray(G?.discard) ? G.discard.length : 0, sub: 'карт', icon: 'discard' },
+            { key: 'deck', title: 'Колода', value: Array.isArray(G?.deck) ? G.deck.length : 0, sub: 'карт осталось', icon: 'deck' },
+            { key: 'vp', title: 'VP', value: myCoalitionPoints, sub: `Base ${myVpBase} + Tokens ${myVpTokens} + Passives ${myVpPassives}`, icon: 'vp' },
+          ].map((box) => (
+            <div key={box.key} className="bg-black/60 border border-amber-900/20 rounded-2xl text-amber-100/90 font-mono shadow-2xl px-4 py-3 w-[190px] h-[92px] flex items-center gap-3">
+              <div className="relative w-14 aspect-[2/3] rounded-xl overflow-hidden border border-amber-900/30 bg-black/30 shadow-lg shrink-0">
+                {box.icon !== 'vp' && <img src="/cards/back.webp" onError={(e) => { e.currentTarget.style.display = 'none'; }} alt={box.title} className="w-full h-full object-cover opacity-70" draggable={false} />}
+                <div className="absolute inset-0 bg-gradient-to-br from-amber-300/10 to-black/40" />
+                {box.icon === 'deck' && <div className="absolute inset-0 translate-x-1.5 -translate-y-1.5 border border-amber-200/15 rounded-xl" />}
+                {box.icon === 'discard' && <div className="absolute inset-0 -translate-x-1.5 translate-y-1.5 border border-amber-200/10 rounded-xl" />}
+                {box.icon === 'vp' && <div className="absolute inset-0 flex items-center justify-center text-[28px] font-black tracking-widest text-amber-100">VP</div>}
+              </div>
+              <div className="min-w-0">
+                <div className="text-[10px] uppercase tracking-widest text-amber-200/60 font-black">{box.title}</div>
+                <div className="mt-1 font-black tracking-widest text-[18px] tabular-nums">{box.value}</div>
+                <div className="mt-0.5 text-amber-200/60 text-[10px] leading-4">{box.sub}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {G.pending?.kind === 'discard_down_to_7' && String(playerID) === String(G.pending.playerId) && mobileHandSelected && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[13000] pointer-events-auto select-none">
+          <button
+            type="button"
+            onClick={() => {
+              try { playSfx('ui', 0.25); moves.discardFromHandDownTo7(mobileHandSelected); } catch {}
+              setMobileHandSelected(null);
+            }}
+            className="px-4 py-2 rounded-full bg-red-600/95 hover:bg-red-500 border border-red-300/30 text-red-50 font-black text-[12px] shadow-2xl"
+          >
+            Сбросить
+          </button>
+        </div>
+      )}
+{false && mobileHandSelected && (
+        <div className="fixed inset-0 z-[9600] flex items-center justify-center pointer-events-auto">
+          <div className="relative w-[min(70vw,320px)] aspect-[2/3] rounded-2xl overflow-hidden border border-amber-900/30 shadow-2xl bg-black/80">
+                        <img src={(hand || []).find((c) => String(c.id) === String(mobileHandSelected))?.img} alt="zoom" className="w-full h-full object-cover" draggable={false} onClick={() => setMobileHandSelected(null)} />
+          </div>
+        </div>
+      )}
+
+      {/* Mobile: cancel hand selection */}
+
+      
+      {/* My coalition */}
+      <div
+        className={
+          "fixed z-[5000] pointer-events-auto transition-all " +
+          (G.gameOver ? "opacity-0 pointer-events-none blur-sm" : "opacity-100")
+        }
+        style={{
+          left: "13.5rem",
+          bottom: "1.5rem",
+          transform: "none",
+        }}
+      >
+        <div
+          className="relative h-32 overflow-visible"
+          style={{ width: `${Math.max(180, myCoalition.length * 64 + 120)}px` }}
+          onMouseMove={(e) => {
+            if (!myCoalition.length) return;
+            const rect = e.currentTarget.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const step = 64;
+            const idx = Math.max(0, Math.min(myCoalition.length - 1, Math.round((x - 60) / step)));
+            setHoverMyCoalition(idx);
+          }}
+          onMouseLeave={() => setHoverMyCoalition(null)}
+        >
+          {myCoalition.map((card, idx) => {
+            const step = 64;
+            const left = idx * step;
+            const t = myCoalition.length <= 1 ? 0.5 : idx / (myCoalition.length - 1);
+            const rot = (t - 0.5) * 10;
+            const dist = hoverMyCoalition == null ? 99 : Math.abs(idx - hoverMyCoalition);
+            const scale = hoverMyCoalition == null ? 1 : dist === 0 ? 1.18 : dist === 1 ? 1.06 : 1;
+            const z = hoverMyCoalition == null ? idx : 1000 - dist;
+            const canClickForPendingTokens = pendingTokens && card?.type === 'persona';
+            const canClickForP23 = pendingP23 && String(card?.id || '').split('#')[0] === 'persona_23';
+            const canClickForP21 = pendingP21 && card?.type === 'persona' && !isImmovablePersona(card);
+            const canClickForP26 = pendingP26 && card?.type === 'persona' && Array.isArray(card?.tags) && card.tags.includes('faction:red_nationalist') && !card?.shielded && !isImmovablePersona(card);
+            const canClickForP28 = pendingP28 && card?.type === 'persona' && !(Array.isArray(card?.tags) && card.tags.includes('faction:fbk')) && !card?.shielded && !isImmovablePersona(card);
+            const canClickForP7 = pendingP7 && card?.type === 'persona' && !isImmovablePersona(card);
+            const canClickForP32 = pendingP32 && card?.type === 'persona';
+            const canClickForA13 = pendingA13 && card?.type === 'persona' && !isImmovablePersona(card);
+            const clickable = canClickForPendingTokens || canClickForP23 || canClickForP21 || canClickForP26 || canClickForP28 || canClickForP7 || canClickForP32 || canClickForA13;
+
+            return (
+              <div
+                key={card.id}
+                className={"absolute bottom-0 w-36 aspect-[2/3] rounded-2xl overflow-hidden border border-black/40 shadow-2xl " + (clickable ? "cursor-pointer ring-2 ring-emerald-400/40" : "")}
+                style={{
+                  left: `${left}px`,
+                  zIndex: z,
+                  transform: `rotate(${rot}deg) scale(${scale})`,
+                  transformOrigin: "bottom center",
+                }}
+                title={displayCardTitle(card)}
+                onClick={() => {
+                  if (canClickForPendingTokens) {
+                    if (pendingTokensSingleTarget && pendingTokensBase === 'persona_40') {
+                      setTargetP40({ cardId: String(card.id) });
+                      return;
+                    }
+                    try { moves.applyPendingToken(String(card.id)); } catch {}
+                    return;
+                  }
+                  if (canClickForP23) { try { moves.persona23ChooseSelfInflict(1); } catch {} return; }
+                  if (canClickForP21) { setTargetP21({ playerId: String(playerID), cardId: String(card.id) }); return; }
+                  if (canClickForP26) { setTargetP26({ playerId: String(playerID), cardId: String(card.id) }); return; }
+                  if (canClickForP28) { setTargetP28({ playerId: String(playerID), cardId: String(card.id) }); return; }
+                  if (canClickForA13) { setTargetA13({ playerId: String(playerID), cardId: String(card.id) }); return; }
+                  if (canClickForP32) { try { moves.persona32BounceToHand(String(card.id)); } catch {} return; }
+                  if (canClickForP7) {
+                    if (!p7FirstPick) { setP7FirstPick({ ownerId: String(playerID), cardId: card.id }); return; }
+                    if (String(p7FirstPick.cardId) === String(card.id)) return;
+                    try { moves.persona7SwapTwoInCoalition(String(playerID), p7FirstPick.cardId, String(card.id)); } catch {}
+                    setP7FirstPick(null);
+                  }
+                }}
+              >
+                <img
+                  src={card.img}
+                  alt={displayCardTitle(card)}
+                  className="w-full h-full object-cover"
+                  draggable={false}
+                />
+
+                {Number(card.vpDelta || 0) !== 0 && (
+                  <div
+                    className={
+                      "absolute left-2 bottom-2 w-8 h-8 rounded-full border flex items-center justify-center text-white font-black text-[14px] " +
+                      (Number(card.vpDelta || 0) < 0
+                        ? "bg-red-700/90 border-red-200/30"
+                        : "bg-emerald-700/90 border-emerald-200/30")
+                    }
+                  >
+                    {card.vpDelta > 0 ? `+${card.vpDelta}` : card.vpDelta}
+                  </div>
+                )}
+
+                {Number(card.passiveVpDelta || 0) !== 0 && (
+                  <div
+                    className={
+                      "absolute right-2 bottom-2 w-8 h-8 rounded-full border flex items-center justify-center text-white font-black text-[14px] " +
+                      (Number(card.passiveVpDelta || 0) < 0
+                        ? "bg-red-800/90 border-red-200/30"
+                        : "bg-sky-700/90 border-sky-200/30")
+                    }
+                  >
+                    {card.passiveVpDelta > 0 ? `+${card.passiveVpDelta}` : card.passiveVpDelta}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      
+      {/* Hand fan */}
+      <div
+        className="fixed z-[999] pointer-events-auto bottom-2 left-1/2 -translate-x-1/2"
+      >
+        <div
+          className="relative h-56 overflow-visible"
+          style={{ width: `${handWidth}px`, marginLeft: 'auto' }}
+          onMouseMove={(e) => {
+            if (!cards.length) return;
+            const rect = e.currentTarget.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const idx = Math.max(0, Math.min(cards.length - 1, Math.round(x / handStep)));
+            setHoverHandIndex(idx);
+          }}
+          onMouseLeave={() => setHoverHandIndex(null)}
+        >
+          {cards.map((card, idx) => {
+            const t = fanN <= 1 ? 0.5 : idx / (fanN - 1);
+            const rot = (t - 0.5) * 18;
+            const left = idx * handStep;
+
+            const dist = hoverHandIndex == null ? 99 : Math.abs(idx - hoverHandIndex);
+            const scale0 = hoverHandIndex == null ? 1 : scaleByDist(dist);
+            const isSelected = String(mobileHandSelected || '') === String(card.id);
+            const scale = isSelected ? Math.max(1.06, scale0) : scale0;
+            const z = isSelected ? 2000 : (hoverHandIndex == null ? idx : (1000 - dist));
+
+            const baseId = String(card.id).split('#')[0];
+
+            const canPlayPersona = isMyTurn && !responseActive && G.hasDrawn && card.type === 'persona';
+            const canPlayAction = isMyTurn && !responseActive && G.hasDrawn && !G.hasPlayed && card.type === 'action';
+
+            // out-of-turn cancels
+            // Allow clicking cancels as long as server is advertising a response window.
+            // Server enforces actual expiry; UI shouldn't block.
+            const canCancelAction = responseKind === 'cancel_action' && card.type === 'action' && baseId === 'action_6' && String(response.playedBy) !== String(playerID);
+            const canCancelPersona = responseKind === 'cancel_persona' && card.type === 'action' && baseId === 'action_8' && String(response.playedBy) !== String(playerID) && String(response?.personaCard?.id || '').split('#')[0] !== 'persona_33';
+            const canCancelWithPersona10 = false; // persona_10 cancel is from coalition (not hand)
+
+            const baseIs14 = baseId === 'action_14';
+            const canCancelEffectOnMe = responseKind === 'cancel_action' && responseTargetsMe && baseIs14;
+
+            const canDiscardDownTo7 = G.pending?.kind === 'discard_down_to_7' && String(playerID) === String(G.pending.playerId);
+            const canDiscardDownTo7Mobile = false;
+            const canDiscardEvent12b = G.pending?.kind === 'event_12b_discard_from_hand' && Array.isArray(G.pending?.targetIds) && G.pending.targetIds.includes(String(playerID));
+
+            const canClickP16 = pendingP16; // select cards to discard
+            const canClick = canDiscardDownTo7 || canDiscardDownTo7Mobile || canDiscardEvent12b || canClickP16 || canPlayPersona || canPlayAction || canCancelAction || canCancelPersona || canCancelEffectOnMe || canCancelWithPersona10;
+
+            return (
+              <button
+                key={card.id}
+                onClick={(e) => {
+                  if (!canClick) return;
+
+                  if (canDiscardDownTo7) {
+                    try { playSfx('ui', 0.18); } catch {}
+                    setMobileHandSelected((prev) => String(prev || '') === String(card.id) ? null : card.id);
+                    return;
+                  }
+                  if (canDiscardEvent12b) {
+                    try { playSfx('ui', 0.18); } catch {}
+                    setMobileHandSelected((prev) => String(prev || '') === String(card.id) ? null : card.id);
+                    return;
+                  }
+                  if (canClickP16) {
+                    setP16DiscardPick((arr) => {
+                      const s = new Set(arr || []);
+                      if (s.has(card.id)) s.delete(card.id);
+                      else s.add(card.id);
+                      return Array.from(s).slice(0, 3);
+                    });
+                    return;
+                  }
+                  if (canPlayPersona) {
+                    const haveCoal = (me?.coalition || []).filter((c) => c.type === 'persona' && !isImmovablePersona(c)).length >= 1;
+
+                    // persona_9: must choose opponent receiver
+                    if (baseId === 'persona_9') {
+                      playSfx('ui', 0.35);
+                      setPickTargetForPersona9({ cardId: card.id });
+                      return;
+                    }
+
+                    if (baseId === 'persona_39') {
+                      playSfx('ui', 0.35);
+                      try { moves.playPersona(card.id); } catch {}
+                      return;
+                    }
+
+                    const POSITION_SENSITIVE = new Set(['persona_1','persona_12','persona_18','persona_19','persona_25','persona_42']);
+
+                    // Ghost placement mode for position-sensitive personas.
+                    if (haveCoal && POSITION_SENSITIVE.has(baseId)) {
+                      playSfx('ui', 0.35);
+                      setPlacementMode({ cardId: card.id, neighborId: null, side: 'right' });
+                      return;
+                    }
+
+                    // Placement mode for any persona (legacy): Shift+click.
+                    if (haveCoal && e?.shiftKey) {
+                      playSfx('ui', 0.35);
+                      setPlacementMode({ cardId: card.id, neighborId: null, side: 'right' });
+                      return;
+                    }
+
+                    playSfx('play');
+                    moves.playPersona(card.id);
+                  }
+                  else if (canPlayAction) {
+                    if (baseId === 'action_4') { playSfx('ui', 0.35); setPickTargetForAction4({ cardId: card.id }); return; }
+                    if (baseId === 'action_9') { playSfx('ui', 0.35); setPickTargetForAction9({ cardId: card.id }); return; }
+                    playSfx('play');
+                    moves.playAction(card.id);
+                  } else if (canCancelAction || canCancelPersona || canCancelEffectOnMe) {
+                    playSfx('ui', 0.35);
+                    moves.playAction(card.id);
+                  } else if (canCancelWithPersona10) {
+                    playSfx('ui', 0.35);
+                    // persona_10 cancel is from coalition; handled via overlay button
+                  }
+                }}
+                aria-disabled={!canClick}
+                className={
+                  'absolute bottom-0 w-36 aspect-[2/3] rounded-2xl border-2 transition-all duration-200 ease-out shadow-xl overflow-visible ' +
+                  (canClickP16
+                    ? ((p16DiscardPick || []).includes(card.id) ? 'border-emerald-300 hover:border-emerald-200 cursor-pointer ring-2 ring-emerald-400/30' : 'border-emerald-500/40 hover:border-emerald-300 cursor-pointer')
+                    : (canClick
+                      ? (canCancelWithPersona10
+                        ? 'border-fuchsia-300/80 hover:border-fuchsia-200 cursor-pointer ring-4 ring-fuchsia-300/30 animate-pulse'
+                        : ((canCancelAction || canCancelPersona) ? 'border-emerald-500/50 hover:border-emerald-300 cursor-pointer' : 'border-amber-700/40 hover:border-amber-400 cursor-pointer'))
+                      : 'border-slate-900 cursor-not-allowed'))
+                }
+                style={{
+                  left: `${left}px`,
+                  zIndex: z,
+                  transform: `rotate(${rot}deg) scale(${scale})`,
+                  transformOrigin: 'bottom center',
+                }}
+                title={
+                  canCancelWithPersona10
+                    ? 'Вы можете позвать маму Наки чтобы отменить действие'
+                    : displayCardTitle(card)
+                }
+              >
+                <div className="w-full h-full rounded-2xl overflow-hidden">
+                  <img src={card.img} alt={card.id} className="w-full h-full object-cover" draggable={false} />
+                </div>
+                {G.pending?.kind === 'discard_down_to_7' && String(playerID) === String(G.pending.playerId) && String(mobileHandSelected || '') === String(card.id) && (
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); try { playSfx('ui', 0.25); moves.discardFromHandDownTo7(card.id); } catch {} setMobileHandSelected(null); }}
+                    className="absolute inset-x-4 bottom-4 z-[2500] rounded-xl bg-red-600/95 hover:bg-red-500 border border-red-300/30 text-red-50 font-black text-[12px] py-2 shadow-2xl"
+                  >
+                    Сбросить
+                  </button>
+                )}
+                {showHotkeys && (
+                  <div className="absolute left-2 -top-8 px-2 py-1 rounded-full bg-black/65 border border-amber-900/30 text-amber-100 font-mono font-black text-[11px]">
+                    ({idx + 1})
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+    </div>
+  );
+}
+
+export default ActionBoard;

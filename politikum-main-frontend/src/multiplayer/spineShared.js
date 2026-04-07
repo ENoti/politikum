@@ -1,0 +1,55 @@
+const PERSONA_NAME = {
+  'persona_1': 'Рунов',
+  'persona_2': 'Сережко',
+  'persona_3': 'SVTV',
+  'persona_4': 'Яшин',
+  'persona_5': 'Певчих',
+  'persona_6': 'Кашин',
+  'persona_7': 'Каспаров',
+  'persona_8': 'Лазерсон',
+  'persona_9': 'Пономарёв',
+  'persona_10': 'Наки',
+  'persona_11': 'Соловей',
+  'persona_12': 'Савин',
+  'persona_13': 'Венедитков',
+  'persona_14': 'Ройзман',
+  'persona_15': 'Пожарский',
+  'persona_16': 'Кац',
+  'persona_17': 'Арно',
+  'persona_18': 'Соболь',
+  'persona_19': 'Гиркин',
+  'persona_20': 'Быков',
+  'persona_21': 'Штефанов',
+  'persona_22': 'Светов',
+  'persona_23': 'Волков',
+  'persona_24': 'Латынина',
+  'persona_25': 'Надеждин',
+  'persona_26': 'Демушкин',
+  'persona_27': 'Юдин',
+  'persona_28': 'Ведута',
+  'persona_29': 'Юнеман',
+  'persona_30': 'Ходорковский',
+  'persona_31': 'Шлосберг',
+  'persona_32': 'Плющев',
+  'persona_33': 'Собчак',
+  'persona_34': 'Милов',
+  'persona_35': 'Жданов',
+  'persona_36': 'Кагалицкий',
+  'persona_37': 'Гуриев',
+  'persona_38': 'ВотВот',
+  'persona_39': 'Лефт',
+  'persona_40': 'Дунцова',
+  'persona_41': 'Дождь',
+  'persona_42': 'Стрелков',
+  'persona_43': 'Доха',
+  'persona_44': 'Рудой',
+  'persona_45': 'Шульман',
+};
+
+function personaName(id) {
+  const base = String(id || '').split('#')[0];
+  return PERSONA_NAME[base] || base;
+}
+
+
+export { PERSONA_NAME, personaName };

@@ -1,0 +1,12 @@
+.DS_Store
+politikum-main-frontend/node_modules/
+politikum-main-frontend/dist/
+politikum-main-frontend/.vite/
+politikum-main-frontend/npm-debug.log*
+
+politikum-main-backend/target/
+politikum-main-backend/.idea/
+politikum-main-backend/*.log
+
+.idea/
+.vscode/

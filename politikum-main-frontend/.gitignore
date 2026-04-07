@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.vite/
+*.log
+vendor/citadel-engine/
+dist/
+node_modules/
+
+# local sqlite db
+/var/*.sqlite*
+
+# boardgame.io FlatFile storage (runtime)
+var/bgio/
