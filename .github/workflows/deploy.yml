@@ -22,10 +22,18 @@ jobs:
           cd politikum-main-backend
           mvn -DskipTests clean package
 
+      - name: Install frontend dependencies
+        run: |
+          cd politikum-main-frontend
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
       - name: Build frontend
         run: |
           cd politikum-main-frontend
-          npm ci
           npm run build
 
       - name: Install backend
