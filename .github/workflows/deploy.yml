@@ -1,0 +1,57 @@
+name: Deploy production
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build backend
+        run: |
+          cd politikum-main-backend
+          mvn -DskipTests clean package
+
+      - name: Install frontend dependencies
+        run: |
+          cd politikum-main-frontend
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Build frontend
+        run: |
+          cd politikum-main-frontend
+          npm run build
+
+      - name: Install backend
+        run: |
+          mkdir -p /opt/politikum/politikum-main-backend/target
+          cp politikum-main-backend/target/backend.jar /opt/politikum/politikum-main-backend/target/backend.jar
+
+      - name: Install frontend
+        run: |
+          mkdir -p /opt/politikum/politikum-main-frontend/dist
+          rsync -a --delete politikum-main-frontend/dist/ /opt/politikum/politikum-main-frontend/dist/
+
+      - name: Restart services
+        run: |
+          sudo systemctl restart politikum-backend
+          sudo systemctl reload nginx
+
+      - name: Verify services
+        run: |
+          systemctl is-active politikum-backend
+          systemctl is-active nginx
