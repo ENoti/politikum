@@ -484,14 +484,10 @@ function ActionBoard({ G, ctx, moves, playerID, matchID, ratingsMap = {}, setSho
     if (acknowledgedTurnPromptKey && acknowledgedTurnPromptKey !== yourTurnPromptKey) setAcknowledgedTurnPromptKey('');
   }, [acknowledgedTurnPromptKey, yourTurnPromptKey]);
 
-  useEffect(() => {
-    const nowMyTurn = !!isMyTurn && !G?.gameOver;
-    const wasMyTurn = !!wasMyTurnRef.current;
-    wasMyTurnRef.current = nowMyTurn;
-    if (!nowMyTurn || wasMyTurn) return;
-    setYourTurnSplashVisible(true);
-    setYourTurnSplashPhase('show');
-  }, [isMyTurn, G?.gameOver, ctx?.turn]);
+useEffect(() => {
+  const nowMyTurn = !!isMyTurn && !G?.gameOver;
+  wasMyTurnRef.current = nowMyTurn;
+}, [isMyTurn, G?.gameOver, ctx?.turn]);
 
   useEffect(() => {
     if (!yourTurnPromptActive) return;
@@ -2555,11 +2551,18 @@ Click their hand. (Esc to cancel)`}</div>
               <button
                 type="button"
                 onClick={async () => {
-                  try { playSfx('draw'); } catch {}
                   setAcknowledgedTurnPromptKey(yourTurnPromptKey);
-                  const res = await moves.beginTurnDraw?.();
-                  if (res?.ok === false) { setAcknowledgedTurnPromptKey(''); return; }
                   setYourTurnSplashVisible(false);
+                  setYourTurnSplashPhase('hidden');
+
+                  try { playSfx('draw'); } catch {}
+                  const res = await moves.beginTurnDraw?.();
+
+                  if (res?.ok === false) {
+                    setAcknowledgedTurnPromptKey('');
+                    setYourTurnSplashVisible(true);
+                    setYourTurnSplashPhase('show');
+                  }
                 }}
                 className="px-5 py-3 rounded-2xl bg-emerald-700/80 hover:bg-emerald-600/85 border border-emerald-300/30 text-emerald-50 font-black text-sm shadow-xl"
               >Взять карту</button>

@@ -4158,6 +4158,21 @@ var PolitikumGame = {
       const pend = G.pending;
       if (!pend || pend.kind !== "persona_16_discard3_from_hand") return INVALID_MOVE2;
       if (String(pend.playerId) !== String(playerID)) return INVALID_MOVE2;
+      const _p16Chosen = [cardId1, cardId2, cardId3]
+        .filter(Boolean)
+        .map((x) => String(x))
+        .sort()
+        .join(',');
+
+      const _p16Signature = `${String(G.pending?.sourceCardId || '')}:${_p16Chosen}`;
+
+      if (String(G._lastPersona16ResolveSignature || '') === _p16Signature) {
+        G.pending = null;
+        G._lastPersona16ResolveSignature = '';
+        return;
+      }
+
+      G._lastPersona16ResolveSignature = _p16Signature;
       const me = (G.players || []).find((pp) => String(pp.id) === String(playerID));
       if (!me) return INVALID_MOVE2;
       const ids = [cardIdA, cardIdB, cardIdC].map(String);
