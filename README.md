@@ -2,6 +2,15 @@
   <img src="docs/assets/politikum-banner.png" alt="Politikum Banner" width="100%" />
 </p>
 
+<p align="center">
+  <a href="http://109.107.167.179/">
+    <img src="https://img.shields.io/badge/🎮 Играть в Politikum-orange?style=for-the-badge" alt="Играть в Politikum" />
+  </a>
+  <a href="https://github.com/ENoti/politikum/issues">
+    <img src="https://img.shields.io/badge/🐞 Сообщить о баге-blue?style=for-the-badge" alt="Сообщить о баге" />
+  </a>
+</p>
+
 <h1 align="center">🎭 Politikum</h1>
 
 <p align="center">
