@@ -1,113 +1,155 @@
-# Politikum
+<p align="center">
+  <img src="docs/assets/politikum-banner.png" alt="Politikum Banner" width="100%" />
+</p>
 
-**Politikum** — это мультиплеерная карточная политическая игра с персонажами, событиями, действиями, чатами партии, логами, ботами и полноценным веб-интерфейсом.
+<h1 align="center">🎭 Politikum</h1>
 
-Игроки собирают коалиции, разыгрывают персонажей и действия, переживают события, воруют, блокируют, бафают, дебафают, крутят интриги и добираются до победы по очкам влияния.
+<p align="center">
+  <b>Онлайн-карточная политическая игра</b><br/>
+  Персонажи • События • Действия • Коалиции • Боты • Логи • Чат • CI/CD
+</p>
+
+<p align="center">
+  <img alt="Backend" src="https://img.shields.io/badge/backend-Spring%20Boot-6DB33F?style=for-the-badge&logo=springboot&logoColor=white" />
+  <img alt="Frontend" src="https://img.shields.io/badge/frontend-React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" />
+  <img alt="Build" src="https://img.shields.io/badge/build-Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white" />
+  <img alt="Java" src="https://img.shields.io/badge/java-21-orange?style=for-the-badge&logo=openjdk&logoColor=white" />
+  <img alt="CI" src="https://img.shields.io/badge/CI-GitHub%20Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white" />
+  <img alt="Deploy" src="https://img.shields.io/badge/deploy-self--hosted%20runner-black?style=for-the-badge&logo=github" />
+</p>
 
 ---
 
-## Что это за игра
+## ✨ Что такое Politikum
 
-`Politikum` — это PvP/PvE карточная игра, где у каждого игрока есть:
+**Politikum** — это многопользовательская карточная игра, где игроки строят коалиции, разыгрывают персонажей, используют действия, проживают случайные события и борются за максимальное количество **VP**.
 
-- **рука** с персонажами и действиями
-- **коалиция** на столе
-- **колода событий**
-- **сброс**
-- **очки VP**
-- **лог партии**
-- **чат партии**
+Каждая партия — это смесь:
+- интриг,
+- тактики,
+- контроля стола,
+- неожиданных событий,
+- и красивого визуального UX.
 
-Во время партии игрок:
+---
 
-1. начинает ход
+## 🖼️ Визуальный стиль игры
+
+<p align="center">
+  <img src="docs/screenshots/main-board.jpg" alt="Main board" width="85%" />
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/gameWithBot.jpg" alt="Game with bots" width="42%" />
+  <img src="docs/screenshots/lobby.jpg" alt="Lobby" width="42%" />
+</p>
+
+> Если скриншотов пока нет, просто оставь эти блоки — потом подменишь картинки.
+
+---
+
+## 🎮 Игровой процесс
+
+### Каждый ход игрок:
+1. получает начало хода
 2. берет карту
-3. разыгрывает карту персонажа или действия
-4. разрешает эффекты, события, выборы, ответы и конфликты
-5. заканчивает ход
+3. разыгрывает персонажа или действие
+4. разрешает эффекты и события
+5. завершает ход
 
-В игре есть:
-
+### В игре есть:
 - **персонажи** с уникальными способностями
+- **карты действий** для контроля, отмены и атаки
 - **события**, влияющие на одного игрока или на всех
-- **экшены**, которые ломают планы оппонентов
 - **боты**
-- **интерактивные пуши**
-- **визуальные эффекты и звуки**
-- **онлайн-матчи через веб-клиент**
+- **чат партии**
+- **подсвеченные логи**
+- **динамические пуши и уведомления**
 
 ---
 
-## Особенности
+## 🃏 Основные механики
 
-### Игровые механики
-- персонажи с `on-enter`, пассивными и ситуационными способностями
-- действия: отмена, блокировка, защита, возврат из сброса, минус жетоны и другое
-- события из отдельной колоды
-- система жетонов `+/- VP`
-- таргетинг по столу
-- pending-состояния и response-окна
-- логика ботов
-- лог партии и встроенный чат
+<table>
+  <tr>
+    <td>👤 <b>Персонажи</b></td>
+    <td>Уникальные карты с on-enter, passive и targeted способностями</td>
+  </tr>
+  <tr>
+    <td>⚡ <b>Действия</b></td>
+    <td>Отмена, защита, блокировка, дебаффы, возврат карт</td>
+  </tr>
+  <tr>
+    <td>🎲 <b>События</b></td>
+    <td>Случайные эффекты из отдельной колоды</td>
+  </tr>
+  <tr>
+    <td>🎯 <b>Таргетинг</b></td>
+    <td>Выбор целей прямо на столе</td>
+  </tr>
+  <tr>
+    <td>🧠 <b>Боты</b></td>
+    <td>Автоматические решения и игра против человека</td>
+  </tr>
+  <tr>
+    <td>💬 <b>Логи + чат</b></td>
+    <td>Живой журнал партии и сообщения игроков</td>
+  </tr>
+  <tr>
+    <td>🏆 <b>VP</b></td>
+    <td>Очки влияния, жетоны, усиления и штрафы</td>
+  </tr>
+</table>
 
-### UI/UX
+---
+
+## 🌟 Особенности проекта
+
+### UI / UX
+- красивый стол и игровые панели
 - отдельная рука игрока
-- коалиции игроков на столе
+- отдельная коалиция на столе
 - динамический пуш **«ВАШ ХОД»**
-- всплывающие уведомления о событиях и атаках
-- объединенная панель **логов + чата**
-- визуал колоды, сброса и VP
-- hover/zoom карт
-- мобильные и desktop-управления
+- всплывающие уведомления об атаках и событиях
+- объединённая панель **логов и чата**
+- hover / zoom карт
+- декоративный визуал колоды, сброса и VP
 
-### Архитектура
-- backend на **Spring Boot**
-- frontend на **React / Vite**
-- игровой движок на **JS bridge**
+### Игровая логика
+- response windows
+- pending state machine
+- последовательное разрешение эффектов
+- взаимодействие между персонажами, действиями и событиями
+- исключения и специальные правила отдельных карт
+
+### Техническая часть
+- backend на Spring Boot
+- frontend на React + Vite
+- кастомный JS bridge для игрового движка
 - GitHub Actions CI/CD
-- self-hosted runner для деплоя на сервер
-- systemd + nginx в проде
-
----
-
-## Стек технологий
-
-### Backend
-- Java 21
-- Spring Boot 3
-- WebSocket / REST
-- GraalVM Polyglot JS
-- SQLite / JDBC
-
-### Frontend
-- React
-- Vite
-- JavaScript / JSX
-- Tailwind-подобные utility-классы
-- WebSocket / HTTP client
-
-### DevOps
-- GitHub
-- GitHub Actions
 - self-hosted runner
-- nginx
-- systemd
-- Linux VPS
+- deploy на Linux VPS через systemd + nginx
 
 ---
 
-## Структура проекта
+## 🏗️ Архитектура
 
 ```text
 politikum/
-├── politikum-main-backend/      # backend
-│   ├── src/main/java/           # Spring Boot приложение
-│   ├── src/main/resources/      # конфиги, engine, sql, static data
-│   └── target/                  # build output
+├── politikum-main-backend/
+│   ├── src/main/java/
+│   ├── src/main/resources/
+│   │   ├── engine/
+│   │   ├── application.yml
+│   │   └── sql/
+│   └── target/
 │
-├── politikum-main-frontend/     # frontend
-│   ├── src/                     # React UI
-│   ├── public/                  # статические файлы
-│   └── dist/                    # production build
+├── politikum-main-frontend/
+│   ├── src/
+│   ├── public/
+│   └── dist/
 │
-└── .github/workflows/           # CI/CD
+└── .github/
+    └── workflows/
+        ├── ci.yml
+        └── deploy.yml
