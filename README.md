@@ -4,17 +4,10 @@
 
 <p align="center">
   <a href="http://109.107.167.179/">
-    <img src="https://img.shields.io/badge/🎮%20ИГРАТЬ%20СЕЙЧАС%20В%20POLITIKUM-ff7a00?style=for-the-badge&logo=githubsponsors&logoColor=white&labelColor=cc5f00" alt="Играть сейчас в Politikum" />
+    <img src="https://img.shields.io/badge/🎮 Играть в Politikum-orange?style=for-the-badge" alt="Играть в Politikum" />
   </a>
-</p>
-
-<h2 align="center">
-  <a href="http://109.107.167.179/">🔥 ОТКРЫТЬ ИГРУ ПРЯМО СЕЙЧАС 🔥</a>
-</h2>
-
-<p align="center">
   <a href="https://github.com/ENoti/politikum/issues">
-    <img src="https://img.shields.io/badge/🐞%20Сообщить%20о%20баге-2f80ed?style=for-the-badge" alt="Сообщить о баге" />
+    <img src="https://img.shields.io/badge/🐞 Сообщить о баге-blue?style=for-the-badge" alt="Сообщить о баге" />
   </a>
 </p>
 
