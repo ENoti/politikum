@@ -482,7 +482,7 @@ export default function PolitikumWelcome({ onJoin }) {
             <span>версия 2.2b</span>
           </div>
         </footer>
-      </div>      </div>
+      </div>
     </div>
   );
 }
