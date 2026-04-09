@@ -271,7 +271,7 @@ export default function PolitikumWelcome({ onJoin }) {
   }, [matches]);
 
   const activeGameCount = publicMatches.length;
-  const onlineCount = Math.max((lobbyChat || []).length * 4, (top10 || []).length * 32, 2316);
+  const onlineCount = (lobbyChat?.length || 0) + (top10?.length || 0);
 
   return (
     <div className="relative min-h-screen w-screen overflow-hidden text-slate-100" style={{ backgroundImage: "url('/assets/lobby_bg.webp')", backgroundSize: 'cover', backgroundPosition: 'center top', backgroundRepeat: 'no-repeat' }}>
