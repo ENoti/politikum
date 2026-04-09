@@ -515,7 +515,7 @@ export default function PolitikumWelcome({ onJoin }) {
           <span>•</span>
           <span>{activeGameCount} активных игр</span>
           <span>•</span>
-          <span>версия 0.8b</span>
+          <span>версия 2.1b</span>
         </footer>
       </div>
     </div>
