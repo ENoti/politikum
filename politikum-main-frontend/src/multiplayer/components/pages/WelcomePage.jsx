@@ -312,180 +312,177 @@ export default function PolitikumWelcome({ onJoin }) {
 
       <PublicProfileModal open={showProfile} onClose={closeProfile} loading={profileLoading} error={profileErr} profile={profile} />
 
-      <div className="relative z-10 min-h-screen px-4 md:px-8 pb-10 pt-4">
-        <header className="mx-auto max-w-[1520px] rounded-[28px] border border-amber-500/15 bg-[linear-gradient(180deg,rgba(28,15,11,0.75),rgba(12,7,6,0.55))] shadow-[0_20px_60px_rgba(0,0,0,0.35)] backdrop-blur-md px-4 md:px-6 py-3 flex flex-wrap items-center gap-3 justify-between">
-          <div className="flex items-center gap-2 md:gap-3 flex-wrap">
-            <button type="button" onClick={() => setShowWhereAmI(true)} className="px-4 py-2 rounded-xl bg-black/35 hover:bg-black/50 border border-amber-500/15 text-amber-100 font-black text-[10px] uppercase tracking-[0.28em] whitespace-nowrap">Помощь</button>
-            <button type="button" onClick={() => setShowRules(true)} className="px-4 py-2 rounded-xl bg-black/35 hover:bg-black/50 border border-amber-500/15 text-amber-100 font-black text-[10px] uppercase tracking-[0.28em] whitespace-nowrap">Правила игры</button>
-            {String(playerName || '').trim().toLowerCase() === 'konsta' && (
-              <a href="#/admin" target="_blank" rel="noreferrer" className="px-4 py-2 rounded-xl bg-black/35 hover:bg-black/50 border border-amber-500/15 text-amber-200 font-black text-[10px] uppercase tracking-[0.28em] whitespace-nowrap">Admin</a>
+      <div className="relative z-10 min-h-screen px-4 md:px-8 pt-3 pb-20">
+        <header className="fixed top-3 left-4 right-4 md:left-8 md:right-8 z-30">
+          <div className="mx-auto max-w-[1520px] rounded-[24px] border border-amber-500/15 bg-[linear-gradient(180deg,rgba(28,15,11,0.78),rgba(12,7,6,0.60))] shadow-[0_16px_44px_rgba(0,0,0,0.34)] backdrop-blur-md px-4 md:px-5 py-3 flex flex-wrap items-center gap-3 justify-between">
+            <div className="flex items-center gap-2 md:gap-3 flex-wrap">
+              <button type="button" onClick={() => setShowWhereAmI(true)} className="px-4 py-2 rounded-xl bg-black/35 hover:bg-black/50 border border-amber-500/15 text-amber-100 font-black text-[10px] uppercase tracking-[0.28em] whitespace-nowrap">Помощь</button>
+              <button type="button" onClick={() => setShowRules(true)} className="px-4 py-2 rounded-xl bg-black/35 hover:bg-black/50 border border-amber-500/15 text-amber-100 font-black text-[10px] uppercase tracking-[0.28em] whitespace-nowrap">Правила игры</button>
+              {String(playerName || '').trim().toLowerCase() === 'konsta' && (
+                <a href="#/admin" target="_blank" rel="noreferrer" className="px-4 py-2 rounded-xl bg-black/35 hover:bg-black/50 border border-amber-500/15 text-amber-200 font-black text-[10px] uppercase tracking-[0.28em] whitespace-nowrap">Admin</a>
+              )}
+            </div>
+
+            {authToken ? (
+              <div className="flex items-center gap-3 flex-wrap justify-end">
+                <div className="rounded-xl border border-amber-500/10 bg-amber-50/90 px-4 py-2 text-stone-900 flex items-center gap-3">
+                  <div>
+                    <div className="text-[10px] uppercase tracking-[0.28em] text-stone-500 font-black">Профиль</div>
+                    <div className="font-serif text-lg font-bold">{String(playerName || 'User').trim() || 'User'}</div>
+                  </div>
+                  {(authRating != null && !Number.isNaN(Number(authRating))) && (
+                    <button type="button" className="px-3 py-2 rounded-xl bg-stone-900 text-amber-50 font-black hover:bg-black" title="Открыть профиль" onClick={async () => { const pid = String(window.localStorage.getItem('politikum.sessionPlayerId') || '').trim(); openProfileById(pid); }}>{Math.round(Number(authRating))}</button>
+                  )}
+                </div>
+                <button type="button" onClick={() => { try { window.localStorage.removeItem('politikum.authToken'); } catch {} try { window.localStorage.removeItem('politikum.sessionPlayerId'); } catch {} setAuthToken(''); setAuthRating(null); }} className="px-4 py-3 rounded-xl bg-stone-900/85 hover:bg-black text-amber-100 font-black text-[11px] uppercase tracking-[0.25em]">Выйти</button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 flex-wrap justify-end">
+                <input type="text" value={playerName} onChange={(e) => setPlayerName(e.target.value)} className="w-[220px] max-w-[40vw] rounded-xl border border-amber-500/15 bg-amber-50/90 px-4 py-3 text-stone-900 font-serif text-sm focus:outline-none" placeholder="Твой ник" />
+                <input value={betaPassword} onChange={(e) => setBetaPassword(e.target.value)} type="password" placeholder="token" className="w-[220px] max-w-[40vw] rounded-xl border border-amber-500/15 bg-amber-50/90 px-4 py-3 text-stone-900 font-mono text-sm focus:outline-none" />
+                <button type="button" onClick={doBetaLogin} disabled={betaLoading || !String(betaPassword || '').trim()} className="px-5 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-stone-950 font-black text-[11px] uppercase tracking-[0.25em]">{betaLoading ? '...' : 'Войти'}</button>
+                <div className="text-[11px] font-mono text-amber-100/75">{betaErr ? betaErr : 'Гостевой режим'}</div>
+              </div>
             )}
           </div>
-
-          {authToken ? (
-            <div className="flex items-center gap-3 flex-wrap justify-end">
-              <div className="rounded-xl border border-amber-500/10 bg-amber-50/90 px-4 py-2 text-stone-900 flex items-center gap-3">
-                <div>
-                  <div className="text-[10px] uppercase tracking-[0.28em] text-stone-500 font-black">Профиль</div>
-                  <div className="font-serif text-lg font-bold">{String(playerName || 'User').trim() || 'User'}</div>
-                </div>
-                {(authRating != null && !Number.isNaN(Number(authRating))) && (
-                  <button type="button" className="px-3 py-2 rounded-xl bg-stone-900 text-amber-50 font-black hover:bg-black" title="Открыть профиль" onClick={async () => { const pid = String(window.localStorage.getItem('politikum.sessionPlayerId') || '').trim(); openProfileById(pid); }}>{Math.round(Number(authRating))}</button>
-                )}
-              </div>
-              <button type="button" onClick={() => { try { window.localStorage.removeItem('politikum.authToken'); } catch {} try { window.localStorage.removeItem('politikum.sessionPlayerId'); } catch {} setAuthToken(''); setAuthRating(null); }} className="px-4 py-3 rounded-xl bg-stone-900/85 hover:bg-black text-amber-100 font-black text-[11px] uppercase tracking-[0.25em]">Выйти</button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 flex-wrap justify-end">
-              <input type="text" value={playerName} onChange={(e) => setPlayerName(e.target.value)} className="w-[220px] max-w-[40vw] rounded-xl border border-amber-500/15 bg-amber-50/90 px-4 py-3 text-stone-900 font-serif text-sm focus:outline-none" placeholder="Твой ник" />
-              <input value={betaPassword} onChange={(e) => setBetaPassword(e.target.value)} type="password" placeholder="token" className="w-[220px] max-w-[40vw] rounded-xl border border-amber-500/15 bg-amber-50/90 px-4 py-3 text-stone-900 font-mono text-sm focus:outline-none" />
-              <button type="button" onClick={doBetaLogin} disabled={betaLoading || !String(betaPassword || '').trim()} className="px-5 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-stone-950 font-black text-[11px] uppercase tracking-[0.25em]">{betaLoading ? '...' : 'Войти'}</button>
-              <div className="text-[11px] font-mono text-amber-100/75">{betaErr ? betaErr : 'Гостевой режим'}</div>
-            </div>
-          )}
         </header>
 
-        <main className="relative mx-auto max-w-[1520px] pt-6 md:pt-8 grid grid-cols-1 xl:grid-cols-[355px_minmax(0,1fr)_430px] gap-5 items-start min-h-[calc(100vh-170px)]">
-          <div className="order-2 xl:order-1 space-y-5">
-            <SectionCard title="Новости" eyebrow="Сводка" className="overflow-hidden">
-              <div className="max-h-[92px] overflow-hidden">
-                <NewsPanel />
-              </div>
-            </SectionCard>
-
-            <SectionCard title="Чат лобби" eyebrow="Общий канал" className="h-[min(40vh,320px)] flex flex-col">
-              <div className="flex-1 min-h-0 overflow-y-auto space-y-3 pr-1 custom-scrollbar">
-                {!lobbyChatEnabled && <div className="bg-red-950/35 border border-red-900/40 rounded-2xl px-4 py-3"><div className="text-[10px] font-mono text-red-200/70">System</div><div className="text-sm font-serif text-red-50/90">Lobby chat is disabled by admin.</div></div>}
-                {!!lobbyChatErr && <div className="bg-black/35 border border-amber-900/20 rounded-2xl px-4 py-3"><div className="text-[10px] font-mono text-amber-200/50">System</div><div className="text-sm font-serif text-amber-50/80">Chat error: {lobbyChatErr}</div></div>}
-                {(lobbyChat || []).map((m, idx) => {
-                  const isMe = String(m?.name || '') === String(playerName || '');
-                  return (
-                    <div key={m.id ?? idx} className={isMe ? 'rounded-2xl border border-amber-500/12 bg-amber-500/10 px-4 py-3' : 'rounded-2xl border border-amber-500/10 bg-black/28 px-4 py-3'}>
-                      <div className="text-[10px] font-mono text-amber-200/55 flex items-center gap-2">
-                        <span className={m?.playerId ? 'cursor-pointer hover:text-amber-100' : ''} onClick={() => { if (m?.playerId) openProfileById(m.playerId); }}>{m.name || m.playerId || 'Anon'}</span>
-                        {(m?.playerId && (ratingsMap[String(m.playerId)] != null)) && <button type="button" className="px-2 py-0.5 rounded-lg bg-black/35 hover:bg-black/45 border border-amber-900/20 text-amber-100/80 font-black" title="Открыть профиль" onClick={() => openProfileById(m.playerId)}>{ratingsMap[String(m.playerId)]}</button>}
-                      </div>
-                      <div className="mt-1 text-base font-serif text-amber-50/92 whitespace-pre-wrap leading-snug">{m.text}</div>
-                    </div>
-                  );
-                })}
-                {(!(lobbyChat || []).length && !lobbyChatErr) && <div className="bg-black/35 border border-amber-900/20 rounded-2xl px-4 py-3"><div className="text-[10px] font-mono text-amber-200/50">System</div><div className="text-sm font-serif text-amber-50/80">Скажи всем привет.</div></div>}
-              </div>
-              <div className="mt-4 flex gap-2">
-                <input value={lobbyChatInput} onChange={(e) => setLobbyChatInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); sendLobbyChat(); } }} placeholder={authToken ? (lobbyChatEnabled ? 'Напиши что-нибудь…' : 'Чат выключен') : 'Войди, чтобы писать…'} disabled={!authToken || !lobbyChatEnabled} className="flex-1 rounded-xl border border-amber-500/12 bg-black/30 px-4 py-3 text-amber-100 font-serif text-sm focus:outline-none disabled:opacity-60 placeholder:text-amber-100/28" />
-                <button type="button" onClick={sendLobbyChat} disabled={!authToken || !lobbyChatEnabled || !String(lobbyChatInput||'').trim()} className="px-5 py-3 rounded-xl bg-amber-500 text-stone-950 font-black uppercase tracking-[0.18em] text-[11px] shadow-[0_8px_24px_rgba(251,191,36,0.24)] transition-all disabled:opacity-60 hover:bg-amber-400">Отправить</button>
-              </div>
-            </SectionCard>
+        <main className="relative mx-auto max-w-[1520px] pt-[96px] md:pt-[104px] pb-[88px] min-h-screen">
+          <div className="absolute inset-x-0 top-[74px] flex justify-center pointer-events-none">
+            <div className="text-center">
+              <div className="h-[170px] md:h-[210px] xl:h-[250px]" />
+            </div>
           </div>
 
-          <div className="order-1 xl:order-2 min-h-[520px] xl:min-h-[calc(100vh-240px)] flex flex-col items-center justify-end">
-            <div className="w-full max-w-[760px] text-center pt-24 md:pt-28 xl:pt-36">
-              <p className="text-[2rem] md:text-[2.45rem] xl:text-[2.7rem] leading-[1.04] font-serif font-bold text-amber-50/92 drop-shadow-[0_4px_16px_rgba(0,0,0,0.28)]">
-                Собери оппозиционеров<br className="hidden md:block" /> за одним столом.
-              </p>
+          <div className="relative h-[calc(100vh-210px)] min-h-[620px]">
+            <div className="absolute left-0 top-[18px] w-[350px]">
+              <SectionCard title="Новости" eyebrow="Сводка" className="overflow-hidden">
+                <div className="max-h-[92px] overflow-hidden">
+                  <NewsPanel />
+                </div>
+              </SectionCard>
             </div>
 
-            <div className="mt-auto mb-2 xl:mb-4 w-full max-w-[640px] text-center">
+            <div className="absolute left-0 top-[250px] w-[380px]">
+              <SectionCard title="Чат лобби" eyebrow="Общий канал" className="h-[340px] flex flex-col">
+                <div className="flex-1 min-h-0 overflow-y-auto space-y-3 pr-1 custom-scrollbar">
+                  {!lobbyChatEnabled && <div className="bg-red-950/35 border border-red-900/40 rounded-2xl px-4 py-3"><div className="text-[10px] font-mono text-red-200/70">System</div><div className="text-sm font-serif text-red-50/90">Lobby chat is disabled by admin.</div></div>}
+                  {!!lobbyChatErr && <div className="bg-black/35 border border-amber-900/20 rounded-2xl px-4 py-3"><div className="text-[10px] font-mono text-amber-200/50">System</div><div className="text-sm font-serif text-amber-50/80">Chat error: {lobbyChatErr}</div></div>}
+                  {(lobbyChat || []).map((m, idx) => {
+                    const isMe = String(m?.name || '') === String(playerName || '');
+                    return (
+                      <div key={m.id ?? idx} className={isMe ? 'rounded-2xl border border-amber-500/12 bg-amber-500/10 px-4 py-3' : 'rounded-2xl border border-amber-500/10 bg-black/28 px-4 py-3'}>
+                        <div className="text-[10px] font-mono text-amber-200/55 flex items-center gap-2">
+                          <span className={m?.playerId ? 'cursor-pointer hover:text-amber-100' : ''} onClick={() => { if (m?.playerId) openProfileById(m.playerId); }}>{m.name || m.playerId || 'Anon'}</span>
+                          {(m?.playerId && (ratingsMap[String(m.playerId)] != null)) && <button type="button" className="px-2 py-0.5 rounded-lg bg-black/35 hover:bg-black/45 border border-amber-900/20 text-amber-100/80 font-black" title="Открыть профиль" onClick={() => openProfileById(m.playerId)}>{ratingsMap[String(m.playerId)]}</button>}
+                        </div>
+                        <div className="mt-1 text-base font-serif text-amber-50/92 whitespace-pre-wrap leading-snug">{m.text}</div>
+                      </div>
+                    );
+                  })}
+                  {(!(lobbyChat || []).length && !lobbyChatErr) && <div className="bg-black/35 border border-amber-900/20 rounded-2xl px-4 py-3"><div className="text-[10px] font-mono text-amber-200/50">System</div><div className="text-sm font-serif text-amber-50/80">Скажи всем привет.</div></div>}
+                </div>
+                <div className="mt-4 flex gap-2">
+                  <input value={lobbyChatInput} onChange={(e) => setLobbyChatInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); sendLobbyChat(); } }} placeholder={authToken ? (lobbyChatEnabled ? 'Напиши что-нибудь…' : 'Чат выключен') : 'Войди, чтобы писать…'} disabled={!authToken || !lobbyChatEnabled} className="flex-1 rounded-xl border border-amber-500/12 bg-black/30 px-4 py-3 text-amber-100 font-serif text-sm focus:outline-none disabled:opacity-60 placeholder:text-amber-100/28" />
+                  <button type="button" onClick={sendLobbyChat} disabled={!authToken || !lobbyChatEnabled || !String(lobbyChatInput||'').trim()} className="px-5 py-3 rounded-xl bg-amber-500 text-stone-950 font-black uppercase tracking-[0.18em] text-[11px] shadow-[0_8px_24px_rgba(251,191,36,0.24)] transition-all disabled:opacity-60 hover:bg-amber-400">Отправить</button>
+                </div>
+              </SectionCard>
+            </div>
+
+            <div className="absolute right-0 top-[236px] w-[430px]">
+              <SectionCard title="Лобби и подключение" eyebrow="Список игр" right={<div className="text-[11px] font-mono text-amber-100/55">{activeGameCount} открыто</div>} className="h-[360px] flex flex-col">
+                <div className="mb-4 flex gap-2 shrink-0">
+                  {['games','top10','tournaments'].map((tab) => (
+                    <button key={tab} type="button" onClick={() => setRightTab(tab)} className={'flex-1 py-3 rounded-xl border text-[10px] font-black uppercase tracking-[0.28em] ' + (rightTab === tab ? 'bg-amber-500 text-stone-950 border-amber-300/40' : 'bg-black/30 text-amber-200/75 border-amber-500/12 hover:bg-black/40')}>
+                      {tab === 'games' ? 'Лобби' : tab === 'top10' ? 'ТОП-10' : 'Турниры'}
+                    </button>
+                  ))}
+                </div>
+
+                {rightTab === 'top10' && (
+                  <div className="space-y-3 overflow-y-auto pr-1 custom-scrollbar flex-1 min-h-0">
+                    {(top10 && top10.length > 0) ? top10.map((r, i) => (
+                      <div key={i} className="rounded-[18px] border border-amber-500/10 bg-black/28 p-4 flex items-center justify-between gap-4">
+                        <div className="min-w-0">
+                          <div className="text-[11px] font-mono text-amber-100/45">#{i + 1}</div>
+                          <button type="button" className="mt-1 text-left text-[1.05rem] font-serif font-bold text-amber-50 truncate hover:opacity-90" onClick={() => { const pid = String(r?.playerId || r?.player_id || '').trim(); if (pid) openProfileById(pid); }} disabled={!String(r?.playerId || r?.player_id || '').trim()}>{r.name}</button>
+                        </div>
+                        <div className="text-right font-mono text-sm text-amber-100/78">
+                          <div>G: {Number(r.games ?? 0) || 0}</div>
+                          <div>W: {Number(r.wins ?? 0) || 0}</div>
+                          <div className="font-black text-amber-50">R: {Number(r.rating ?? 0) || 0}</div>
+                        </div>
+                      </div>
+                    )) : <div className="text-[12px] font-mono text-amber-100/40">{top10Err ? `Top10 unavailable: ${top10Err}` : 'Пока пусто.'}</div>}
+                  </div>
+                )}
+
+                {rightTab === 'tournaments' && (
+                  <div className="space-y-3 overflow-y-auto pr-1 custom-scrollbar flex-1 min-h-0">
+                    {tournamentsErr && <div className="text-[12px] font-mono text-amber-100/40">{tournamentsErr}</div>}
+                    {(tournaments || []).slice(0, 10).map((t) => (
+                      <button key={t.id} type="button" onClick={() => { window.location.hash = `#/tournament/${t.id}`; }} className="w-full text-left rounded-[18px] border border-amber-500/10 bg-black/28 px-4 py-4 hover:bg-black/38">
+                        <div className="flex items-baseline justify-between gap-3">
+                          <div className="font-serif font-bold text-[1.05rem] text-amber-50 truncate">{t.name || t.id}</div>
+                          <div className="text-[10px] uppercase tracking-[0.2em] font-black text-amber-200/60">{t.status}</div>
+                        </div>
+                        <div className="mt-2 text-[11px] font-mono text-amber-100/55">{t.type} · стол {t.tableSize} · игроков {t.playersCount}{(t.config?.maxPlayers ? `/${t.config.maxPlayers}` : '')}</div>
+                      </button>
+                    ))}
+                    {(!(tournaments || []).length && !tournamentsErr) && <div className="text-[12px] font-mono text-amber-100/40">Нет открытых турниров.</div>}
+                  </div>
+                )}
+
+                {rightTab === 'games' && (
+                  <div className="flex-1 min-h-0 flex flex-col">
+                    <div className="rounded-[18px] border border-amber-500/10 bg-black/22 px-4 py-3 text-[13px] text-amber-100/80 font-serif shrink-0 leading-snug">Название игры будет запрошено после нажатия на кнопку <span className="font-black uppercase tracking-[0.18em] text-amber-50">Создать игру</span>.</div>
+                    <div className="mt-4 space-y-3 overflow-y-auto pr-1 custom-scrollbar flex-1 min-h-0 overscroll-contain">
+                      {publicMatches.map((match) => {
+                        const title = String(match?.setupData?.lobbyTitle || '').trim();
+                        const host = match.setupData?.hostName || 'Лобби';
+                        const displayName = title || host;
+                        const seats = Array.isArray(match.players) ? match.players : Object.values(match.players || {});
+                        const activeSeats = seats.filter((p) => p?.name || p?.isBot || p?.isConnected).length;
+                        const maxSeats = seats.length || 5;
+                        const isPrivate = !!match?.isPrivate;
+                        const tone = match?.status === 'in_progress' ? 'live' : isPrivate ? 'private' : 'open';
+                        return (
+                          <LobbyRow
+                            key={match.matchID}
+                            title={displayName}
+                            subtitle={`ID ${String(match.matchID || '').slice(0, 8)} · host ${host}`}
+                            status={match?.status === 'in_progress' ? 'идёт' : isPrivate ? 'приватная' : 'открыта'}
+                            statusTone={tone}
+                            players={`${activeSeats}/${maxSeats}`}
+                            onClick={() => joinMatch(match.matchID)}
+                          />
+                        );
+                      })}
+                      {(!publicMatches || publicMatches.length === 0) && <div className="text-center py-8 text-amber-100/40 italic text-base font-serif">Сейчас нет открытых лобби — создай своё первым.</div>}
+                    </div>
+                  </div>
+                )}
+              </SectionCard>
+            </div>
+
+            <div className="absolute left-1/2 -translate-x-1/2 bottom-[72px] w-full max-w-[760px] px-4 text-center">
               <button onClick={createMatch} disabled={loading} className="min-w-[330px] md:min-w-[380px] px-8 py-4 rounded-2xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-lg uppercase tracking-[0.18em] shadow-[0_14px_36px_rgba(251,191,36,0.26)] transition-all active:scale-[0.99] disabled:opacity-60">
                 Создать игру
               </button>
-              <div className="mt-4 text-base md:text-lg font-serif text-amber-50/86 drop-shadow-[0_4px_12px_rgba(0,0,0,0.25)]">
-                Создай lobby и пригласи друзей. Или зайди в уже открытое.
-              </div>
-              <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
-                <SmallStat label="Онлайн" value={onlineCount} />
-                <SmallStat label="Лобби" value={activeGameCount} />
-                <SmallStat label="Турниры" value={(tournaments || []).length || 0} />
-                <SmallStat label="Версия" value="2.2" />
-              </div>
             </div>
-          </div>
-
-          <div className="order-3">
-            <SectionCard title="Лобби и подключение" eyebrow="Список игр" right={<div className="text-[11px] font-mono text-amber-100/55">{activeGameCount} открыто</div>} className="h-[min(52vh,430px)] xl:h-[min(56vh,470px)] flex flex-col">
-              <div className="mb-4 flex gap-2 shrink-0">
-                {['games','top10','tournaments'].map((tab) => (
-                  <button key={tab} type="button" onClick={() => setRightTab(tab)} className={'flex-1 py-3 rounded-xl border text-[10px] font-black uppercase tracking-[0.28em] ' + (rightTab === tab ? 'bg-amber-500 text-stone-950 border-amber-300/40' : 'bg-black/30 text-amber-200/75 border-amber-500/12 hover:bg-black/40')}>
-                    {tab === 'games' ? 'Лобби' : tab === 'top10' ? 'ТОП-10' : 'Турниры'}
-                  </button>
-                ))}
-              </div>
-
-              {rightTab === 'top10' && (
-                <div className="space-y-3 overflow-y-auto pr-1 custom-scrollbar">
-                  {(top10 && top10.length > 0) ? top10.map((r, i) => (
-                    <div key={i} className="rounded-[18px] border border-amber-500/10 bg-black/28 p-4 flex items-center justify-between gap-4">
-                      <div className="min-w-0">
-                        <div className="text-[11px] font-mono text-amber-100/45">#{i + 1}</div>
-                        <button type="button" className="mt-1 text-left text-[1.05rem] font-serif font-bold text-amber-50 truncate hover:opacity-90" onClick={() => { const pid = String(r?.playerId || r?.player_id || '').trim(); if (pid) openProfileById(pid); }} disabled={!String(r?.playerId || r?.player_id || '').trim()}>{r.name}</button>
-                      </div>
-                      <div className="text-right font-mono text-sm text-amber-100/78">
-                        <div>G: {Number(r.games ?? 0) || 0}</div>
-                        <div>W: {Number(r.wins ?? 0) || 0}</div>
-                        <div className="font-black text-amber-50">R: {Number(r.rating ?? 0) || 0}</div>
-                      </div>
-                    </div>
-                  )) : <div className="text-[12px] font-mono text-amber-100/40">{top10Err ? `Top10 unavailable: ${top10Err}` : 'Пока пусто.'}</div>}
-                </div>
-              )}
-
-              {rightTab === 'tournaments' && (
-                <div className="space-y-3 overflow-y-auto pr-1 custom-scrollbar">
-                  {tournamentsErr && <div className="text-[12px] font-mono text-amber-100/40">{tournamentsErr}</div>}
-                  {(tournaments || []).slice(0, 10).map((t) => (
-                    <button key={t.id} type="button" onClick={() => { window.location.hash = `#/tournament/${t.id}`; }} className="w-full text-left rounded-[18px] border border-amber-500/10 bg-black/28 px-4 py-4 hover:bg-black/38">
-                      <div className="flex items-baseline justify-between gap-3">
-                        <div className="font-serif font-bold text-[1.05rem] text-amber-50 truncate">{t.name || t.id}</div>
-                        <div className="text-[10px] uppercase tracking-[0.2em] font-black text-amber-200/60">{t.status}</div>
-                      </div>
-                      <div className="mt-2 text-[11px] font-mono text-amber-100/55">{t.type} · стол {t.tableSize} · игроков {t.playersCount}{(t.config?.maxPlayers ? `/${t.config.maxPlayers}` : '')}</div>
-                    </button>
-                  ))}
-                  {(!(tournaments || []).length && !tournamentsErr) && <div className="text-[12px] font-mono text-amber-100/40">Нет открытых турниров.</div>}
-                </div>
-              )}
-
-              {rightTab === 'games' && (
-                <div className="flex-1 min-h-0 flex flex-col">
-                  <div className="rounded-[18px] border border-amber-500/10 bg-black/22 px-4 py-3 text-[13px] text-amber-100/80 font-serif shrink-0 leading-snug">Название игры будет запрошено после нажатия на кнопку <span className="font-black uppercase tracking-[0.18em] text-amber-50">Создать игру</span>.</div>
-                  <div className="mt-4 space-y-3 overflow-y-auto pr-1 custom-scrollbar flex-1 min-h-0">
-                    {publicMatches.map((match) => {
-                      const title = String(match?.setupData?.lobbyTitle || '').trim();
-                      const host = match.setupData?.hostName || 'Лобби';
-                      const displayName = title || host;
-                      const seats = Array.isArray(match.players) ? match.players : Object.values(match.players || {});
-                      const activeSeats = seats.filter((p) => p?.name || p?.isBot || p?.isConnected).length;
-                      const maxSeats = seats.length || 5;
-                      const isPrivate = !!match?.isPrivate;
-                      const tone = match?.status === 'in_progress' ? 'live' : isPrivate ? 'private' : 'open';
-                      return (
-                        <LobbyRow
-                          key={match.matchID}
-                          title={displayName}
-                          subtitle={`ID ${String(match.matchID || '').slice(0, 8)} · host ${host}`}
-                          status={match?.status === 'in_progress' ? 'идёт' : isPrivate ? 'приватная' : 'открыта'}
-                          statusTone={tone}
-                          players={`${activeSeats}/${maxSeats}`}
-                          onClick={() => joinMatch(match.matchID)}
-                        />
-                      );
-                    })}
-                    {(!publicMatches || publicMatches.length === 0) && <div className="text-center py-8 text-amber-100/40 italic text-base font-serif">Сейчас нет открытых лобби — создай своё первым.</div>}
-                  </div>
-                </div>
-              )}
-            </SectionCard>
           </div>
         </main>
 
-        <footer className="relative z-10 mx-auto max-w-[1520px] mt-3 rounded-[22px] border border-amber-500/10 bg-black/22 backdrop-blur-md px-5 py-3 flex flex-wrap items-center justify-center gap-4 text-sm font-mono text-amber-100/72">
-          <span>{onlineCount} в сети</span>
-          <span>•</span>
-          <span>{activeGameCount} активных игр</span>
-          <span>•</span>
-          <span>версия 2.2b</span>
+        <footer className="fixed bottom-3 left-4 right-4 md:left-8 md:right-8 z-30">
+          <div className="mx-auto max-w-[1520px] rounded-[22px] border border-amber-500/10 bg-black/22 backdrop-blur-md px-5 py-3 flex flex-wrap items-center justify-center gap-4 text-sm font-mono text-amber-100/72 shadow-[0_12px_34px_rgba(0,0,0,0.30)]">
+            <span>{onlineCount} в сети</span>
+            <span>•</span>
+            <span>{activeGameCount} активных игр</span>
+            <span>•</span>
+            <span>версия 2.2b</span>
+          </div>
         </footer>
-      </div>
+      </div>      </div>
     </div>
   );
 }
