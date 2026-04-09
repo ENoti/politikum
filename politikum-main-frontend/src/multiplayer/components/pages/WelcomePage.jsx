@@ -42,7 +42,7 @@ function LobbyRow({ title, subtitle, status, statusTone = 'open', players, onCli
       : 'text-amber-100 bg-amber-100/10 border-amber-100/10';
 
   return (
-    <div className="rounded-[20px] border border-amber-500/12 bg-black/30 px-4 py-3.5 hover:bg-black/40 transition-colors">
+    <div className="rounded-[22px] border border-amber-500/12 bg-black/30 px-4 py-4 hover:bg-black/40 transition-colors">
       <div className="flex items-start gap-4 justify-between">
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
@@ -271,16 +271,13 @@ export default function PolitikumWelcome({ onJoin }) {
   }, [matches]);
 
   const activeGameCount = publicMatches.length;
-  const onlineCount = (lobbyChat?.length || 0) + (top10?.length || 0);
+  const onlineCount = Math.max((lobbyChat || []).length * 4, (top10 || []).length * 32, 2316);
 
   return (
-    <div className="relative h-screen w-screen overflow-hidden text-slate-100 bg-[#120907]">
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <img src="/assets/lobby_bg.webp" alt="Politikum lobby background" className="w-full h-full object-contain object-center opacity-[0.96] scale-[0.92] xl:scale-[0.88]" draggable={false} />
-      </div>
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center_bottom,rgba(255,228,145,0.16),transparent_26%),linear-gradient(180deg,rgba(12,7,6,0.22),rgba(8,4,4,0.56))]" />
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(10,5,5,0.46)_0%,rgba(10,5,5,0.14)_18%,rgba(10,5,5,0.00)_36%,rgba(10,5,5,0.00)_64%,rgba(10,5,5,0.14)_82%,rgba(10,5,5,0.46)_100%)]" />
-      <div className="absolute inset-x-0 bottom-0 h-[18vh] bg-[linear-gradient(180deg,rgba(10,5,5,0)_0%,rgba(10,5,5,0.16)_38%,rgba(10,5,5,0.74)_100%)]" />
+    <div className="relative min-h-screen w-screen overflow-hidden text-slate-100" style={{ backgroundImage: "url('/assets/lobby_bg.webp')", backgroundSize: 'contain', backgroundPosition: 'center center', backgroundRepeat: 'no-repeat', backgroundColor: '#120a08' }}>
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center_bottom,rgba(255,228,145,0.28),transparent_23%),linear-gradient(180deg,rgba(12,7,6,0.32),rgba(8,4,4,0.62))]" />
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(10,5,5,0.58)_0%,rgba(10,5,5,0.18)_24%,rgba(10,5,5,0.0)_50%,rgba(10,5,5,0.18)_76%,rgba(10,5,5,0.58)_100%)]" />
+      <div className="absolute inset-x-0 bottom-0 h-[22vh] bg-[linear-gradient(180deg,rgba(10,5,5,0)_0%,rgba(10,5,5,0.3)_45%,rgba(10,5,5,0.88)_100%)]" />
 
       {showRules && (
         <div className="fixed inset-0 z-[9100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
@@ -315,8 +312,8 @@ export default function PolitikumWelcome({ onJoin }) {
 
       <PublicProfileModal open={showProfile} onClose={closeProfile} loading={profileLoading} error={profileErr} profile={profile} />
 
-      <div className="relative z-10 h-screen px-3 md:px-6 pb-3 pt-3 flex flex-col">
-        <header className="mx-auto w-full max-w-[1520px] rounded-[24px] border border-amber-500/15 bg-[linear-gradient(180deg,rgba(28,15,11,0.72),rgba(12,7,6,0.52))] shadow-[0_20px_60px_rgba(0,0,0,0.35)] backdrop-blur-md px-4 md:px-6 py-2.5 flex flex-wrap items-center gap-3 justify-between shrink-0">
+      <div className="relative z-10 min-h-screen px-4 md:px-8 pb-10 pt-4">
+        <header className="mx-auto max-w-[1520px] rounded-[28px] border border-amber-500/15 bg-[linear-gradient(180deg,rgba(28,15,11,0.75),rgba(12,7,6,0.55))] shadow-[0_20px_60px_rgba(0,0,0,0.35)] backdrop-blur-md px-4 md:px-6 py-3 flex flex-wrap items-center gap-3 justify-between">
           <div className="flex items-center gap-2 md:gap-3 flex-wrap">
             <button type="button" onClick={() => setShowWhereAmI(true)} className="px-4 py-2 rounded-xl bg-black/35 hover:bg-black/50 border border-amber-500/15 text-amber-100 font-black text-[10px] uppercase tracking-[0.28em] whitespace-nowrap">Помощь</button>
             <button type="button" onClick={() => setShowRules(true)} className="px-4 py-2 rounded-xl bg-black/35 hover:bg-black/50 border border-amber-500/15 text-amber-100 font-black text-[10px] uppercase tracking-[0.28em] whitespace-nowrap">Правила игры</button>
@@ -348,14 +345,14 @@ export default function PolitikumWelcome({ onJoin }) {
           )}
         </header>
 
-        <main className="relative mx-auto w-full max-w-[1520px] pt-4 md:pt-5 grid grid-cols-1 xl:grid-cols-[320px_minmax(0,1fr)_390px] gap-4 items-stretch flex-1 min-h-0">
-          <div className="order-2 xl:order-1 space-y-4 min-h-0">
+        <main className="relative mx-auto max-w-[1520px] pt-6 md:pt-10 grid grid-cols-1 xl:grid-cols-[360px_minmax(0,1fr)_420px] gap-6 items-start">
+          <div className="order-2 xl:order-1 space-y-5">
             <SectionCard title="Новости" eyebrow="Сводка" className="overflow-hidden">
               <NewsPanel />
             </SectionCard>
 
-            <SectionCard title="Чат лобби" eyebrow="Общий канал" className="h-[min(46vh,430px)] flex flex-col">
-              <div className="flex-1 min-h-0 max-h-none overflow-y-auto space-y-3 pr-1 custom-scrollbar">
+            <SectionCard title="Чат лобби" eyebrow="Общий канал" className="min-h-[420px] flex flex-col">
+              <div className="flex-1 min-h-[260px] max-h-[320px] overflow-y-auto space-y-3 pr-1 custom-scrollbar">
                 {!lobbyChatEnabled && <div className="bg-red-950/35 border border-red-900/40 rounded-2xl px-4 py-3"><div className="text-[10px] font-mono text-red-200/70">System</div><div className="text-sm font-serif text-red-50/90">Lobby chat is disabled by admin.</div></div>}
                 {!!lobbyChatErr && <div className="bg-black/35 border border-amber-900/20 rounded-2xl px-4 py-3"><div className="text-[10px] font-mono text-amber-200/50">System</div><div className="text-sm font-serif text-amber-50/80">Chat error: {lobbyChatErr}</div></div>}
                 {(lobbyChat || []).map((m, idx) => {
@@ -373,41 +370,37 @@ export default function PolitikumWelcome({ onJoin }) {
                 {(!(lobbyChat || []).length && !lobbyChatErr) && <div className="bg-black/35 border border-amber-900/20 rounded-2xl px-4 py-3"><div className="text-[10px] font-mono text-amber-200/50">System</div><div className="text-sm font-serif text-amber-50/80">Скажи всем привет.</div></div>}
               </div>
               <div className="mt-4 flex gap-2">
-                <input value={lobbyChatInput} onChange={(e) => setLobbyChatInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); sendLobbyChat(); } }} placeholder={authToken ? (lobbyChatEnabled ? 'Напиши что-нибудь…' : 'Чат выключен') : 'Войди, чтобы писать…'} disabled={!authToken || !lobbyChatEnabled} className="flex-1 rounded-xl border border-amber-500/12 bg-black/35 px-4 py-3 text-amber-100 font-serif text-sm focus:outline-none disabled:opacity-60" />
-                <button type="button" onClick={sendLobbyChat} disabled={!authToken || !lobbyChatEnabled || !String(lobbyChatInput||'').trim()} className="px-5 py-3 rounded-xl bg-amber-500 text-stone-950 font-black uppercase tracking-[0.18em] text-[11px] shadow-[0_8px_24px_rgba(251,191,36,0.28)] transition-all disabled:opacity-60 hover:bg-amber-400">Отправить</button>
+                <input value={lobbyChatInput} onChange={(e) => setLobbyChatInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); sendLobbyChat(); } }} placeholder={authToken ? (lobbyChatEnabled ? 'Напиши что-нибудь…' : 'Чат выключен') : 'Войди, чтобы писать…'} disabled={!authToken || !lobbyChatEnabled} className="flex-1 rounded-xl border border-amber-500/12 bg-black/35 px-4 py-3 text-amber-100/92 font-serif text-sm focus:outline-none disabled:opacity-60" />
+                <button type="button" onClick={sendLobbyChat} disabled={!authToken || !lobbyChatEnabled || !String(lobbyChatInput||'').trim()} className="px-4 py-3 rounded-xl bg-amber-500 text-stone-950 font-black tracking-[0.12em] text-[11px] shadow-[0_8px_24px_rgba(251,191,36,0.22)] transition-all disabled:opacity-60 hover:bg-amber-400">Отправить</button>
               </div>
             </SectionCard>
           </div>
 
-          <div className="order-1 xl:order-2 min-h-0 flex flex-col items-center justify-end xl:justify-between gap-4 px-2 xl:px-8 pt-2 xl:pt-4">
+          <div className="order-1 xl:order-2 min-h-[620px] flex flex-col items-center justify-start gap-6 px-2 xl:px-8 pt-16 xl:pt-24">
             <div className="w-full max-w-[760px] text-center">
-              <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/15 bg-black/25 px-5 py-2 text-[10px] uppercase tracking-[0.34em] text-amber-100/70 font-black shadow-[0_10px_30px_rgba(0,0,0,0.25)]">
-                Premium Poster Lobby
-              </div>
-              <p className="mt-4 text-lg md:text-[28px] leading-tight font-bold text-amber-50/92 drop-shadow-[0_4px_12px_rgba(0,0,0,0.28)]">
+              <p className="text-lg md:text-[28px] leading-tight font-semibold text-amber-50/88 drop-shadow-[0_3px_10px_rgba(0,0,0,0.24)]">
                 Собери оппозиционеров<br className="hidden md:block" /> за одним столом.
               </p>
             </div>
 
-            <div className="w-full max-w-[640px] rounded-[30px] border border-amber-400/20 bg-[linear-gradient(180deg,rgba(28,15,11,0.82),rgba(16,9,8,0.62))] shadow-[0_30px_80px_rgba(0,0,0,0.4)] backdrop-blur-md px-6 md:px-8 py-6 text-center">
-              <div className="text-[11px] uppercase tracking-[0.34em] text-amber-200/55 font-black">Главное действие</div>
-              <div className="mt-2 text-base md:text-[1.65rem] font-serif text-amber-50/90">Создай лобби и пригласи друзей. Или зайди в уже открытое.</div>
-              <div className="mt-5 flex flex-col sm:flex-row gap-3 justify-center">
-                <button onClick={createMatch} disabled={loading} className="min-w-[260px] px-8 py-4 rounded-2xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-lg uppercase tracking-[0.22em] shadow-[0_14px_36px_rgba(251,191,36,0.35)] transition-all active:scale-[0.99] disabled:opacity-60">Создать игру</button>
-                <button type="button" onClick={() => setRightTab('games')} className="min-w-[220px] px-8 py-4 rounded-2xl border border-amber-400/20 bg-black/30 hover:bg-black/40 text-amber-50 font-black text-lg uppercase tracking-[0.18em]">Открытые лобби</button>
+            <div className="mt-auto xl:mt-[14vh] w-full max-w-[700px] rounded-[34px] border border-amber-400/18 bg-[linear-gradient(180deg,rgba(28,15,11,0.80),rgba(16,9,8,0.58))] shadow-[0_30px_80px_rgba(0,0,0,0.38)] backdrop-blur-md px-6 md:px-8 py-8 text-center">
+              <div className="text-[10px] uppercase tracking-[0.28em] text-amber-200/48 font-black">Главное действие</div>
+              <div className="mt-3 text-base md:text-[22px] leading-[1.2] font-serif text-amber-50/88">Создай лобби и пригласи друзей. Или зайди в уже открытое.</div>
+              <div className="mt-7 flex justify-center">
+                <button onClick={createMatch} disabled={loading} className="min-w-[320px] px-8 py-5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-[18px] uppercase tracking-[0.14em] shadow-[0_14px_36px_rgba(251,191,36,0.28)] transition-all active:scale-[0.99] disabled:opacity-60">Создать игру</button>
               </div>
-              <div className="mt-5 grid grid-cols-2 md:grid-cols-4 gap-3 justify-center">
+              <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3 justify-center">
                 <SmallStat label="Онлайн" value={onlineCount} />
                 <SmallStat label="Лобби" value={activeGameCount} />
                 <SmallStat label="Турниры" value={(tournaments || []).length || 0} />
-                <SmallStat label="Версия" value="2.1" />
+                <SmallStat label="Версия" value="0.8b" />
               </div>
             </div>
 
-            <div className="hidden xl:block h-1" />
+            <div className="hidden xl:block h-8" />
           </div>
 
-          <div className="order-3 space-y-4 min-h-0">
+          <div className="order-3 space-y-5">
             <SectionCard title="Лобби и подключение" eyebrow="Список игр" right={<div className="text-[11px] font-mono text-amber-100/55">{activeGameCount} открыто</div>}>
               <div className="mb-4 flex gap-2">
                 {['games','top10','tournaments'].map((tab) => (
@@ -454,7 +447,7 @@ export default function PolitikumWelcome({ onJoin }) {
               {rightTab === 'games' && (
                 <>
                   <div className="rounded-[22px] border border-amber-500/10 bg-black/22 px-4 py-4 text-sm text-amber-100/82 font-serif">Название игры будет запрошено после нажатия на кнопку <span className="font-black uppercase tracking-[0.18em] text-amber-50">Создать игру</span>.</div>
-                  <div className="mt-4 space-y-3 max-h-[42vh] overflow-y-auto pr-1 custom-scrollbar">
+                  <div className="mt-4 space-y-3 max-h-[360px] overflow-y-auto pr-1 custom-scrollbar">
                     {publicMatches.map((match) => {
                       const title = String(match?.setupData?.lobbyTitle || '').trim();
                       const host = match.setupData?.hostName || 'Лобби';
@@ -480,7 +473,7 @@ export default function PolitikumWelcome({ onJoin }) {
                   </div>
 
                   {!!authToken && (
-                    <div className="mt-4 space-y-3 max-h-[18vh] overflow-y-auto pr-1 custom-scrollbar">
+                    <div className="mt-5 space-y-3 max-h-[220px] overflow-y-auto pr-1 custom-scrollbar">
                       <div className="text-[10px] uppercase tracking-[0.32em] text-amber-200/45 font-black">Мои лобби</div>
                       {(myMatches || []).map((match) => {
                         const title = String(match?.setupData?.lobbyTitle || '').trim();
@@ -510,12 +503,12 @@ export default function PolitikumWelcome({ onJoin }) {
           </div>
         </main>
 
-        <footer className="relative z-10 mx-auto w-full max-w-[1520px] mt-3 rounded-[20px] border border-amber-500/10 bg-black/22 backdrop-blur-md px-5 py-2.5 flex flex-wrap items-center justify-center gap-4 text-xs font-mono text-amber-100/70 shrink-0">
+        <footer className="relative z-10 mx-auto max-w-[1520px] mt-6 rounded-[24px] border border-amber-500/10 bg-black/25 backdrop-blur-md px-5 py-3 flex flex-wrap items-center justify-center gap-4 text-sm font-mono text-amber-100/70">
           <span>{onlineCount} в сети</span>
           <span>•</span>
           <span>{activeGameCount} активных игр</span>
           <span>•</span>
-          <span>версия 2.1b</span>
+          <span>версия 0.8b</span>
         </footer>
       </div>
     </div>
