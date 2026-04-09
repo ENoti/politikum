@@ -98,15 +98,6 @@ export default function PolitikumWelcome({ onJoin }) {
   }, [rightTab]);
 
   useEffect(() => {
-    if (rightTab === 'tournaments' && (!tournaments || tournaments.length === 0) && (publicMatches || []).length > 0) {
-      setRightTab('games');
-    }
-    if (rightTab === 'top10' && (!top10 || top10.length === 0) && (publicMatches || []).length > 0) {
-      setRightTab('games');
-    }
-  }, [rightTab, tournaments, top10, publicMatches]);
-
-  useEffect(() => {
     try { window.localStorage.setItem('politikum.playerName', playerName); } catch {}
   }, [playerName]);
 
@@ -278,6 +269,15 @@ export default function PolitikumWelcome({ onJoin }) {
 
   const activeGameCount = publicMatches.length;
   const onlineCount = Math.max((lobbyChat || []).length * 4, (top10 || []).length * 32, 2316);
+
+  useEffect(() => {
+    if (rightTab === 'tournaments' && (!tournaments || tournaments.length === 0) && publicMatches.length > 0) {
+      setRightTab('games');
+    }
+    if (rightTab === 'top10' && (!top10 || top10.length === 0) && publicMatches.length > 0) {
+      setRightTab('games');
+    }
+  }, [rightTab, tournaments, top10, publicMatches]);
 
   return (
     <div className="relative min-h-screen w-screen overflow-hidden text-slate-100" style={{ backgroundImage: "url('/assets/lobby_bg.webp')", backgroundSize: 'contain', backgroundPosition: 'center center', backgroundRepeat: 'no-repeat', backgroundColor: '#120a08' }}>
