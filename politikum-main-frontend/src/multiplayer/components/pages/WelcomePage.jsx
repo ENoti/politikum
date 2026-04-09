@@ -46,14 +46,14 @@ function LobbyRow({ title, subtitle, status, statusTone = 'open', players, onCli
       <div className="flex items-start gap-4 justify-between">
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <div className="text-lg font-serif font-bold text-amber-50 truncate">{title}</div>
+            <div className="text-[1.05rem] font-serif font-bold text-amber-50 truncate">{title}</div>
             {status ? <span className={`px-2.5 py-1 rounded-full text-[10px] uppercase tracking-[0.22em] border font-black ${toneClass}`}>{status}</span> : null}
           </div>
-          <div className="mt-2 text-xs font-mono text-amber-100/55">{subtitle}</div>
+          <div className="mt-1.5 text-[11px] font-mono text-amber-100/50 leading-snug">{subtitle}</div>
         </div>
         <div className="flex flex-col items-end gap-3 shrink-0">
-          {players ? <div className="text-sm font-black text-amber-100">{players}</div> : null}
-          <button type="button" onClick={onClick} className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black uppercase tracking-[0.18em] text-[11px] shadow-[0_8px_24px_rgba(251,191,36,0.28)]">
+          {players ? <div className="text-[13px] font-black text-amber-100">{players}</div> : null}
+          <button type="button" onClick={onClick} className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black tracking-[0.02em] text-[12px] shadow-[0_8px_20px_rgba(251,191,36,0.24)]">
             {actionLabel}
           </button>
         </div>
@@ -274,10 +274,10 @@ export default function PolitikumWelcome({ onJoin }) {
   const onlineCount = Math.max((lobbyChat || []).length * 4, (top10 || []).length * 32, 2316);
 
   return (
-    <div className="relative min-h-screen w-screen overflow-hidden text-slate-100" style={{ backgroundImage: "url('/assets/lobby_bg.webp')", backgroundSize: 'contain', backgroundPosition: 'center center', backgroundRepeat: 'no-repeat', backgroundColor: '#120a08' }}>
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center_bottom,rgba(255,228,145,0.28),transparent_23%),linear-gradient(180deg,rgba(12,7,6,0.32),rgba(8,4,4,0.62))]" />
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(10,5,5,0.58)_0%,rgba(10,5,5,0.18)_24%,rgba(10,5,5,0.0)_50%,rgba(10,5,5,0.18)_76%,rgba(10,5,5,0.58)_100%)]" />
-      <div className="absolute inset-x-0 bottom-0 h-[22vh] bg-[linear-gradient(180deg,rgba(10,5,5,0)_0%,rgba(10,5,5,0.3)_45%,rgba(10,5,5,0.88)_100%)]" />
+    <div className="relative min-h-screen w-screen overflow-hidden text-slate-100" style={{ backgroundImage: "url('/assets/lobby_bg.webp')", backgroundSize: 'cover', backgroundPosition: 'center 22%', backgroundRepeat: 'no-repeat' }}>
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center_bottom,rgba(255,228,145,0.18),transparent_28%),linear-gradient(180deg,rgba(12,7,6,0.18),rgba(8,4,4,0.48))]" />
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(10,5,5,0.48)_0%,rgba(10,5,5,0.12)_24%,rgba(10,5,5,0.0)_50%,rgba(10,5,5,0.12)_76%,rgba(10,5,5,0.48)_100%)]" />
+      <div className="absolute inset-x-0 bottom-0 h-[18vh] bg-[linear-gradient(180deg,rgba(10,5,5,0)_0%,rgba(10,5,5,0.16)_45%,rgba(10,5,5,0.76)_100%)]" />
 
       {showRules && (
         <div className="fixed inset-0 z-[9100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
@@ -339,20 +339,22 @@ export default function PolitikumWelcome({ onJoin }) {
             <div className="flex items-center gap-2 flex-wrap justify-end">
               <input type="text" value={playerName} onChange={(e) => setPlayerName(e.target.value)} className="w-[220px] max-w-[40vw] rounded-xl border border-amber-500/15 bg-amber-50/90 px-4 py-3 text-stone-900 font-serif text-sm focus:outline-none" placeholder="Твой ник" />
               <input value={betaPassword} onChange={(e) => setBetaPassword(e.target.value)} type="password" placeholder="token" className="w-[220px] max-w-[40vw] rounded-xl border border-amber-500/15 bg-amber-50/90 px-4 py-3 text-stone-900 font-mono text-sm focus:outline-none" />
-              <button type="button" onClick={doBetaLogin} disabled={betaLoading || !String(betaPassword || '').trim()} className="px-5 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-stone-950 font-black text-[11px] uppercase tracking-[0.25em]">{betaLoading ? '...' : 'Войти'}</button>
+              <button type="button" onClick={doBetaLogin} disabled={betaLoading || !String(betaPassword || '').trim()} className="px-6 md:px-8 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-stone-950 font-black text-[11px] uppercase tracking-[0.25em]">{betaLoading ? '...' : 'Войти'}</button>
               <div className="text-[11px] font-mono text-amber-100/75">{betaErr ? betaErr : 'Гостевой режим'}</div>
             </div>
           )}
         </header>
 
-        <main className="relative mx-auto w-full max-w-[1520px] pt-4 md:pt-5 grid grid-cols-1 xl:grid-cols-[350px_minmax(0,1fr)_420px] gap-4 items-start flex-1 min-h-0">
-          <div className="order-2 xl:order-1 space-y-4 min-h-0">
+        <main className="relative mx-auto max-w-[1520px] pt-6 md:pt-8 grid grid-cols-1 xl:grid-cols-[355px_minmax(0,1fr)_430px] gap-5 items-start min-h-[calc(100vh-170px)]">
+          <div className="order-2 xl:order-1 space-y-5">
             <SectionCard title="Новости" eyebrow="Сводка" className="overflow-hidden">
-              <NewsPanel />
+              <div className="max-h-[72px] overflow-hidden">
+                <NewsPanel />
+              </div>
             </SectionCard>
 
-            <SectionCard title="Чат лобби" eyebrow="Общий канал" className="h-[min(42vh,360px)] flex flex-col">
-              <div className="flex-1 min-h-0 max-h-none overflow-y-auto space-y-3 pr-1 custom-scrollbar">
+            <SectionCard title="Чат лобби" eyebrow="Общий канал" className="h-[min(40vh,320px)] flex flex-col">
+              <div className="flex-1 min-h-0 overflow-y-auto space-y-3 pr-1 custom-scrollbar">
                 {!lobbyChatEnabled && <div className="bg-red-950/35 border border-red-900/40 rounded-2xl px-4 py-3"><div className="text-[10px] font-mono text-red-200/70">System</div><div className="text-sm font-serif text-red-50/90">Lobby chat is disabled by admin.</div></div>}
                 {!!lobbyChatErr && <div className="bg-black/35 border border-amber-900/20 rounded-2xl px-4 py-3"><div className="text-[10px] font-mono text-amber-200/50">System</div><div className="text-sm font-serif text-amber-50/80">Chat error: {lobbyChatErr}</div></div>}
                 {(lobbyChat || []).map((m, idx) => {
@@ -361,39 +363,36 @@ export default function PolitikumWelcome({ onJoin }) {
                     <div key={m.id ?? idx} className={isMe ? 'rounded-2xl border border-amber-500/12 bg-amber-500/10 px-4 py-3' : 'rounded-2xl border border-amber-500/10 bg-black/28 px-4 py-3'}>
                       <div className="text-[10px] font-mono text-amber-200/55 flex items-center gap-2">
                         <span className={m?.playerId ? 'cursor-pointer hover:text-amber-100' : ''} onClick={() => { if (m?.playerId) openProfileById(m.playerId); }}>{m.name || m.playerId || 'Anon'}</span>
-                        {(m?.playerId && (ratingsMap[String(m.playerId)] != null)) && <button type="button" className="px-2 py-0.5 rounded-lg bg-black/35 hover:bg-black/45 border border-amber-900/20 text-amber-100/80 font-black" title="Открыть профиль" onClick={() => openProfileById(m.playerId)}>{Math.round(Number(ratingsMap[String(m.playerId)]))}</button>}
+                        {(m?.playerId && (ratingsMap[String(m.playerId)] != null)) && <button type="button" className="px-2 py-0.5 rounded-lg bg-black/35 hover:bg-black/45 border border-amber-900/20 text-amber-100/80 font-black" title="Открыть профиль" onClick={() => openProfileById(m.playerId)}>{ratingsMap[String(m.playerId)]}</button>}
                       </div>
-                      <div className="mt-1.5 text-xl md:text-[1.02rem] font-serif leading-snug text-amber-50/92">{String(m.text || '')}</div>
+                      <div className="mt-1 text-base font-serif text-amber-50/92 whitespace-pre-wrap leading-snug">{m.text}</div>
                     </div>
                   );
                 })}
-                {(!(lobbyChat || []).length && !lobbyChatErr) && <div className="rounded-2xl border border-amber-500/10 bg-black/20 px-4 py-3 text-sm font-serif text-amber-100/55">Пока тихо. Начни разговор первым.</div>}
+                {(!(lobbyChat || []).length && !lobbyChatErr) && <div className="bg-black/35 border border-amber-900/20 rounded-2xl px-4 py-3"><div className="text-[10px] font-mono text-amber-200/50">System</div><div className="text-sm font-serif text-amber-50/80">Скажи всем привет.</div></div>}
               </div>
-              <div className="mt-4 flex items-center gap-3">
-                <input
-                  value={lobbyChatInput}
-                  onChange={(e) => setLobbyChatInput(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendLobbyChat(); } }}
-                  placeholder={authToken ? 'Напиши в лобби…' : 'Войди, чтобы писать…'}
-                  className="flex-1 rounded-2xl border border-amber-500/12 bg-black/24 px-4 py-3 text-amber-50 placeholder:text-amber-100/30 focus:outline-none focus:border-amber-400/25"
-                />
-                <button type="button" onClick={sendLobbyChat} disabled={!authToken || !String(lobbyChatInput || '').trim()} className="px-5 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-stone-950 font-black uppercase tracking-[0.18em] text-[12px] shadow-[0_8px_28px_rgba(251,191,36,0.22)]">Отправить</button>
+              <div className="mt-4 flex gap-2">
+                <input value={lobbyChatInput} onChange={(e) => setLobbyChatInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); sendLobbyChat(); } }} placeholder={authToken ? (lobbyChatEnabled ? 'Напиши что-нибудь…' : 'Чат выключен') : 'Войди, чтобы писать…'} disabled={!authToken || !lobbyChatEnabled} className="flex-1 rounded-xl border border-amber-500/12 bg-black/30 px-4 py-3 text-amber-100 font-serif text-sm focus:outline-none disabled:opacity-60 placeholder:text-amber-100/28" />
+                <button type="button" onClick={sendLobbyChat} disabled={!authToken || !lobbyChatEnabled || !String(lobbyChatInput||'').trim()} className="px-5 py-3 rounded-xl bg-amber-500 text-stone-950 font-black uppercase tracking-[0.18em] text-[11px] shadow-[0_8px_24px_rgba(251,191,36,0.24)] transition-all disabled:opacity-60 hover:bg-amber-400">Отправить</button>
               </div>
             </SectionCard>
           </div>
 
-          <div className="order-1 xl:order-2 relative min-h-[420px] xl:min-h-0 flex items-end justify-center">
-            <div className="w-full max-w-[640px] mt-auto mb-2 xl:mb-6 rounded-[30px] border border-amber-400/16 bg-[linear-gradient(180deg,rgba(28,15,11,0.72),rgba(16,9,8,0.50))] shadow-[0_28px_80px_rgba(0,0,0,0.34)] backdrop-blur-md px-6 md:px-8 py-6 text-center">
-              <div className="text-[10px] uppercase tracking-[0.34em] text-amber-200/42 font-black">Главное действие</div>
-              <div className="mt-3 text-[1.05rem] md:text-[1.45rem] font-serif leading-tight text-amber-50/88">
+          <div className="order-1 xl:order-2 min-h-[520px] xl:min-h-[calc(100vh-240px)] flex flex-col items-center justify-end">
+            <div className="w-full max-w-[640px] text-center pt-24 md:pt-28 xl:pt-36">
+              <p className="text-[2rem] md:text-[2.45rem] xl:text-[2.7rem] leading-[1.04] font-serif font-bold text-amber-50/92 drop-shadow-[0_4px_16px_rgba(0,0,0,0.28)]">
+                
+              </p>
+            </div>
+
+            <div className="mt-auto mb-2 xl:mb-4 w-full max-w-[640px] text-center">
+              <button onClick={createMatch} disabled={loading} className="min-w-[320px] md:min-w-[360px] px-8 py-4 rounded-2xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-lg uppercase tracking-[0.18em] shadow-[0_14px_36px_rgba(251,191,36,0.26)] transition-all active:scale-[0.99] disabled:opacity-60">
+                Создать игру
+              </button>
+              <div className="mt-4 text-base md:text-lg font-serif text-amber-50/86 drop-shadow-[0_4px_12px_rgba(0,0,0,0.25)]">
                 Создай lobby и пригласи друзей. Или зайди в уже открытое.
               </div>
-              <div className="mt-5 flex justify-center">
-                <button onClick={createMatch} disabled={loading} className="min-w-[320px] px-8 py-4 rounded-2xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-lg uppercase tracking-[0.20em] shadow-[0_14px_36px_rgba(251,191,36,0.30)] transition-all active:scale-[0.99] disabled:opacity-60">
-                  Создать игру
-                </button>
-              </div>
-              <div className="mt-5 grid grid-cols-2 md:grid-cols-4 gap-3 justify-center">
+              <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
                 <SmallStat label="Онлайн" value={onlineCount} />
                 <SmallStat label="Лобби" value={activeGameCount} />
                 <SmallStat label="Турниры" value={(tournaments || []).length || 0} />
@@ -402,8 +401,8 @@ export default function PolitikumWelcome({ onJoin }) {
             </div>
           </div>
 
-          <div className="order-3 min-h-0">
-            <SectionCard title="Лобби и подключение" eyebrow="Список игр" right={<div className="text-[11px] font-mono text-amber-100/55">{activeGameCount} открыто</div>} className="h-[min(74vh,720px)] flex flex-col">
+          <div className="order-3">
+            <SectionCard title="Лобби и подключение" eyebrow="Список игр" right={<div className="text-[11px] font-mono text-amber-100/55">{activeGameCount} открыто</div>} className="h-[min(52vh,430px)] xl:h-[min(56vh,470px)] flex flex-col">
               <div className="mb-4 flex gap-2 shrink-0">
                 {['games','top10','tournaments'].map((tab) => (
                   <button key={tab} type="button" onClick={() => setRightTab(tab)} className={'flex-1 py-3 rounded-xl border text-[10px] font-black uppercase tracking-[0.28em] ' + (rightTab === tab ? 'bg-amber-500 text-stone-950 border-amber-300/40' : 'bg-black/30 text-amber-200/75 border-amber-500/12 hover:bg-black/40')}>
@@ -415,10 +414,10 @@ export default function PolitikumWelcome({ onJoin }) {
               {rightTab === 'top10' && (
                 <div className="space-y-3 overflow-y-auto pr-1 custom-scrollbar">
                   {(top10 && top10.length > 0) ? top10.map((r, i) => (
-                    <div key={i} className="rounded-[20px] border border-amber-500/10 bg-black/28 p-4 flex items-center justify-between gap-4">
+                    <div key={i} className="rounded-[18px] border border-amber-500/10 bg-black/28 p-4 flex items-center justify-between gap-4">
                       <div className="min-w-0">
                         <div className="text-[11px] font-mono text-amber-100/45">#{i + 1}</div>
-                        <button type="button" className="mt-1 text-left text-lg font-serif font-bold text-amber-50 truncate hover:opacity-90" onClick={() => { const pid = String(r?.playerId || r?.player_id || '').trim(); if (pid) openProfileById(pid); }} disabled={!String(r?.playerId || r?.player_id || '').trim()}>{r.name}</button>
+                        <button type="button" className="mt-1 text-left text-[1.05rem] font-serif font-bold text-amber-50 truncate hover:opacity-90" onClick={() => { const pid = String(r?.playerId || r?.player_id || '').trim(); if (pid) openProfileById(pid); }} disabled={!String(r?.playerId || r?.player_id || '').trim()}>{r.name}</button>
                       </div>
                       <div className="text-right font-mono text-sm text-amber-100/78">
                         <div>G: {Number(r.games ?? 0) || 0}</div>
@@ -434,12 +433,12 @@ export default function PolitikumWelcome({ onJoin }) {
                 <div className="space-y-3 overflow-y-auto pr-1 custom-scrollbar">
                   {tournamentsErr && <div className="text-[12px] font-mono text-amber-100/40">{tournamentsErr}</div>}
                   {(tournaments || []).slice(0, 10).map((t) => (
-                    <button key={t.id} type="button" onClick={() => { window.location.hash = `#/tournament/${t.id}`; }} className="w-full text-left rounded-[20px] border border-amber-500/10 bg-black/28 px-4 py-4 hover:bg-black/38">
+                    <button key={t.id} type="button" onClick={() => { window.location.hash = `#/tournament/${t.id}`; }} className="w-full text-left rounded-[18px] border border-amber-500/10 bg-black/28 px-4 py-4 hover:bg-black/38">
                       <div className="flex items-baseline justify-between gap-3">
-                        <div className="font-serif font-bold text-amber-50 text-lg truncate">{t.name || t.id}</div>
+                        <div className="font-serif font-bold text-[1.05rem] text-amber-50 truncate">{t.name || t.id}</div>
                         <div className="text-[10px] uppercase tracking-[0.2em] font-black text-amber-200/60">{t.status}</div>
                       </div>
-                      <div className="mt-2 text-xs font-mono text-amber-100/55">{t.type} · стол {t.tableSize} · игроков {t.playersCount}{(t.config?.maxPlayers ? `/${t.config.maxPlayers}` : '')}</div>
+                      <div className="mt-2 text-[11px] font-mono text-amber-100/55">{t.type} · стол {t.tableSize} · игроков {t.playersCount}{(t.config?.maxPlayers ? `/${t.config.maxPlayers}` : '')}</div>
                     </button>
                   ))}
                   {(!(tournaments || []).length && !tournamentsErr) && <div className="text-[12px] font-mono text-amber-100/40">Нет открытых турниров.</div>}
@@ -448,7 +447,7 @@ export default function PolitikumWelcome({ onJoin }) {
 
               {rightTab === 'games' && (
                 <div className="flex-1 min-h-0 flex flex-col">
-                  <div className="rounded-[22px] border border-amber-500/10 bg-black/22 px-4 py-4 text-sm text-amber-100/82 font-serif shrink-0">Название игры будет запрошено после нажатия на кнопку <span className="font-black uppercase tracking-[0.18em] text-amber-50">Создать игру</span>.</div>
+                  <div className="rounded-[18px] border border-amber-500/10 bg-black/22 px-4 py-3 text-[13px] text-amber-100/80 font-serif shrink-0 leading-snug">Название игры будет запрошено после нажатия на кнопку <span className="font-black uppercase tracking-[0.18em] text-amber-50">Создать игру</span>.</div>
                   <div className="mt-4 space-y-3 overflow-y-auto pr-1 custom-scrollbar flex-1 min-h-0">
                     {publicMatches.map((match) => {
                       const title = String(match?.setupData?.lobbyTitle || '').trim();
@@ -479,7 +478,7 @@ export default function PolitikumWelcome({ onJoin }) {
           </div>
         </main>
 
-        <footer className="relative z-10 mx-auto max-w-[1520px] mt-6 rounded-[24px] border border-amber-500/10 bg-black/25 backdrop-blur-md px-5 py-3 flex flex-wrap items-center justify-center gap-4 text-sm font-mono text-amber-100/70">
+        <footer className="relative z-10 mx-auto max-w-[1520px] mt-3 rounded-[22px] border border-amber-500/10 bg-black/22 backdrop-blur-md px-5 py-3 flex flex-wrap items-center justify-center gap-3 text-sm font-mono text-amber-100/72">
           <span>{onlineCount} в сети</span>
           <span>•</span>
           <span>{activeGameCount} активных игр</span>
