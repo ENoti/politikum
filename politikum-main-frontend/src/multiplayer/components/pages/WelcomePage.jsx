@@ -386,21 +386,26 @@ export default function PolitikumWelcome({ onJoin }) {
             <div className="order-1 xl:order-2 min-h-[560px] xl:min-h-[640px] flex flex-col items-center justify-between px-2 xl:px-6">
               <div className="w-full flex flex-col items-center pt-12 md:pt-16 xl:pt-10">
                 <div className="w-full max-w-[860px] text-center">
-                  <p className="text-[18px] md:text-[30px] xl:text-[34px] leading-tight font-semibold text-amber-50/92 drop-shadow-[0_4px_16px_rgba(0,0,0,0.28)]">
-                    Собери оппозиционеров за одним столом!
-                  </p>
                 </div>
               </div>
 
-              <div className="w-full flex flex-col items-center justify-end pb-4 xl:pb-10">
-                <button onClick={createMatch} disabled={loading} className="min-w-[300px] md:min-w-[340px] px-8 py-4 md:py-5 rounded-[22px] bg-[linear-gradient(180deg,#f59e0b,#f97316)] hover:brightness-110 text-amber-50 font-black text-[20px] uppercase tracking-[0.08em] shadow-[0_18px_40px_rgba(249,115,22,0.35),inset_0_1px_0_rgba(255,255,255,0.35)] transition-all active:scale-[0.99] disabled:opacity-60 border border-amber-200/35">
-                  Создать игру
-                </button>
-                <div className="mt-4 text-center text-base md:text-[21px] leading-tight font-serif text-stone-950/80 drop-shadow-[0_1px_0_rgba(255,245,220,0.35)]">
-                  Создай lobby и пригласи друзей. Или зайди в уже открытое.
-                </div>
+          <div className="flex h-full min-h-[70vh] flex-col">
+            <div className="flex-1" />
+
+            <div className="w-full flex flex-col items-center pb-20 md:pb-24 xl:pb-28">
+              <button
+                onClick={createMatch}
+                disabled={loading}
+                className="min-w-[300px] md:min-w-[340px] px-8 py-4 md:py-5 rounded-[22px] bg-[linear-gradient(180deg,#4b5563,#111827)] hover:brightness-110 text-white font-black text-[20px] uppercase tracking-[0.08em] shadow-[0_18px_40px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.18)] transition-all active:scale-[0.99] disabled:opacity-60 border border-white/15"
+              >
+                Создать игру
+              </button>
+
+              <div className="mt-4 text-center text-base md:text-[21px] leading-tight font-serif text-white drop-shadow-[0_1px_0_rgba(0,0,0,0.45)]">
+                Создай lobby и пригласи друзей. Или зайди в уже открытое.
               </div>
             </div>
+          </div>
 
             <div className="order-3">
               <SectionCard title="Лобби и подключение" eyebrow="Список игр" right={<div className="text-[11px] font-mono text-amber-100/55">{activeGameCount} открыто</div>} className="min-h-[420px] xl:min-h-[560px]">
