@@ -10,51 +10,56 @@ const NAMES = [
   'Beatrix', 'Lambert', 'Maude', 'Odilia', 'Viggo', 'Sibylla', 'Katarina', 'Norbert', 'Quintus',
 ];
 
-function SectionCard({ title, eyebrow, right, className = '', children }) {
+function PanelFrame({ className = '', children }) {
   return (
-    <section className={`rounded-[28px] border border-amber-500/20 bg-[linear-gradient(180deg,rgba(20,10,8,0.84),rgba(10,6,5,0.72))] shadow-[0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-md ${className}`}>
-      <div className="px-6 pt-5 pb-4 border-b border-amber-500/10 flex items-center justify-between gap-3">
-        <div>
-          {eyebrow ? <div className="text-[10px] uppercase tracking-[0.38em] text-amber-200/45 font-black">{eyebrow}</div> : null}
-          <div className="mt-1 text-[24px] leading-none font-serif font-bold text-amber-100">{title}</div>
-        </div>
-        {right}
-      </div>
-      <div className="p-5">{children}</div>
-    </section>
-  );
-}
-
-function SmallStat({ label, value }) {
-  return (
-    <div className="rounded-2xl border border-amber-400/10 bg-black/25 px-4 py-3 min-w-[120px]">
-      <div className="text-[10px] uppercase tracking-[0.3em] text-amber-200/40 font-black">{label}</div>
-      <div className="mt-1 text-xl font-black text-amber-50">{value}</div>
+    <div
+      className={[
+        'rounded-[26px] border border-[#f1c76b]/18',
+        'bg-[linear-gradient(180deg,rgba(8,21,36,0.88),rgba(3,10,18,0.92))]',
+        'shadow-[0_30px_80px_rgba(0,0,0,0.38),inset_0_1px_0_rgba(255,255,255,0.06)]',
+        'backdrop-blur-md',
+        className,
+      ].join(' ')}
+    >
+      {children}
     </div>
   );
 }
 
-function LobbyRow({ title, subtitle, status, statusTone = 'open', players, onClick, actionLabel = 'Подключиться' }) {
-  const toneClass = statusTone === 'live'
-    ? 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20'
-    : statusTone === 'private'
-      ? 'text-amber-200 bg-amber-500/10 border-amber-500/20'
-      : 'text-amber-100 bg-amber-100/10 border-amber-100/10';
+function PanelHeader({ title, right = null, compact = false }) {
+  return (
+    <div className={[ 'flex items-center justify-between gap-3 border-b border-white/8', compact ? 'px-4 py-3' : 'px-5 py-4' ].join(' ')}>
+      <div className="text-[22px] md:text-[26px] font-semibold tracking-[0.02em] text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.35)]">
+        {title}
+      </div>
+      {right}
+    </div>
+  );
+}
+
+function LobbyListRow({ match, onJoin }) {
+  const title = String(match?.setupData?.lobbyTitle || '').trim();
+  const host = match?.setupData?.hostName || 'Лобби';
+  const displayName = title || host;
+  const seats = Array.isArray(match.players) ? match.players : Object.values(match.players || {});
+  const activeSeats = seats.filter((p) => p?.name || p?.isBot || p?.isConnected).length;
+  const maxSeats = seats.length || 5;
 
   return (
-    <div className="rounded-[18px] border border-amber-500/12 bg-black/30 px-3.5 py-3 hover:bg-black/40 transition-colors">
-      <div className="flex items-start gap-3 justify-between">
+    <div className="rounded-[16px] border border-white/10 bg-white/5 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+      <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="text-lg font-serif font-bold text-amber-50 truncate">{title}</div>
-            {status ? <span className={`px-2.5 py-1 rounded-full text-[10px] uppercase tracking-[0.22em] border font-black ${toneClass}`}>{status}</span> : null}
-          </div>
-          <div className="mt-2 text-xs font-mono text-amber-100/55">{subtitle}</div>
+          <div className="truncate text-[18px] font-semibold text-white">{displayName}</div>
+          <div className="mt-1 text-[12px] text-white/55">host {host} · ID {String(match.matchID || '').slice(0, 8)}</div>
         </div>
-        <div className="flex flex-col items-end gap-2 shrink-0">
-          {players ? <div className="text-sm font-black text-amber-100">{players}</div> : null}
-          <button type="button" onClick={onClick} className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black uppercase tracking-[0.18em] text-[11px] shadow-[0_8px_24px_rgba(251,191,36,0.28)]">
-            {actionLabel}
+        <div className="shrink-0 text-right">
+          <div className="mb-2 text-[13px] font-semibold text-[#f1c76b]">{activeSeats}/{maxSeats}</div>
+          <button
+            type="button"
+            onClick={onJoin}
+            className="shrink-0 rounded-[8px] border border-[#ffe0a7]/55 bg-[linear-gradient(180deg,#d7b254,#b8871f)] px-4 py-2 text-[14px] font-bold text-[#1b140d] shadow-[inset_0_1px_0_rgba(255,240,185,0.48)] hover:brightness-105"
+          >
+            Присоединиться
           </button>
         </div>
       </div>
@@ -62,7 +67,7 @@ function LobbyRow({ title, subtitle, status, statusTone = 'open', players, onCli
   );
 }
 
-function PolitikumWelcome({ onJoin }) {
+export default function PolitikumWelcome({ onJoin }) {
   const [playerName, setPlayerName] = useState(() => {
     try {
       const saved = window.localStorage.getItem('politikum.playerName');
@@ -79,18 +84,38 @@ function PolitikumWelcome({ onJoin }) {
   const [betaPassword, setBetaPassword] = useState('');
   const [betaLoading, setBetaLoading] = useState(false);
   const [betaErr, setBetaErr] = useState('');
-  const [rightTab, setRightTab] = useState('games');
+  const [rightTab, setRightTab] = useState(() => {
+    try { return String(window.localStorage.getItem('politikum.welcomeRightTab') || 'games'); } catch { return 'games'; }
+  });
   const [showWhereAmI, setShowWhereAmI] = useState(false);
   const [ratingsMap, setRatingsMap] = useState(() => ({}));
   const [lobbyTitle, setLobbyTitle] = useState('');
   const [showRules, setShowRules] = useState(false);
 
-  const { open: showProfile, close: closeProfile, loading: profileLoading, error: profileErr, profile, openById: openProfileById } = usePublicProfile();
+  const {
+    open: showProfile,
+    close: closeProfile,
+    loading: profileLoading,
+    error: profileErr,
+    profile,
+    openById: openProfileById,
+  } = usePublicProfile();
 
   const {
-    matches, top10, tournaments, tournamentsErr, top10Err,
-    lobbyChat, lobbyChatEnabled, lobbyChatErr, lobbyChatInput,
-    setLobbyChatInput, sendLobbyChat, myMatches, refreshMatches, refreshMyMatches,
+    matches,
+    top10,
+    tournaments,
+    tournamentsErr,
+    top10Err,
+    lobbyChat,
+    lobbyChatEnabled,
+    lobbyChatErr,
+    lobbyChatInput,
+    setLobbyChatInput,
+    sendLobbyChat,
+    myMatches,
+    refreshMatches,
+    refreshMyMatches,
   } = usePublicLobbyData({ authToken, playerName });
 
   useEffect(() => {
@@ -122,9 +147,15 @@ function PolitikumWelcome({ onJoin }) {
           } catch {}
         }));
         setRatingsMap(m);
-        if (!authToken) { setAuthRating(null); return; }
+        if (!authToken) {
+          setAuthRating(null);
+          return;
+        }
         const pid = (() => { try { return String(window.localStorage.getItem('politikum.sessionPlayerId') || ''); } catch { return ''; } })();
-        if (!pid) { setAuthRating(null); return; }
+        if (!pid) {
+          setAuthRating(null);
+          return;
+        }
         const rating = m[String(pid)] ?? null;
         if (rating != null) setAuthRating(Number(rating));
       } catch {}
@@ -150,7 +181,8 @@ function PolitikumWelcome({ onJoin }) {
         }
       })();
       const res = await fetch(`${SERVER}/auth/register_or_login`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: String(playerName || '').trim(), token: pw, deviceId }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -280,24 +312,34 @@ function PolitikumWelcome({ onJoin }) {
   }, [rightTab, tournaments, top10, publicMatches]);
 
   return (
-    <div className="relative min-h-screen w-screen overflow-hidden text-slate-100" style={{ backgroundImage: "url('/assets/lobby_bg.webp')", backgroundSize: 'contain', backgroundPosition: 'center center', backgroundRepeat: 'no-repeat', backgroundColor: '#120a08' }}>
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center_bottom,rgba(255,228,145,0.28),transparent_23%),linear-gradient(180deg,rgba(12,7,6,0.32),rgba(8,4,4,0.62))]" />
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(10,5,5,0.58)_0%,rgba(10,5,5,0.18)_24%,rgba(10,5,5,0.0)_50%,rgba(10,5,5,0.18)_76%,rgba(10,5,5,0.58)_100%)]" />
-      <div className="absolute inset-x-0 bottom-0 h-[22vh] bg-[linear-gradient(180deg,rgba(10,5,5,0)_0%,rgba(10,5,5,0.3)_45%,rgba(10,5,5,0.88)_100%)]" />
+    <div
+      className="relative min-h-screen w-screen overflow-hidden text-slate-100"
+      style={{
+        backgroundImage: "url('/assets/lobby_bg.webp')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center center',
+        backgroundRepeat: 'no-repeat',
+        backgroundColor: '#08111d',
+      }}
+    >
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,10,18,0.58),rgba(2,10,18,0.72))]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center_top,rgba(251,191,36,0.18),transparent_28%),radial-gradient(circle_at_center,rgba(255,255,255,0.05),transparent_34%)]" />
+      <div className="absolute inset-y-0 left-0 w-[22%] bg-[linear-gradient(90deg,rgba(2,10,18,0.75),rgba(2,10,18,0))]" />
+      <div className="absolute inset-y-0 right-0 w-[24%] bg-[linear-gradient(270deg,rgba(2,10,18,0.75),rgba(2,10,18,0))]" />
 
       {showRules && (
         <div className="fixed inset-0 z-[9100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="w-[min(1100px,96vw)] h-[min(88vh,900px)] rounded-3xl border border-amber-700/30 bg-slate-950/95 shadow-2xl overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-amber-900/30 bg-black/30">
+          <div className="flex h-[min(88vh,900px)] w-[min(1100px,96vw)] flex-col overflow-hidden rounded-3xl border border-amber-700/30 bg-slate-950/95 shadow-2xl">
+            <div className="flex items-center justify-between gap-3 border-b border-amber-900/30 bg-black/30 px-5 py-4">
               <div>
                 <div className="text-[10px] uppercase tracking-[0.35em] text-amber-300/60">Правила игры</div>
                 <div className="text-xl font-black text-amber-50">Политикум — инструкция</div>
               </div>
-              <button type="button" onClick={() => setShowRules(false)} className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-amber-950 font-black uppercase tracking-widest">Закрыть</button>
+              <button type="button" onClick={() => setShowRules(false)} className="rounded-xl bg-amber-600 px-4 py-2 font-black uppercase tracking-widest text-amber-950 hover:bg-amber-500">Закрыть</button>
             </div>
             <div className="flex-1 bg-white/95">
-              <object data="/politikum-rules.pdf" type="application/pdf" className="w-full h-full">
-                <iframe src="/politikum-rules.pdf" title="Правила игры Политикум" className="w-full h-full" />
+              <object data="/politikum-rules.pdf" type="application/pdf" className="h-full w-full">
+                <iframe src="/politikum-rules.pdf" title="Правила игры Политикум" className="h-full w-full" />
               </object>
             </div>
           </div>
@@ -305,220 +347,319 @@ function PolitikumWelcome({ onJoin }) {
       )}
 
       {showWhereAmI && (
-        <div className="fixed inset-0 z-[9000] flex items-center justify-center bg-black/55 backdrop-blur-sm pointer-events-auto">
-          <div className="w-[min(1100px,95vw)] max-h-[92vh] overflow-auto rounded-2xl border border-amber-900/30 bg-black/60 shadow-2xl p-4">
+        <div className="fixed inset-0 z-[9000] flex items-center justify-center bg-black/55 backdrop-blur-sm">
+          <div className="max-h-[92vh] w-[min(1100px,95vw)] overflow-auto rounded-2xl border border-amber-900/30 bg-black/60 p-4 shadow-2xl">
             <div className="flex items-start justify-between gap-3">
-              <div><div className="text-amber-100 font-black text-sm">Что я? Где я?</div></div>
-              <button type="button" onClick={() => setShowWhereAmI(false)} className="px-3 py-2 rounded-xl bg-slate-800/70 hover:bg-slate-700/80 border border-amber-900/20 text-amber-50 font-black text-[10px] uppercase tracking-widest">Закрыть (Esc)</button>
+              <div className="text-sm font-black text-amber-100">Что я? Где я?</div>
+              <button type="button" onClick={() => setShowWhereAmI(false)} className="rounded-xl border border-amber-900/20 bg-slate-800/70 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-amber-50 hover:bg-slate-700/80">Закрыть (Esc)</button>
             </div>
-            <div className="mt-4"><img src="/assets/ui/tutorial.webp" alt="Tutorial" className="w-full rounded-xl border border-amber-900/20 shadow-[0_30px_80px_rgba(0,0,0,0.55)]" draggable={false} /></div>
+            <div className="mt-4">
+              <img src="/assets/ui/tutorial.webp" alt="Tutorial" className="w-full rounded-xl border border-amber-900/20 shadow-[0_30px_80px_rgba(0,0,0,0.55)]" draggable={false} />
+            </div>
           </div>
         </div>
       )}
 
       <PublicProfileModal open={showProfile} onClose={closeProfile} loading={profileLoading} error={profileErr} profile={profile} />
 
-      <div className="relative z-10 min-h-screen px-4 md:px-8 pb-10 pt-4">
-        <header className="fixed top-0 left-0 right-0 z-30 border-b border-amber-500/15 bg-[linear-gradient(180deg,rgba(28,15,11,0.80),rgba(12,7,6,0.60))] shadow-[0_12px_28px_rgba(0,0,0,0.28)] backdrop-blur-md px-4 md:px-6 py-2 flex flex-wrap items-center gap-2 justify-between">
-          <div className="flex items-center gap-2 md:gap-3 flex-wrap">
-            <button type="button" onClick={() => setShowWhereAmI(true)} className="px-4 py-1.5 rounded-xl bg-black/35 hover:bg-black/50 border border-amber-500/15 text-amber-100 font-black text-[10px] uppercase tracking-[0.28em] whitespace-nowrap">Помощь</button>
-            <button type="button" onClick={() => setShowRules(true)} className="px-4 py-1.5 rounded-xl bg-black/35 hover:bg-black/50 border border-amber-500/15 text-amber-100 font-black text-[10px] uppercase tracking-[0.28em] whitespace-nowrap">Правила игры</button>
+      <div className="relative z-10 flex min-h-screen flex-col">
+        <header className="flex items-center justify-between gap-3 border-b border-white/10 bg-[linear-gradient(180deg,rgba(4,18,32,0.88),rgba(3,10,18,0.76))] px-4 py-3 shadow-[0_10px_30px_rgba(0,0,0,0.24)] backdrop-blur-md md:px-6">
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" onClick={() => setShowWhereAmI(true)} className="rounded-[10px] border border-white/10 bg-white/6 px-4 py-2 text-[12px] font-bold text-white/88 hover:bg-white/10">Помощь</button>
+            <button type="button" onClick={() => setShowRules(true)} className="rounded-[10px] border border-white/10 bg-white/6 px-4 py-2 text-[12px] font-bold text-white/88 hover:bg-white/10">Правила игры</button>
             {String(playerName || '').trim().toLowerCase() === 'konsta' && (
-              <a href="#/admin" target="_blank" rel="noreferrer" className="px-4 py-1.5 rounded-xl bg-black/35 hover:bg-black/50 border border-amber-500/15 text-amber-200 font-black text-[10px] uppercase tracking-[0.28em] whitespace-nowrap">Admin</a>
+              <a href="#/admin" target="_blank" rel="noreferrer" className="rounded-[10px] border border-white/10 bg-white/6 px-4 py-2 text-[12px] font-bold text-white/88 hover:bg-white/10">Admin</a>
             )}
           </div>
 
           {authToken ? (
-            <div className="flex items-center gap-3 flex-wrap justify-end">
-              <div className="rounded-xl border border-amber-500/10 bg-amber-50/90 px-3 py-1.5 text-stone-900 flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3 justify-end">
+              <div className="flex items-center gap-3 rounded-[14px] border border-white/10 bg-white/92 px-3 py-2 text-slate-900 shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
                 <div>
-                  <div className="text-[10px] uppercase tracking-[0.28em] text-stone-500 font-black">Профиль</div>
-                  <div className="font-serif text-base font-bold">{String(playerName || 'User').trim() || 'User'}</div>
+                  <div className="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500">Профиль</div>
+                  <div className="text-[15px] font-semibold">{String(playerName || 'User').trim() || 'User'}</div>
                 </div>
                 {(authRating != null && !Number.isNaN(Number(authRating))) && (
-                  <button type="button" className="px-3 py-1.5 rounded-xl bg-stone-900 text-amber-50 font-black hover:bg-black" title="Открыть профиль" onClick={async () => { const pid = String(window.localStorage.getItem('politikum.sessionPlayerId') || '').trim(); openProfileById(pid); }}>{Math.round(Number(authRating))}</button>
+                  <button
+                    type="button"
+                    className="rounded-[10px] bg-slate-900 px-3 py-2 font-bold text-amber-50 hover:bg-black"
+                    title="Открыть профиль"
+                    onClick={() => {
+                      const pid = String(window.localStorage.getItem('politikum.sessionPlayerId') || '').trim();
+                      openProfileById(pid);
+                    }}
+                  >
+                    {Math.round(Number(authRating))}
+                  </button>
                 )}
               </div>
-              <button type="button" onClick={() => { try { window.localStorage.removeItem('politikum.authToken'); } catch {} try { window.localStorage.removeItem('politikum.sessionPlayerId'); } catch {} setAuthToken(''); setAuthRating(null); }} className="px-4 py-2 rounded-xl bg-stone-900/85 hover:bg-black text-amber-100 font-black text-[11px] uppercase tracking-[0.25em]">Выйти</button>
+              <button type="button" onClick={() => {
+                try { window.localStorage.removeItem('politikum.authToken'); } catch {}
+                try { window.localStorage.removeItem('politikum.sessionPlayerId'); } catch {}
+                setAuthToken('');
+                setAuthRating(null);
+              }} className="rounded-[10px] border border-white/10 bg-white/6 px-4 py-2 text-[12px] font-bold text-white hover:bg-white/10">Выйти</button>
             </div>
           ) : (
-            <div className="flex items-center gap-2 flex-wrap justify-end">
-              <input type="text" value={playerName} onChange={(e) => setPlayerName(e.target.value)} className="w-[200px] max-w-[34vw] rounded-xl border border-amber-500/15 bg-amber-50/90 px-3 py-2.5 text-stone-900 font-serif text-sm focus:outline-none" placeholder="Твой ник" />
-              <input value={betaPassword} onChange={(e) => setBetaPassword(e.target.value)} type="password" placeholder="token" className="w-[200px] max-w-[34vw] rounded-xl border border-amber-500/15 bg-amber-50/90 px-3 py-2.5 text-stone-900 font-mono text-sm focus:outline-none" />
-              <button type="button" onClick={doBetaLogin} disabled={betaLoading || !String(betaPassword || '').trim()} className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-stone-950 font-black text-[11px] uppercase tracking-[0.25em]">{betaLoading ? '...' : 'Войти'}</button>
-              <div className="text-[11px] font-mono text-amber-100/75">{betaErr ? betaErr : 'Гостевой режим'}</div>
+            <div className="flex flex-wrap items-center gap-2 justify-end">
+              <input
+                type="text"
+                value={playerName}
+                onChange={(e) => setPlayerName(e.target.value)}
+                className="w-[180px] rounded-[10px] border border-white/12 bg-white/92 px-3 py-2 text-[14px] text-slate-900 outline-none"
+                placeholder="Твой ник"
+              />
+              <input
+                value={betaPassword}
+                onChange={(e) => setBetaPassword(e.target.value)}
+                type="password"
+                placeholder="token"
+                className="w-[180px] rounded-[10px] border border-white/12 bg-white/92 px-3 py-2 text-[14px] text-slate-900 outline-none"
+              />
+              <button type="button" onClick={doBetaLogin} disabled={betaLoading || !String(betaPassword || '').trim()} className="rounded-[10px] border border-[#ffe0a7]/55 bg-[linear-gradient(180deg,#d7b254,#b8871f)] px-5 py-2 text-[13px] font-bold text-[#1b140d] disabled:opacity-60">{betaLoading ? '...' : 'Войти'}</button>
+              <div className="text-[12px] text-white/72">{betaErr ? betaErr : 'Гостевой режим'}</div>
             </div>
           )}
         </header>
 
-        <main className="relative mx-auto max-w-[1520px] pt-6 md:pt-10 grid grid-cols-1 xl:grid-cols-[360px_minmax(0,1fr)_420px] gap-6 items-start">
-          <div className="order-2 xl:order-1 space-y-5">
-            <SectionCard title="Новости" eyebrow="Сводка" className="overflow-hidden">
-              <NewsPanel />
-            </SectionCard>
-
-            <SectionCard title="Чат лобби" eyebrow="Общий канал" className="min-h-[420px] flex flex-col">
-              <div className="flex-1 min-h-[260px] max-h-[320px] overflow-y-auto space-y-3 pr-1 custom-scrollbar">
-                {!lobbyChatEnabled && <div className="bg-red-950/35 border border-red-900/40 rounded-2xl px-4 py-3"><div className="text-[10px] font-mono text-red-200/70">System</div><div className="text-sm font-serif text-red-50/90">Lobby chat is disabled by admin.</div></div>}
-                {!!lobbyChatErr && <div className="bg-black/35 border border-amber-900/20 rounded-2xl px-4 py-3"><div className="text-[10px] font-mono text-amber-200/50">System</div><div className="text-sm font-serif text-amber-50/80">Chat error: {lobbyChatErr}</div></div>}
-                {(lobbyChat || []).map((m, idx) => {
-                  const isMe = String(m?.name || '') === String(playerName || '');
-                  return (
-                    <div key={m.id ?? idx} className={isMe ? 'rounded-2xl border border-amber-500/12 bg-amber-500/10 px-4 py-3' : 'rounded-2xl border border-amber-500/10 bg-black/28 px-4 py-3'}>
-                      <div className="text-[10px] font-mono text-amber-200/55 flex items-center gap-2">
-                        <span className={m?.playerId ? 'cursor-pointer hover:text-amber-100' : ''} onClick={() => { if (m?.playerId) openProfileById(m.playerId); }}>{m.name || m.playerId || 'Anon'}</span>
-                        {(m?.playerId && (ratingsMap[String(m.playerId)] != null)) && <button type="button" className="px-2 py-0.5 rounded-lg bg-black/35 hover:bg-black/45 border border-amber-900/20 text-amber-100/80 font-black" title="Открыть профиль" onClick={() => openProfileById(m.playerId)}>{ratingsMap[String(m.playerId)]}</button>}
-                      </div>
-                      <div className="mt-1 text-base font-serif text-amber-50/92 whitespace-pre-wrap">{m.text}</div>
-                    </div>
-                  );
-                })}
-                {(!(lobbyChat || []).length && !lobbyChatErr) && <div className="bg-black/35 border border-amber-900/20 rounded-2xl px-4 py-3"><div className="text-[10px] font-mono text-amber-200/50">System</div><div className="text-sm font-serif text-amber-50/80">Скажи всем привет.</div></div>}
-              </div>
-              <div className="mt-4 flex gap-2">
-                <input value={lobbyChatInput} onChange={(e) => setLobbyChatInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); sendLobbyChat(); } }} placeholder={authToken ? (lobbyChatEnabled ? 'Напиши что-нибудь…' : 'Чат выключен') : 'Войди, чтобы писать…'} disabled={!authToken || !lobbyChatEnabled} className="flex-1 rounded-xl border border-amber-500/12 bg-black/35 px-4 py-3 text-amber-100/92 font-serif text-sm focus:outline-none disabled:opacity-60" />
-                <button type="button" onClick={sendLobbyChat} disabled={!authToken || !lobbyChatEnabled || !String(lobbyChatInput||'').trim()} className="px-4 py-3 rounded-xl bg-amber-500 text-stone-950 font-black tracking-[0.12em] text-[11px] shadow-[0_8px_24px_rgba(251,191,36,0.22)] transition-all disabled:opacity-60 hover:bg-amber-400">Отправить</button>
-              </div>
-            </SectionCard>
-          </div>
-
-          <div className="order-1 xl:order-2 min-h-[620px] flex flex-col items-center justify-start gap-6 px-2 xl:px-8 pt-16 xl:pt-24">
-            <div className="w-full max-w-[760px] text-center">
-              <p className="text-lg md:text-[28px] leading-tight font-semibold text-amber-50/88 drop-shadow-[0_3px_10px_rgba(0,0,0,0.24)]">
-                Собери оппозиционеров<br className="hidden md:block" /> за одним столом.
-              </p>
-            </div>
-
-            <div className="mt-auto xl:mt-[14vh] w-full max-w-[700px] rounded-[34px] border border-amber-400/18 bg-[linear-gradient(180deg,rgba(28,15,11,0.80),rgba(16,9,8,0.58))] shadow-[0_30px_80px_rgba(0,0,0,0.38)] backdrop-blur-md px-6 md:px-8 py-8 text-center">
-              <div className="text-[10px] uppercase tracking-[0.28em] text-amber-200/48 font-black">Главное действие</div>
-              <div className="mt-3 text-base md:text-[22px] leading-[1.2] font-serif text-amber-50/88">Создай лобби и пригласи друзей. Или зайди в уже открытое.</div>
-              <div className="mt-7 flex justify-center">
-                <button onClick={createMatch} disabled={loading} className="min-w-[320px] px-8 py-5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-[18px] uppercase tracking-[0.14em] shadow-[0_14px_36px_rgba(251,191,36,0.28)] transition-all active:scale-[0.99] disabled:opacity-60">Создать игру</button>
-              </div>
-              <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3 justify-center">
-                <SmallStat label="Онлайн" value={onlineCount} />
-                <SmallStat label="Лобби" value={activeGameCount} />
-                <SmallStat label="Турниры" value={(tournaments || []).length || 0} />
-                <SmallStat label="Версия" value="0.8b" />
-              </div>
-            </div>
-
-            <div className="hidden xl:block h-8" />
-          </div>
-
-          <div className="order-3 space-y-5">
-            <SectionCard title="Лобби и подключение" eyebrow="Список игр" right={<div className="text-[11px] font-mono text-amber-100/55">{activeGameCount} открыто</div>}>
-              <div className="mb-4 flex gap-2">
-                {['games','top10','tournaments'].map((tab) => (
-                  <button key={tab} type="button" onClick={() => setRightTab(tab)} className={'flex-1 py-3 rounded-xl border text-[10px] font-black uppercase tracking-[0.28em] ' + (rightTab === tab ? 'bg-amber-500 text-stone-950 border-amber-300/40' : 'bg-black/30 text-amber-200/75 border-amber-500/12 hover:bg-black/40')}>
-                    {tab === 'games' ? 'Лобби' : tab === 'top10' ? 'ТОП-10' : 'Турниры'}
-                  </button>
-                ))}
-              </div>
-
-              {rightTab === 'top10' && (
-                <div className="space-y-3">
-                  {(top10 && top10.length > 0) ? top10.map((r, i) => (
-                    <div key={i} className="rounded-[20px] border border-amber-500/10 bg-black/28 p-4 flex items-center justify-between gap-4">
-                      <div className="min-w-0">
-                        <div className="text-[11px] font-mono text-amber-100/45">#{i + 1}</div>
-                        <button type="button" className="mt-1 text-left text-lg font-serif font-bold text-amber-50 truncate hover:opacity-90" onClick={() => { const pid = String(r?.playerId || r?.player_id || '').trim(); if (pid) openProfileById(pid); }} disabled={!String(r?.playerId || r?.player_id || '').trim()}>{r.name}</button>
-                      </div>
-                      <div className="text-right font-mono text-sm text-amber-100/78">
-                        <div>G: {Number(r.games ?? 0) || 0}</div>
-                        <div>W: {Number(r.wins ?? 0) || 0}</div>
-                        <div className="font-black text-amber-50">R: {Number(r.rating ?? 0) || 0}</div>
-                      </div>
-                    </div>
-                  )) : <div className="text-[12px] font-mono text-amber-100/40">{top10Err ? `Top10 unavailable: ${top10Err}` : 'Пока пусто.'}</div>}
+        <main className="mx-auto flex w-full max-w-[1380px] flex-1 flex-col px-4 pb-4 pt-5 md:px-6 lg:px-8">
+          <div className="grid flex-1 grid-cols-1 gap-5 xl:grid-cols-[320px_minmax(0,1fr)_420px]">
+            <div className="order-2 flex min-h-0 flex-col gap-5 xl:order-1">
+              <PanelFrame className="overflow-hidden">
+                <PanelHeader title="Новости" compact />
+                <div className="h-[158px] overflow-hidden p-4">
+                  <NewsPanel />
                 </div>
-              )}
+              </PanelFrame>
 
-              {rightTab === 'tournaments' && (
-                <div className="space-y-3">
-                  {tournamentsErr && <div className="text-[12px] font-mono text-amber-100/40">{tournamentsErr}</div>}
-                  {(tournaments || []).slice(0, 10).map((t) => (
-                    <button key={t.id} type="button" onClick={() => { window.location.hash = `#/tournament/${t.id}`; }} className="w-full text-left rounded-[20px] border border-amber-500/10 bg-black/28 px-4 py-4 hover:bg-black/38">
-                      <div className="flex items-baseline justify-between gap-3">
-                        <div className="font-serif font-bold text-amber-50 text-lg truncate">{t.name || t.id}</div>
-                        <div className="text-[10px] uppercase tracking-[0.2em] font-black text-amber-200/60">{t.status}</div>
+              <PanelFrame className="flex min-h-[440px] flex-1 flex-col overflow-hidden">
+                <PanelHeader title="Чат лобби" compact />
+                <div className="flex min-h-0 flex-1 flex-col p-4">
+                  <div className="custom-scrollbar min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+                    {!lobbyChatEnabled && (
+                      <div className="rounded-[14px] border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-100/90">
+                        Lobby chat is disabled by admin.
                       </div>
-                      <div className="mt-2 text-xs font-mono text-amber-100/55">{t.type} · стол {t.tableSize} · игроков {t.playersCount}{(t.config?.maxPlayers ? `/${t.config.maxPlayers}` : '')}</div>
-                    </button>
-                  ))}
-                  {(!(tournaments || []).length && !tournamentsErr) && <div className="text-[12px] font-mono text-amber-100/40">Нет открытых турниров.</div>}
-                </div>
-              )}
+                    )}
 
-              {rightTab === 'games' && (
-                <>
-                  <div className="rounded-[22px] border border-amber-500/10 bg-black/22 px-4 py-4 text-sm text-amber-100/82 font-serif">Название игры будет запрошено после нажатия на кнопку <span className="font-black uppercase tracking-[0.18em] text-amber-50">Создать игру</span>.</div>
-                  <div className="mt-4 space-y-3 max-h-[360px] overflow-y-auto pr-1 custom-scrollbar">
-                    {publicMatches.map((match) => {
-                      const title = String(match?.setupData?.lobbyTitle || '').trim();
-                      const host = match.setupData?.hostName || 'Лобби';
-                      const displayName = title || host;
-                      const seats = Array.isArray(match.players) ? match.players : Object.values(match.players || {});
-                      const activeSeats = seats.filter((p) => p?.name || p?.isBot || p?.isConnected).length;
-                      const maxSeats = seats.length || 5;
-                      const isPrivate = !!match?.isPrivate;
-                      const tone = match?.status === 'in_progress' ? 'live' : isPrivate ? 'private' : 'open';
+                    {!!lobbyChatErr && (
+                      <div className="rounded-[14px] border border-amber-500/20 bg-amber-500/8 px-4 py-3 text-sm text-amber-50/85">
+                        Chat error: {lobbyChatErr}
+                      </div>
+                    )}
+
+                    {(lobbyChat || []).map((m, idx) => {
+                      const isMe = String(m?.name || '') === String(playerName || '');
                       return (
-                        <LobbyRow
-                          key={match.matchID}
-                          title={displayName}
-                          subtitle={`ID ${String(match.matchID || '').slice(0, 8)} · host ${host}`}
-                          status={match?.status === 'in_progress' ? 'идёт' : isPrivate ? 'приватная' : 'открыта'}
-                          statusTone={tone}
-                          players={`${activeSeats}/${maxSeats}`}
-                          onClick={() => joinMatch(match.matchID)}
-                        />
+                        <div key={m.id ?? idx} className={isMe ? 'rounded-[14px] border border-[#f1c76b]/20 bg-[#f1c76b]/10 px-4 py-3' : 'rounded-[14px] border border-white/10 bg-white/5 px-4 py-3'}>
+                          <div className="flex items-center gap-2 text-[12px] text-white/60">
+                            <span className={m?.playerId ? 'cursor-pointer hover:text-white' : ''} onClick={() => { if (m?.playerId) openProfileById(m.playerId); }}>
+                              {m.name || m.playerId || 'Anon'}
+                            </span>
+                            {(m?.playerId && ratingsMap[String(m.playerId)] != null) && (
+                              <button type="button" className="rounded-md bg-black/30 px-2 py-0.5 text-[12px] font-bold text-[#f1c76b]" title="Открыть профиль" onClick={() => openProfileById(m.playerId)}>
+                                {ratingsMap[String(m.playerId)]}
+                              </button>
+                            )}
+                          </div>
+                          <div className="mt-1 whitespace-pre-wrap text-[15px] text-white/92">{m.text}</div>
+                        </div>
                       );
                     })}
-                    {(!publicMatches || publicMatches.length === 0) && <div className="text-center py-8 text-amber-100/40 italic text-base font-serif">Сейчас нет открытых лобби — создай своё первым.</div>}
+
+                    {!(lobbyChat || []).length && !lobbyChatErr && (
+                      <div className="rounded-[14px] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/70">
+                        Скажи всем привет.
+                      </div>
+                    )}
                   </div>
 
-                  {!!authToken && (
-                    <div className="mt-5 space-y-3 max-h-[220px] overflow-y-auto pr-1 custom-scrollbar">
-                      <div className="text-[10px] uppercase tracking-[0.32em] text-amber-200/45 font-black">Мои лобби</div>
-                      {(myMatches || []).map((match) => {
-                        const title = String(match?.setupData?.lobbyTitle || '').trim();
-                        const host = match?.setupData?.hostName || 'Лобби';
-                        const displayName = title || host;
-                        return (
-                          <div key={match.matchID} className="rounded-[22px] border border-amber-500/10 bg-black/24 px-4 py-4">
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0">
-                                <div className="font-serif text-amber-50 text-lg font-bold truncate">{displayName}</div>
-                                <div className="mt-1 text-[11px] font-mono text-amber-100/45">{String(match?.status || '').replace('_', ' ')} · {String(match?.matchID || '').slice(0, 8)}</div>
-                              </div>
-                              <div className="flex gap-2 shrink-0">
-                                <button type="button" onClick={() => renameOwnedMatch(match)} className="px-3 py-2 rounded-lg bg-stone-900/85 hover:bg-black text-amber-100 text-[10px] font-black uppercase tracking-[0.22em]">Переименовать</button>
-                                <button type="button" onClick={() => deleteOwnedMatch(match)} className="px-3 py-2 rounded-lg bg-red-900/70 hover:bg-red-800 text-red-100 text-[10px] font-black uppercase tracking-[0.22em]">Удалить</button>
-                              </div>
-                            </div>
+                  <div className="mt-4 flex gap-2">
+                    <input
+                      value={lobbyChatInput}
+                      onChange={(e) => setLobbyChatInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          sendLobbyChat();
+                        }
+                      }}
+                      placeholder={authToken ? (lobbyChatEnabled ? 'Напиши что-нибудь…' : 'Чат выключен') : 'Войди, чтобы писать…'}
+                      disabled={!authToken || !lobbyChatEnabled}
+                      className="flex-1 rounded-[12px] border border-white/12 bg-white/92 px-4 py-3 text-[14px] text-slate-900 outline-none disabled:opacity-60"
+                    />
+                    <button
+                      type="button"
+                      onClick={sendLobbyChat}
+                      disabled={!authToken || !lobbyChatEnabled || !String(lobbyChatInput || '').trim()}
+                      className="rounded-[10px] border border-[#ffe0a7]/55 bg-[linear-gradient(180deg,#d7b254,#b8871f)] px-4 py-3 text-[13px] font-bold text-[#1b140d] disabled:opacity-60"
+                    >
+                      Отправить
+                    </button>
+                  </div>
+                </div>
+              </PanelFrame>
+            </div>
+
+            <div className="order-1 flex min-h-[540px] flex-col items-center xl:order-2">
+              <div className="mt-8 text-center md:mt-10">
+                <div className="text-[18px] font-medium uppercase tracking-[0.22em] text-white/92 drop-shadow-[0_2px_8px_rgba(0,0,0,0.35)] md:text-[22px]">
+                  Собери оппозиционеров
+                </div>
+                <div className="mt-1 text-[17px] text-white/82 md:text-[20px]">
+                  за одним столом.
+                </div>
+              </div>
+
+              <div className="flex-1" />
+
+              <div className="w-full flex flex-col items-center justify-end pb-4 xl:pb-10">
+                <button onClick={createMatch} disabled={loading} className="min-w-[300px] md:min-w-[340px] px-8 py-4 md:py-5 rounded-[22px] bg-[linear-gradient(180deg,#4b5563,#111827)] hover:brightness-110 text-white font-black text-[20px] uppercase tracking-[0.08em] shadow-[0_18px_40px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.18)] transition-all active:scale-[0.99] disabled:opacity-60 border border-white/15">
+                  Создать игру
+                </button>
+                <div className="mt-4 text-center text-base md:text-[21px] leading-tight font-serif text-white drop-shadow-[0_1px_0_rgba(0,0,0,0.45)]">
+                  Создай lobby и пригласи друзей. Или зайди в уже открытое.
+                </div>
+              </div>
+            </div>
+
+            <div className="order-3 flex min-h-0 flex-col">
+              <PanelFrame className="flex min-h-[640px] flex-1 flex-col overflow-hidden">
+                <PanelHeader
+                  title="Список игр"
+                  right={<div className="text-[14px] font-medium text-white/62">Лобби {activeGameCount}</div>}
+                />
+
+                <div className="flex gap-2 px-4 pt-4">
+                  {['games', 'top10', 'tournaments'].map((tab) => (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => setRightTab(tab)}
+                      className={[
+                        'flex-1 rounded-[10px] px-3 py-2 text-[12px] font-bold uppercase tracking-[0.14em] border',
+                        rightTab === tab
+                          ? 'border-[#ffe0a7]/55 bg-[linear-gradient(180deg,#d7b254,#b8871f)] text-[#1b140d]'
+                          : 'border-white/10 bg-white/6 text-white/78 hover:bg-white/10',
+                      ].join(' ')}
+                    >
+                      {tab === 'games' ? 'Лобби' : tab === 'top10' ? 'Топ-10' : 'Турниры'}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="min-h-0 flex-1 p-4 pt-3">
+                  {rightTab === 'games' && (
+                    <div className="flex h-full min-h-0 flex-col">
+                      <div className="mb-3 rounded-[14px] border border-white/10 bg-white/5 px-4 py-3 text-[14px] text-white/74">
+                        Название игры будет запрошено после нажатия на кнопку <span className="font-semibold text-white">Создать игру</span>.
+                      </div>
+
+                      <div className="custom-scrollbar min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+                        {publicMatches.map((match) => (
+                          <LobbyListRow key={match.matchID} match={match} onJoin={() => joinMatch(match.matchID)} />
+                        ))}
+                        {(!publicMatches || publicMatches.length === 0) && (
+                          <div className="px-2 py-4 text-sm text-white/50">Сейчас нет открытых лобби — создай своё первым.</div>
+                        )}
+                      </div>
+
+                      {!!authToken && (
+                        <div className="mt-4 border-t border-white/8 pt-4">
+                          <div className="mb-3 text-[12px] font-bold uppercase tracking-[0.18em] text-white/55">Мои лобби</div>
+                          <div className="custom-scrollbar max-h-[180px] space-y-3 overflow-y-auto pr-1">
+                            {(myMatches || []).map((match) => {
+                              const title = String(match?.setupData?.lobbyTitle || '').trim();
+                              const host = match?.setupData?.hostName || 'Лобби';
+                              const displayName = title || host;
+                              return (
+                                <div key={match.matchID} className="rounded-[14px] border border-white/10 bg-white/5 px-4 py-3">
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0">
+                                      <div className="truncate text-[16px] font-semibold text-white">{displayName}</div>
+                                      <div className="mt-1 text-[12px] text-white/55">{String(match?.status || '').replace('_', ' ')} · {String(match?.matchID || '').slice(0, 8)}</div>
+                                    </div>
+                                    <div className="flex shrink-0 gap-2">
+                                      <button type="button" onClick={() => renameOwnedMatch(match)} className="rounded-[8px] border border-white/12 bg-white/6 px-3 py-2 text-[12px] font-bold text-white hover:bg-white/10">Переименовать</button>
+                                      <button type="button" onClick={() => deleteOwnedMatch(match)} className="rounded-[8px] border border-red-400/20 bg-red-500/10 px-3 py-2 text-[12px] font-bold text-red-100 hover:bg-red-500/15">Удалить</button>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                            {!(myMatches || []).length && <div className="text-[13px] text-white/45">У тебя пока нет созданных лобби.</div>}
                           </div>
-                        );
-                      })}
-                      {(!(myMatches || []).length) && <div className="text-[12px] font-mono text-amber-100/40">У тебя пока нет созданных лобби.</div>}
+                        </div>
+                      )}
                     </div>
                   )}
-                </>
-              )}
-            </SectionCard>
+
+                  {rightTab === 'top10' && (
+                    <div className="custom-scrollbar h-full space-y-3 overflow-y-auto pr-1">
+                      {(top10 && top10.length > 0) ? top10.map((r, i) => (
+                        <div key={i} className="rounded-[16px] border border-white/10 bg-white/5 px-4 py-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="text-[12px] text-white/50">#{i + 1}</div>
+                              <button
+                                type="button"
+                                className="mt-1 truncate text-left text-[18px] font-semibold text-white hover:text-[#f1c76b]"
+                                onClick={() => {
+                                  const pid = String(r?.playerId || r?.player_id || '').trim();
+                                  if (pid) openProfileById(pid);
+                                }}
+                                disabled={!String(r?.playerId || r?.player_id || '').trim()}
+                              >
+                                {r.name}
+                              </button>
+                            </div>
+                            <div className="text-right text-[13px] text-white/72">
+                              <div>G: {Number(r.games ?? 0) || 0}</div>
+                              <div>W: {Number(r.wins ?? 0) || 0}</div>
+                              <div className="font-bold text-[#f1c76b]">R: {Number(r.rating ?? 0) || 0}</div>
+                            </div>
+                          </div>
+                        </div>
+                      )) : <div className="text-sm text-white/50">{top10Err ? `Top10 unavailable: ${top10Err}` : 'Пока пусто.'}</div>}
+                    </div>
+                  )}
+
+                  {rightTab === 'tournaments' && (
+                    <div className="custom-scrollbar h-full space-y-3 overflow-y-auto pr-1">
+                      {tournamentsErr && <div className="text-sm text-white/50">{tournamentsErr}</div>}
+                      {(tournaments || []).slice(0, 10).map((t) => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => { window.location.hash = `#/tournament/${t.id}`; }}
+                          className="w-full rounded-[16px] border border-white/10 bg-white/5 px-4 py-3 text-left hover:bg-white/8"
+                        >
+                          <div className="flex items-baseline justify-between gap-3">
+                            <div className="truncate text-[18px] font-semibold text-white">{t.name || t.id}</div>
+                            <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#f1c76b]">{t.status}</div>
+                          </div>
+                          <div className="mt-2 text-[13px] text-white/55">{t.type} · стол {t.tableSize} · игроков {t.playersCount}{t.config?.maxPlayers ? `/${t.config.maxPlayers}` : ''}</div>
+                        </button>
+                      ))}
+                      {!(tournaments || []).length && !tournamentsErr && (
+                        <div className="text-sm text-white/50">Нет открытых турниров.</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </PanelFrame>
+            </div>
           </div>
         </main>
 
-        <footer className="relative z-10 mx-auto max-w-[1520px] mt-6 rounded-[24px] border border-amber-500/10 bg-black/25 backdrop-blur-md px-5 py-3 flex flex-wrap items-center justify-center gap-4 text-sm font-mono text-amber-100/70">
-          <span>{onlineCount} в сети</span>
-          <span>•</span>
-          <span>{activeGameCount} активных игр</span>
-          <span>•</span>
-          <span>версия 0.8b</span>
+        <footer className="mt-auto h-[58px] border-t border-amber-300/20 bg-[linear-gradient(180deg,rgba(4,18,32,0.92),rgba(2,10,18,0.97))] shadow-[0_-10px_30px_rgba(0,0,0,0.32)]">
+          <div className="mx-auto flex h-full max-w-[1380px] items-center justify-center gap-12 px-4 text-[20px] text-white/82">
+            <div>Онлайн <span className="ml-1 font-semibold text-[#f1c76b]">{onlineCount}</span></div>
+            <div>Лобби <span className="ml-1 font-semibold text-[#f1c76b]">{activeGameCount}</span></div>
+            <div>Турниры <span className="ml-1 font-semibold text-[#f1c76b]">{(tournaments || []).length}</span></div>
+          </div>
         </footer>
       </div>
     </div>
   );
 }
-
-export default PolitikumWelcome;
