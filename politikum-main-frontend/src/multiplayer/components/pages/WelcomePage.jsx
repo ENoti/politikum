@@ -304,3 +304,5 @@ function SectionCard({ title, eyebrow, right, className = '', children }) {
     </div>
   );
 }
+
+export default WelcomePage;
