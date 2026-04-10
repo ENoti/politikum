@@ -305,4 +305,4 @@ function SectionCard({ title, eyebrow, right, className = '', children }) {
   );
 }
 
-export default WelcomePage;
+export default PolitikumWelcome;
