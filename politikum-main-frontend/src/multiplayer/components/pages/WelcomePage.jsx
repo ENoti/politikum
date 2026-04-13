@@ -280,7 +280,7 @@ export default function PolitikumWelcome({ onJoin }) {
   }, [rightTab, tournaments, top10, publicMatches]);
 
   return (
-    <div className="relative min-h-screen w-screen overflow-hidden text-slate-100" style={{ backgroundImage: "url('/assets/lobby_bg.webp')", backgroundSize: '100% auto', backgroundPosition: 'center top', backgroundRepeat: 'no-repeat', backgroundColor: '#08111d' }}>
+    <div className="relative min-h-screen w-screen overflow-hidden text-slate-100" style={{ backgroundImage: "url('/assets/lobby_bg.webp')", backgroundSize: 'contain', backgroundPosition: 'center center', backgroundRepeat: 'no-repeat', backgroundColor: '#120a08' }}>
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center_bottom,rgba(255,228,145,0.28),transparent_23%),linear-gradient(180deg,rgba(12,7,6,0.32),rgba(8,4,4,0.62))]" />
       <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(10,5,5,0.58)_0%,rgba(10,5,5,0.18)_24%,rgba(10,5,5,0.0)_50%,rgba(10,5,5,0.18)_76%,rgba(10,5,5,0.58)_100%)]" />
       <div className="absolute inset-x-0 bottom-0 h-[22vh] bg-[linear-gradient(180deg,rgba(10,5,5,0)_0%,rgba(10,5,5,0.3)_45%,rgba(10,5,5,0.88)_100%)]" />
@@ -318,13 +318,13 @@ export default function PolitikumWelcome({ onJoin }) {
 
       <PublicProfileModal open={showProfile} onClose={closeProfile} loading={profileLoading} error={profileErr} profile={profile} />
 
-      <div className="relative z-10 min-h-screen px-4 md:px-8 pb-10 pt-2">
-        <header className="fixed top-0 left-0 right-0 z-30 border-b border-amber-500/15 bg-[linear-gradient(180deg,rgba(28,15,11,0.80),rgba(12,7,6,0.60))] shadow-[0_12px_28px_rgba(0,0,0,0.28)] backdrop-blur-md px-4 md:px-6 py-2 flex flex-wrap items-center gap-2 justify-between">
+      <div className="relative z-10 min-h-screen px-4 md:px-8 pb-10 pt-4">
+        <header className="fixed top-0 left-0 right-0 z-30 border-b border-amber-500/15 px-4 md:px-6 py-2 flex flex-wrap items-center gap-2 justify-between">
           <div className="flex items-center gap-2 md:gap-3 flex-wrap">
-            <button type="button" onClick={() => setShowWhereAmI(true)} className="px-4 py-1.5 rounded-xl bg-black/35 hover:bg-black/50 border border-amber-500/15 text-amber-100 font-black text-[10px] uppercase tracking-[0.28em] whitespace-nowrap">Помощь</button>
-            <button type="button" onClick={() => setShowRules(true)} className="px-4 py-1.5 rounded-xl bg-black/35 hover:bg-black/50 border border-amber-500/15 text-amber-100 font-black text-[10px] uppercase tracking-[0.28em] whitespace-nowrap">Правила игры</button>
+            <button type="button" onClick={() => setShowWhereAmI(true)} className="px-4 py-1.5 rounded-xl border border-amber-500/15 text-amber-100 font-black text-[10px] uppercase tracking-[0.28em] whitespace-nowrap">Помощь</button>
+            <button type="button" onClick={() => setShowRules(true)} className="px-4 py-1.5 rounded-xl border border-amber-500/15 text-amber-100 font-black text-[10px] uppercase tracking-[0.28em] whitespace-nowrap">Правила игры</button>
             {String(playerName || '').trim().toLowerCase() === 'konsta' && (
-              <a href="#/admin" target="_blank" rel="noreferrer" className="px-4 py-1.5 rounded-xl bg-black/35 hover:bg-black/50 border border-amber-500/15 text-amber-200 font-black text-[10px] uppercase tracking-[0.28em] whitespace-nowrap">Admin</a>
+              <a href="#/admin" target="_blank" rel="noreferrer" className="px-4 py-1.5 rounded-xl border border-amber-500/15 text-amber-200 font-black text-[10px] uppercase tracking-[0.28em] whitespace-nowrap">Admin</a>
             )}
           </div>
 
@@ -351,8 +351,8 @@ export default function PolitikumWelcome({ onJoin }) {
           )}
         </header>
 
-        <main className="relative mx-auto max-w-[1440px] pt-2 md:pt-4 grid grid-cols-1 xl:grid-cols-[360px_minmax(0,1fr)_430px] gap-6 items-start">
-          <div className="order-2 xl:order-1 space-y-5 xl:pt-[220px]">
+        <main className="relative mx-auto max-w-[1520px] pt-6 md:pt-10 grid grid-cols-1 xl:grid-cols-[360px_minmax(0,1fr)_420px] gap-6 items-start">
+          <div className="order-2 xl:order-1 space-y-5">
             <SectionCard title="Новости" eyebrow="Сводка" className="overflow-hidden">
               <NewsPanel />
             </SectionCard>
@@ -382,24 +382,18 @@ export default function PolitikumWelcome({ onJoin }) {
             </SectionCard>
           </div>
 
-          <div className="order-1 xl:order-2 min-h-[640px] flex flex-col items-center px-2 xl:px-8 pt-10 xl:pt-[120px]">
-            <div className="w-full max-w-[760px] text-center">
-              <p className="text-[22px] md:text-[34px] leading-tight font-semibold text-white/95 drop-shadow-[0_3px_12px_rgba(0,0,0,0.42)]">
-                Собери оппозиционеров<br className="hidden md:block" /> за одним столом!
-              </p>
-            </div>
+          <div className="order-1 xl:order-2 min-h-[620px] flex flex-col items-center justify-start gap-6 px-2 xl:px-8 pt-16 xl:pt-[210px]">
+            <div className="flex-1" />
 
-            <div className="mt-auto w-full flex flex-col items-center justify-end pb-10 xl:pb-[90px] text-center">
-              <div className="mt-4 flex justify-center">
-                <button onClick={createMatch} disabled={loading} className="min-w-[320px] md:min-w-[360px] px-8 py-4 md:py-5 rounded-[20px] border border-[#ffe0a7]/60 bg-[linear-gradient(180deg,#f2d06b,#d79d1f)] text-[#2a1c08] font-black text-[22px] uppercase tracking-[0.06em] shadow-[0_18px_40px_rgba(255,190,60,0.28),inset_0_1px_0_rgba(255,248,220,0.45)] transition-all hover:brightness-105 active:scale-[0.99] disabled:opacity-60">Начать игру</button>
-              </div>
+            <div className="w-full flex justify-center pb-[120px] xl:pb-[150px]">
+              <button onClick={createMatch} disabled={loading} className="min-w-[320px] md:min-w-[380px] px-8 py-5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-[18px] uppercase tracking-[0.14em] shadow-[0_14px_36px_rgba(251,191,36,0.28)] transition-all active:scale-[0.99] disabled:opacity-60">Начать игру</button>
             </div>
 
             <div className="hidden xl:block h-8" />
           </div>
 
-          <div className="order-3 space-y-5 xl:pt-[220px]">
-            <SectionCard title="Лобби игроков" eyebrow="Список игр" right={<div className="text-[13px] font-medium text-white/58">{activeGameCount} открыто</div>}>
+          <div className="order-3 space-y-5">
+            <SectionCard title="Лобби и подключение" eyebrow="Список игр" right={<div className="text-[11px] font-mono text-amber-100/55">{activeGameCount} открыто</div>}>
               <div className="mb-4 flex gap-2">
                 {['games','top10','tournaments'].map((tab) => (
                   <button key={tab} type="button" onClick={() => setRightTab(tab)} className={'flex-1 py-3 rounded-xl border text-[10px] font-black uppercase tracking-[0.28em] ' + (rightTab === tab ? 'bg-amber-500 text-stone-950 border-amber-300/40' : 'bg-black/30 text-amber-200/75 border-amber-500/12 hover:bg-black/40')}>
