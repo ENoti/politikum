@@ -268,7 +268,7 @@ export default function PolitikumWelcome({ onJoin }) {
   }, [matches]);
 
   const activeGameCount = publicMatches.length;
-  const onlineCount = Math.max((lobbyChat || []).length * 4, (top10 || []).length * 32, 2316);
+  const onlineCount = Math.max((lobbyChat || []).length, (top10 || []).length);
 
   useEffect(() => {
     if (rightTab === 'tournaments' && (!tournaments || tournaments.length === 0) && publicMatches.length > 0) {
@@ -342,16 +342,16 @@ export default function PolitikumWelcome({ onJoin }) {
               <button type="button" onClick={() => { try { window.localStorage.removeItem('politikum.authToken'); } catch {} try { window.localStorage.removeItem('politikum.sessionPlayerId'); } catch {} setAuthToken(''); setAuthRating(null); }} className="px-4 py-2 rounded-xl bg-stone-900/85 hover:bg-black text-amber-100 font-black text-[11px] uppercase tracking-[0.25em]">Выйти</button>
             </div>
           ) : (
-            <div className="flex items-center gap-2 flex-wrap justify-end ml-auto pl-6 xl:pl-24">
-              <input type="text" value={playerName} onChange={(e) => setPlayerName(e.target.value)} className="w-[190px] max-w-[28vw] rounded-xl border border-amber-500/15 bg-amber-50/90 px-3 py-2.5 text-stone-900 font-serif text-sm focus:outline-none" placeholder="Твой ник" />
-              <input value={betaPassword} onChange={(e) => setBetaPassword(e.target.value)} type="password" placeholder="token" className="w-[190px] max-w-[28vw] rounded-xl border border-amber-500/15 bg-amber-50/90 px-3 py-2.5 text-stone-900 font-mono text-sm focus:outline-none" />
+            <div className="flex items-center gap-2 flex-wrap justify-end ml-auto pl-2 xl:pl-12 2xl:pl-20">
+              <input type="text" value={playerName} onChange={(e) => setPlayerName(e.target.value)} className="w-[160px] max-w-[22vw] rounded-xl border border-amber-500/15 bg-amber-50/90 px-3 py-2.5 text-stone-900 font-serif text-sm focus:outline-none" placeholder="Твой ник" />
+              <input value={betaPassword} onChange={(e) => setBetaPassword(e.target.value)} type="password" placeholder="token" className="w-[160px] max-w-[22vw] rounded-xl border border-amber-500/15 bg-amber-50/90 px-3 py-2.5 text-stone-900 font-mono text-sm focus:outline-none" />
               <button type="button" onClick={doBetaLogin} disabled={betaLoading || !String(betaPassword || '').trim()} className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-stone-950 font-black text-[11px] uppercase tracking-[0.25em]">{betaLoading ? '...' : 'Войти'}</button>
               <div className="text-[11px] font-mono text-amber-100/75">{betaErr ? betaErr : ''}</div>
             </div>
           )}
         </header>
 
-        <main className="relative mx-auto w-full max-w-[1520px] pt-14 md:pt-20 grid grid-cols-1 xl:grid-cols-[360px_minmax(0,1fr)_420px] gap-6 items-start">
+        <main className="relative mx-auto w-full max-w-[1520px] pt-14 md:pt-20 grid grid-cols-1 xl:grid-cols-[360px_minmax(0,1fr)_420px] gap-6 items-start min-h-[calc(100vh-150px)]">
           <div className="order-2 xl:order-1 space-y-5 xl:pt-6">
             <SectionCard title="Новости" eyebrow="Сводка" className="overflow-hidden">
               <NewsPanel />
@@ -382,10 +382,10 @@ export default function PolitikumWelcome({ onJoin }) {
             </SectionCard>
           </div>
 
-          <div className="order-1 xl:order-2 min-h-[760px] flex flex-col items-center justify-start gap-6 px-2 xl:px-8 pt-28 xl:pt-[280px]">
-            <div className="flex-1 min-h-[180px] xl:min-h-[260px]" />
+          <div className="order-1 xl:order-2 min-h-[520px] xl:min-h-[620px] flex flex-col items-center justify-start gap-6 px-2 xl:px-8 pt-20 xl:pt-[180px]">
+            <div className="flex-1 min-h-[80px] xl:min-h-[140px]" />
 
-            <div className="w-full flex justify-center pb-[24px] xl:pb-[34px]">
+            <div className="w-full flex justify-center pb-[10px] xl:pb-[16px]">
               <button onClick={createMatch} disabled={loading} className="min-w-[320px] md:min-w-[380px] px-8 py-5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-[18px] uppercase tracking-[0.14em] shadow-[0_14px_36px_rgba(251,191,36,0.28)] transition-all active:scale-[0.99] disabled:opacity-60">Начать игру</button>
             </div>
 
@@ -495,12 +495,12 @@ export default function PolitikumWelcome({ onJoin }) {
           </div>
         </main>
 
-        <footer className="relative z-10 mx-auto w-full max-w-[1520px] mt-2 rounded-[24px] border border-amber-500/10 bg-black/25 backdrop-blur-md px-5 py-3 flex flex-wrap items-center justify-center gap-4 text-sm font-mono text-amber-100/70 xl:translate-y-6">
+        <footer className="relative z-10 mx-auto w-full max-w-[1520px] mt-2 rounded-[24px] border border-amber-500/10 bg-black/25 backdrop-blur-md px-5 py-3 flex flex-wrap items-center justify-center gap-4 text-sm font-mono text-amber-100/70 xl:translate-y-0">
           <span>{onlineCount} в сети</span>
           <span>•</span>
           <span>{activeGameCount} активных игр</span>
           <span>•</span>
-          <span>версия 0.8b</span>
+          <span>версия 2.3.5</span>
         </footer>
       </div>
     </div>
