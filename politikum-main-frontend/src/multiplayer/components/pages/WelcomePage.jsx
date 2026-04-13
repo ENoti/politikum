@@ -319,7 +319,7 @@ export default function PolitikumWelcome({ onJoin }) {
       <PublicProfileModal open={showProfile} onClose={closeProfile} loading={profileLoading} error={profileErr} profile={profile} />
 
       <div className="relative z-10 min-h-screen px-4 md:px-6 pb-4 pt-3">
-        <header className="fixed top-0 left-0 right-0 z-30 px-4 md:px-6 py-3 flex flex-wrap items-center gap-3 justify-between">
+        <header className="relative z-30 px-4 md:px-6 py-3 flex flex-wrap items-center gap-3 justify-between">
           <div className="flex items-center gap-2 md:gap-3 flex-wrap">
             <button type="button" onClick={() => setShowWhereAmI(true)} className="px-4 py-1.5 rounded-xl border border-amber-500/15 text-amber-100 font-black text-[10px] uppercase tracking-[0.28em] whitespace-nowrap">Помощь</button>
             <button type="button" onClick={() => setShowRules(true)} className="px-4 py-1.5 rounded-xl border border-amber-500/15 text-amber-100 font-black text-[10px] uppercase tracking-[0.28em] whitespace-nowrap">Правила игры</button>
@@ -351,7 +351,7 @@ export default function PolitikumWelcome({ onJoin }) {
           )}
         </header>
 
-        <main className="relative mx-auto w-full max-w-[1520px] pt-14 md:pt-20 grid grid-cols-1 xl:grid-cols-[360px_minmax(0,1fr)_420px] gap-6 items-start min-h-[calc(100vh-150px)]">
+        <main className="relative mx-auto w-full max-w-[1520px] pt-6 md:pt-10 grid grid-cols-1 xl:grid-cols-[360px_minmax(0,1fr)_420px] gap-6 items-start min-h-[calc(100vh-150px)] pb-[96px]">
           <div className="order-2 xl:order-1 space-y-5 xl:pt-6">
             <SectionCard title="Новости" eyebrow="Сводка" className="overflow-hidden">
               <NewsPanel />
@@ -382,10 +382,10 @@ export default function PolitikumWelcome({ onJoin }) {
             </SectionCard>
           </div>
 
-          <div className="order-1 xl:order-2 min-h-[520px] xl:min-h-[620px] flex flex-col items-center justify-start gap-6 px-2 xl:px-8 pt-20 xl:pt-[180px]">
-            <div className="flex-1 min-h-[80px] xl:min-h-[140px]" />
+          <div className="order-1 xl:order-2 min-h-[620px] xl:min-h-[720px] flex flex-col items-center justify-start gap-6 px-2 xl:px-8 pt-24 xl:pt-[220px]">
+            <div className="flex-1 min-h-[180px] xl:min-h-[260px]" />
 
-            <div className="w-full flex justify-center pb-[10px] xl:pb-[16px]">
+            <div className="w-full flex justify-center pb-[32px] xl:pb-[44px]">
               <button onClick={createMatch} disabled={loading} className="min-w-[320px] md:min-w-[380px] px-8 py-5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-[18px] uppercase tracking-[0.14em] shadow-[0_14px_36px_rgba(251,191,36,0.28)] transition-all active:scale-[0.99] disabled:opacity-60">Начать игру</button>
             </div>
 
@@ -495,12 +495,14 @@ export default function PolitikumWelcome({ onJoin }) {
           </div>
         </main>
 
-        <footer className="relative z-10 mx-auto w-full max-w-[1520px] mt-2 rounded-[24px] border border-amber-500/10 bg-black/25 backdrop-blur-md px-5 py-3 flex flex-wrap items-center justify-center gap-4 text-sm font-mono text-amber-100/70 xl:translate-y-0">
-          <span>{onlineCount} в сети</span>
-          <span>•</span>
-          <span>{activeGameCount} активных игр</span>
-          <span>•</span>
-          <span>версия 2.3.5</span>
+        <footer className="fixed bottom-0 left-0 right-0 z-20 mx-auto w-full rounded-t-[24px] border border-amber-500/10 bg-black/35 backdrop-blur-md px-5 py-3 flex flex-wrap items-center justify-center gap-4 text-sm font-mono text-amber-100/70">
+          <div className="mx-auto flex w-full max-w-[1520px] items-center justify-center gap-4 text-sm font-mono text-amber-100/70">
+            <span>{onlineCount} в сети</span>
+            <span>•</span>
+            <span>{activeGameCount} активных игр</span>
+            <span>•</span>
+            <span>версия 2.3.5</span>
+          </div>
         </footer>
       </div>
     </div>
