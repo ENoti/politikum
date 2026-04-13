@@ -318,8 +318,8 @@ export default function PolitikumWelcome({ onJoin }) {
 
       <PublicProfileModal open={showProfile} onClose={closeProfile} loading={profileLoading} error={profileErr} profile={profile} />
 
-      <div className="relative z-10 min-h-screen px-4 md:px-6 pb-4 pt-3">
-        <header className="relative z-30 px-4 md:px-6 py-3 flex flex-wrap items-center gap-3 justify-between">
+      <div className="relative z-10 min-h-screen px-4 md:px-6 pb-4 pt-1">
+        <header className="relative z-30 px-4 md:px-6 py-1.5 flex flex-wrap items-center gap-3 justify-between -translate-y-1">
           <div className="flex items-center gap-2 md:gap-3 flex-wrap">
             <button type="button" onClick={() => setShowWhereAmI(true)} className="px-4 py-1.5 rounded-xl border border-amber-500/15 text-amber-100 font-black text-[10px] uppercase tracking-[0.28em] whitespace-nowrap">Помощь</button>
             <button type="button" onClick={() => setShowRules(true)} className="px-4 py-1.5 rounded-xl border border-amber-500/15 text-amber-100 font-black text-[10px] uppercase tracking-[0.28em] whitespace-nowrap">Правила игры</button>
@@ -351,7 +351,7 @@ export default function PolitikumWelcome({ onJoin }) {
           )}
         </header>
 
-        <main className="relative mx-auto w-full max-w-[1520px] pt-6 md:pt-10 grid grid-cols-1 xl:grid-cols-[360px_minmax(0,1fr)_420px] gap-6 items-start min-h-[calc(100vh-150px)] pb-[96px]">
+        <main className="relative mx-auto w-full max-w-[1520px] pt-4 md:pt-8 grid grid-cols-1 xl:grid-cols-[360px_minmax(0,1fr)_420px] gap-6 items-start min-h-[calc(100vh-150px)] pb-[96px]">
           <div className="order-2 xl:order-1 space-y-5 xl:pt-6">
             <SectionCard title="Новости" eyebrow="Сводка" className="overflow-hidden">
               <NewsPanel />
@@ -392,8 +392,8 @@ export default function PolitikumWelcome({ onJoin }) {
             <div className="hidden xl:block h-2" />
           </div>
 
-          <div className="order-3 space-y-5 xl:pt-6">
-            <SectionCard title="Лобби и подключение" eyebrow="Список игр" right={<div className="text-[11px] font-mono text-amber-100/55">{activeGameCount} открыто</div>}>
+          <div className="order-3 space-y-5 xl:pt-6 self-stretch flex flex-col">
+            <SectionCard title="Лобби и подключение" eyebrow="Список игр" className="h-full min-h-[700px]" right={<div className="text-[11px] font-mono text-amber-100/55">{activeGameCount} открыто</div>}>
               <div className="mb-4 flex gap-2">
                 {['games','top10','tournaments'].map((tab) => (
                   <button key={tab} type="button" onClick={() => setRightTab(tab)} className={'flex-1 py-3 rounded-xl border text-[10px] font-black uppercase tracking-[0.28em] ' + (rightTab === tab ? 'bg-amber-500 text-stone-950 border-amber-300/40' : 'bg-black/30 text-amber-200/75 border-amber-500/12 hover:bg-black/40')}>
@@ -439,7 +439,7 @@ export default function PolitikumWelcome({ onJoin }) {
               {rightTab === 'games' && (
                 <>
                   <div className="rounded-[22px] border border-amber-500/10 bg-black/22 px-4 py-4 text-sm text-amber-100/82 font-serif">Название игры будет запрошено после нажатия на кнопку <span className="font-black uppercase tracking-[0.18em] text-amber-50">Начать игру</span>.</div>
-                  <div className="mt-4 space-y-3 max-h-[360px] overflow-y-auto pr-1 custom-scrollbar">
+                  <div className="mt-4 space-y-3 max-h-[520px] overflow-y-auto pr-1 custom-scrollbar">
                     {publicMatches.map((match) => {
                       const title = String(match?.setupData?.lobbyTitle || '').trim();
                       const host = match.setupData?.hostName || 'Лобби';
@@ -465,7 +465,7 @@ export default function PolitikumWelcome({ onJoin }) {
                   </div>
 
                   {!!authToken && (
-                    <div className="mt-5 space-y-3 max-h-[220px] overflow-y-auto pr-1 custom-scrollbar">
+                    <div className="mt-5 space-y-3 max-h-[260px] overflow-y-auto pr-1 custom-scrollbar">
                       <div className="text-[10px] uppercase tracking-[0.32em] text-amber-200/45 font-black">Мои лобби</div>
                       {(myMatches || []).map((match) => {
                         const title = String(match?.setupData?.lobbyTitle || '').trim();
