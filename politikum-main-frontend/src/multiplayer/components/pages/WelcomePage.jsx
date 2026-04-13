@@ -393,7 +393,7 @@ export default function PolitikumWelcome({ onJoin }) {
           </div>
 
           <div className="order-3 space-y-5 xl:pt-6 self-stretch flex flex-col">
-            <SectionCard title="Лобби и подключение" eyebrow="Список игр" className="h-full min-h-[700px]" right={<div className="text-[11px] font-mono text-amber-100/55">{activeGameCount} открыто</div>}>
+            <SectionCard title="Лобби и подключение" eyebrow="Список игр" className="min-h-[560px]" right={<div className="text-[11px] font-mono text-amber-100/55">{activeGameCount} открыто</div>}>
               <div className="mb-4 flex gap-2">
                 {['games','top10','tournaments'].map((tab) => (
                   <button key={tab} type="button" onClick={() => setRightTab(tab)} className={'flex-1 py-3 rounded-xl border text-[10px] font-black uppercase tracking-[0.28em] ' + (rightTab === tab ? 'bg-amber-500 text-stone-950 border-amber-300/40' : 'bg-black/30 text-amber-200/75 border-amber-500/12 hover:bg-black/40')}>
@@ -439,7 +439,7 @@ export default function PolitikumWelcome({ onJoin }) {
               {rightTab === 'games' && (
                 <>
                   <div className="rounded-[22px] border border-amber-500/10 bg-black/22 px-4 py-4 text-sm text-amber-100/82 font-serif">Название игры будет запрошено после нажатия на кнопку <span className="font-black uppercase tracking-[0.18em] text-amber-50">Начать игру</span>.</div>
-                  <div className="mt-4 space-y-3 max-h-[520px] overflow-y-auto pr-1 custom-scrollbar">
+                  <div className="mt-4 space-y-3 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
                     {publicMatches.map((match) => {
                       const title = String(match?.setupData?.lobbyTitle || '').trim();
                       const host = match.setupData?.hostName || 'Лобби';
@@ -465,7 +465,7 @@ export default function PolitikumWelcome({ onJoin }) {
                   </div>
 
                   {!!authToken && (
-                    <div className="mt-5 space-y-3 max-h-[260px] overflow-y-auto pr-1 custom-scrollbar">
+                    <div className="mt-5 space-y-3 max-h-[180px] overflow-y-auto pr-1 custom-scrollbar">
                       <div className="text-[10px] uppercase tracking-[0.32em] text-amber-200/45 font-black">Мои лобби</div>
                       {(myMatches || []).map((match) => {
                         const title = String(match?.setupData?.lobbyTitle || '').trim();
