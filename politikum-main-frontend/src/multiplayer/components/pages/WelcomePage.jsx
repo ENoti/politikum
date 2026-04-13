@@ -280,7 +280,7 @@ export default function PolitikumWelcome({ onJoin }) {
   }, [rightTab, tournaments, top10, publicMatches]);
 
   return (
-    <div className="relative min-h-screen w-screen overflow-hidden text-slate-100" style={{ backgroundImage: "url('/assets/lobby_bg.webp')", backgroundSize: 'contain', backgroundPosition: 'center center', backgroundRepeat: 'no-repeat', backgroundColor: '#120a08' }}>
+    <div className="relative min-h-screen w-screen overflow-hidden text-slate-100" style={{ backgroundImage: "url('/assets/lobby_bg.webp')", backgroundSize: 'cover', backgroundPosition: 'center top', backgroundRepeat: 'no-repeat', backgroundColor: '#120a08' }}>
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center_bottom,rgba(255,228,145,0.28),transparent_23%),linear-gradient(180deg,rgba(12,7,6,0.32),rgba(8,4,4,0.62))]" />
       <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(10,5,5,0.58)_0%,rgba(10,5,5,0.18)_24%,rgba(10,5,5,0.0)_50%,rgba(10,5,5,0.18)_76%,rgba(10,5,5,0.58)_100%)]" />
       <div className="absolute inset-x-0 bottom-0 h-[22vh] bg-[linear-gradient(180deg,rgba(10,5,5,0)_0%,rgba(10,5,5,0.3)_45%,rgba(10,5,5,0.88)_100%)]" />
@@ -318,8 +318,8 @@ export default function PolitikumWelcome({ onJoin }) {
 
       <PublicProfileModal open={showProfile} onClose={closeProfile} loading={profileLoading} error={profileErr} profile={profile} />
 
-      <div className="relative z-10 min-h-screen px-4 md:px-8 pb-4 pt-3">
-        <header className="fixed top-0 left-0 right-0 z-30 px-4 md:px-6 py-2 flex flex-wrap items-center gap-2 justify-between">
+      <div className="relative z-10 min-h-screen px-4 md:px-6 pb-4 pt-3">
+        <header className="fixed top-0 left-0 right-0 z-30 px-4 md:px-6 py-3 flex flex-wrap items-center gap-3 justify-between">
           <div className="flex items-center gap-2 md:gap-3 flex-wrap">
             <button type="button" onClick={() => setShowWhereAmI(true)} className="px-4 py-1.5 rounded-xl border border-amber-500/15 text-amber-100 font-black text-[10px] uppercase tracking-[0.28em] whitespace-nowrap">Помощь</button>
             <button type="button" onClick={() => setShowRules(true)} className="px-4 py-1.5 rounded-xl border border-amber-500/15 text-amber-100 font-black text-[10px] uppercase tracking-[0.28em] whitespace-nowrap">Правила игры</button>
@@ -342,16 +342,16 @@ export default function PolitikumWelcome({ onJoin }) {
               <button type="button" onClick={() => { try { window.localStorage.removeItem('politikum.authToken'); } catch {} try { window.localStorage.removeItem('politikum.sessionPlayerId'); } catch {} setAuthToken(''); setAuthRating(null); }} className="px-4 py-2 rounded-xl bg-stone-900/85 hover:bg-black text-amber-100 font-black text-[11px] uppercase tracking-[0.25em]">Выйти</button>
             </div>
           ) : (
-            <div className="flex items-center gap-2 flex-wrap justify-end">
-              <input type="text" value={playerName} onChange={(e) => setPlayerName(e.target.value)} className="w-[200px] max-w-[34vw] rounded-xl border border-amber-500/15 bg-amber-50/90 px-3 py-2.5 text-stone-900 font-serif text-sm focus:outline-none" placeholder="Твой ник" />
-              <input value={betaPassword} onChange={(e) => setBetaPassword(e.target.value)} type="password" placeholder="token" className="w-[200px] max-w-[34vw] rounded-xl border border-amber-500/15 bg-amber-50/90 px-3 py-2.5 text-stone-900 font-mono text-sm focus:outline-none" />
+            <div className="flex items-center gap-2 flex-wrap justify-end ml-auto pl-6 xl:pl-24">
+              <input type="text" value={playerName} onChange={(e) => setPlayerName(e.target.value)} className="w-[190px] max-w-[28vw] rounded-xl border border-amber-500/15 bg-amber-50/90 px-3 py-2.5 text-stone-900 font-serif text-sm focus:outline-none" placeholder="Твой ник" />
+              <input value={betaPassword} onChange={(e) => setBetaPassword(e.target.value)} type="password" placeholder="token" className="w-[190px] max-w-[28vw] rounded-xl border border-amber-500/15 bg-amber-50/90 px-3 py-2.5 text-stone-900 font-mono text-sm focus:outline-none" />
               <button type="button" onClick={doBetaLogin} disabled={betaLoading || !String(betaPassword || '').trim()} className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-stone-950 font-black text-[11px] uppercase tracking-[0.25em]">{betaLoading ? '...' : 'Войти'}</button>
-              <div className="text-[11px] font-mono text-amber-100/75">{betaErr ? betaErr : 'Гостевой режим'}</div>
+              <div className="text-[11px] font-mono text-amber-100/75">{betaErr ? betaErr : ''}</div>
             </div>
           )}
         </header>
 
-        <main className="relative mx-auto max-w-[1520px] pt-10 md:pt-14 grid grid-cols-1 xl:grid-cols-[360px_minmax(0,1fr)_420px] gap-6 items-start">
+        <main className="relative mx-auto w-full max-w-[1520px] pt-14 md:pt-20 grid grid-cols-1 xl:grid-cols-[360px_minmax(0,1fr)_420px] gap-6 items-start">
           <div className="order-2 xl:order-1 space-y-5 xl:pt-6">
             <SectionCard title="Новости" eyebrow="Сводка" className="overflow-hidden">
               <NewsPanel />
@@ -382,7 +382,7 @@ export default function PolitikumWelcome({ onJoin }) {
             </SectionCard>
           </div>
 
-          <div className="order-1 xl:order-2 min-h-[760px] flex flex-col items-center justify-start gap-6 px-2 xl:px-8 pt-24 xl:pt-[240px]">
+          <div className="order-1 xl:order-2 min-h-[760px] flex flex-col items-center justify-start gap-6 px-2 xl:px-8 pt-28 xl:pt-[280px]">
             <div className="flex-1 min-h-[180px] xl:min-h-[260px]" />
 
             <div className="w-full flex justify-center pb-[24px] xl:pb-[34px]">
@@ -495,7 +495,7 @@ export default function PolitikumWelcome({ onJoin }) {
           </div>
         </main>
 
-        <footer className="relative z-10 mx-auto max-w-[1520px] mt-2 rounded-[24px] border border-amber-500/10 bg-black/25 backdrop-blur-md px-5 py-3 flex flex-wrap items-center justify-center gap-4 text-sm font-mono text-amber-100/70 xl:translate-y-6">
+        <footer className="relative z-10 mx-auto w-full max-w-[1520px] mt-2 rounded-[24px] border border-amber-500/10 bg-black/25 backdrop-blur-md px-5 py-3 flex flex-wrap items-center justify-center gap-4 text-sm font-mono text-amber-100/70 xl:translate-y-6">
           <span>{onlineCount} в сети</span>
           <span>•</span>
           <span>{activeGameCount} активных игр</span>
