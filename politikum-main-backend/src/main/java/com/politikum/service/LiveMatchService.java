@@ -3,6 +3,7 @@ package com.politikum.service;
 
 import com.politikum.util.JsonUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Service;
@@ -27,6 +28,15 @@ public class LiveMatchService {
         this.jdbc.execute("CREATE INDEX IF NOT EXISTS idx_live_matches_status ON live_matches(status)");
         this.jdbc.execute("CREATE INDEX IF NOT EXISTS idx_live_matches_tournament ON live_matches(tournament_id, table_id)");
         this.jdbc.execute("CREATE INDEX IF NOT EXISTS idx_live_matches_updated_at ON live_matches(updated_at)");
+    }
+
+    private static final long LOBBY_TTL_MS = 24L * 60L * 60L * 1000L;
+
+    @Scheduled(initialDelay = 60000, fixedDelay = 300000)
+    @Transactional
+    public void cleanupExpiredLobbies() {
+        long cutoff = repository.nowMs() - LOBBY_TTL_MS;
+        jdbc.update("DELETE FROM live_matches WHERE status = 'lobby' AND tournament_id IS NULL AND created_at < ?", cutoff);
     }
 
     public Map<String, Object> createMatch(int numPlayers, String ownerPlayerId, String hostName, String lobbyTitle) {
@@ -184,6 +194,7 @@ public class LiveMatchService {
 
 
     public Map<String, Object> getOwnedMatches(String ownerPlayerId, int limit) {
+        cleanupExpiredLobbies();
         String owner = blankToNull(ownerPlayerId);
         if (owner == null) return Map.of("ok", true, "matches", List.of());
         int lim = Math.max(1, Math.min(100, limit));
@@ -342,6 +353,7 @@ public class LiveMatchService {
     }
 
     public Map<String, Object> getPublicOpenMatches(int limit) {
+        cleanupExpiredLobbies();
         int lim = Math.max(1, Math.min(100, limit));
         List<Map<String, Object>> rows = query("SELECT * FROM live_matches WHERE status IN ('lobby','in_progress') ORDER BY updated_at DESC LIMIT ?", lim);
         List<Map<String, Object>> matches = rows.stream().map(this::clientMatchView).collect(Collectors.toList());
