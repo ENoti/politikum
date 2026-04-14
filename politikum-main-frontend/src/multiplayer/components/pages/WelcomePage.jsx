@@ -280,10 +280,8 @@ export default function PolitikumWelcome({ onJoin }) {
   }, [rightTab, tournaments, top10, publicMatches]);
 
   return (
-    <div className="relative min-h-screen w-screen overflow-hidden text-slate-100" style={{ backgroundImage: "url('/assets/lobby_bg.png')", backgroundSize: 'cover', backgroundPosition: 'center top', backgroundRepeat: 'no-repeat', backgroundColor: '#120a08' }}>
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center_bottom,rgba(255,228,145,0.28),transparent_23%),linear-gradient(180deg,rgba(12,7,6,0.32),rgba(8,4,4,0.62))]" />
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(10,5,5,0.58)_0%,rgba(10,5,5,0.18)_24%,rgba(10,5,5,0.0)_50%,rgba(10,5,5,0.18)_76%,rgba(10,5,5,0.58)_100%)]" />
-      <div className="absolute inset-x-0 bottom-0 h-[22vh] bg-[linear-gradient(180deg,rgba(10,5,5,0)_0%,rgba(10,5,5,0.3)_45%,rgba(10,5,5,0.88)_100%)]" />
+    <div className="relative min-h-screen w-screen overflow-hidden text-slate-100" style={{ backgroundImage: "url('/assets/lobby_bg.png')", backgroundSize: 'cover', backgroundPosition: 'center top', backgroundRepeat: 'no-repeat', backgroundColor: 'transparent' }}>
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[18vh] bg-[linear-gradient(180deg,rgba(10,5,5,0)_0%,rgba(10,5,5,0.10)_55%,rgba(10,5,5,0.28)_100%)]" />
 
       {showRules && (
         <div className="fixed inset-0 z-[9100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
@@ -501,7 +499,7 @@ export default function PolitikumWelcome({ onJoin }) {
             <span>•</span>
             <span>{activeGameCount} активных игр</span>
             <span>•</span>
-            <span>версия 2.5.0</span>
+            <span>версия 2.5.1</span>
           </div>
         </footer>
       </div>
