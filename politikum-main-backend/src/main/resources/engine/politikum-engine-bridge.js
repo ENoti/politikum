@@ -4154,6 +4154,72 @@ var PolitikumGame = {
       if (maybeEndAfterRound(G, ctx, events)) return;
       events.endTurn?.();
     },
+    discardBeforeDrawForHandLimit: ({ G, ctx, playerID }, cardId) => {
+      const pend = G.pending;
+      if (!pend || pend.kind !== "hand_limit_discard_before_draw") return INVALID_MOVE2;
+      if (String(pend.playerId) !== String(playerID)) return INVALID_MOVE2;
+      if (String(ctx.currentPlayer) !== String(playerID)) return INVALID_MOVE2;
+
+      const me = (G.players || []).find((pp) => String(pp.id) === String(playerID));
+      if (!me) return INVALID_MOVE2;
+
+      const idx = (me.hand || []).findIndex((c) => String(c.id) === String(cardId));
+      if (idx < 0) return INVALID_MOVE2;
+
+      const [drop] = me.hand.splice(idx, 1);
+      if (drop) {
+        G.discard.push(drop);
+        if (drop.type === "persona") persona44OnPersonaDiscarded(G);
+      }
+
+      pend.remaining = Number(pend.remaining || 0) - 1;
+      G.log.push(`${ruYou2(me.name)} сбросил ${drop?.name || drop?.id || "карту"} перед добором.`);
+
+      if (Number(pend.remaining || 0) > 0) {
+        recalcPassives(G);
+        return;
+      }
+
+      G.pending = null;
+
+      const c = G.deck.shift();
+      if (c) {
+        if (c.type === "event") {
+          G.lastEvent = c;
+          const bid = baseId2(String(c.id));
+          if (bid === "event_10") {
+            G.log.push(`${me.name} попался "Перевод в криптоколонию"`);
+          } else if (bid === "event_11") {
+            G.log.push(`${me.name} попался тайный удвоитель!`);
+          } else if (bid === "event_15") {
+            G.log.push(`${ruYou2(me.name)}: вам выпал ЧЕРНЫЙ ЛЕБЕДЬ`);
+          } else {
+            const evName = eventTitle2(c);
+            G.log.push(`${ruYou2(me.name)} ${ruDrewVerb(me.name)} ${evName}`);
+          }
+          try {
+            if (Array.isArray(c.tags) && c.tags.includes("event_type:twitter_squabble")) {
+              for (const pp of G.players || []) {
+                for (const cc of pp.coalition || []) {
+                  if (baseId2(String(cc.id)) === "persona_4") applyTokenDelta2(G, cc, -2);
+                }
+              }
+            }
+          } catch {
+          }
+          runAbility(c.abilityKey, { G, me, card: c });
+          persona38OnEventPlayed(G, c);
+          recalcPassives(G);
+          G.discard.push(c);
+        } else {
+          me.hand.push(c);
+          G.log.push(`${me.name} берет карту`);
+        }
+      }
+
+      G.hasDrawn = true;
+      recalcPassives(G);
+    },
     persona16Discard3FromHand: ({ G, playerID }, cardIdA, cardIdB, cardIdC) => {
       const pend = G.pending;
       if (!pend || pend.kind !== "persona_16_discard3_from_hand") return INVALID_MOVE2;
@@ -4340,9 +4406,9 @@ var PolitikumGame = {
           G.botNextActAtMs = nowMs() + 600;
           return;
         }
-        if (pend0 && pend0.kind === "persona_16_discard3_from_hand" && String(pend0.playerId) === String(p.id)) {
+        if (pend0 && pend0.kind === "hand_limit_discard_before_draw" && String(pend0.playerId) === String(p.id)) {
           const hand = Array.isArray(p.hand) ? p.hand : [];
-          const toDiscard = Math.max(0, hand.length - 6);
+          const toDiscard = Math.max(0, Number(pend0.remaining || 0));
           for (let i = 0; i < toDiscard; i++) {
             const card = hand.shift();
             if (card) {
@@ -4350,9 +4416,44 @@ var PolitikumGame = {
               if (card.type === "persona") persona44OnPersonaDiscarded(G);
             }
           }
+          G.log.push(`${ruYou2(p.name)} сбрасывает ${toDiscard} карт перед добором, чтобы после взятия в руке было не больше 7.`);
           G.pending = null;
+          const c = G.deck.shift();
+          if (c) {
+            if (c.type === "event") {
+              G.lastEvent = c;
+              const bid = baseId2(String(c.id));
+              if (bid === "event_10") {
+                G.log.push(`${p.name} попался "Перевод в криптоколонию"`);
+              } else if (bid === "event_11") {
+                G.log.push(`${p.name} попался тайный удвоитель!`);
+              } else if (bid === "event_15") {
+                G.log.push(`${ruYou2(p.name)}: вам выпал ЧЕРНЫЙ ЛЕБЕДЬ`);
+              } else {
+                const evName = eventTitle2(c);
+                G.log.push(`${ruYou2(p.name)} ${ruDrewVerb(p.name)} ${evName}`);
+              }
+              try {
+                if (Array.isArray(c.tags) && c.tags.includes("event_type:twitter_squabble")) {
+                  for (const pp of G.players || []) {
+                    for (const cc of pp.coalition || []) {
+                      if (baseId2(String(cc.id)) === "persona_4") applyTokenDelta2(G, cc, -2);
+                    }
+                  }
+                }
+              } catch {
+              }
+              runAbility(c.abilityKey, { G, me: p, card: c });
+              persona38OnEventPlayed(G, c);
+              recalcPassives(G);
+              G.discard.push(c);
+            } else {
+              p.hand.push(c);
+              G.log.push(`${p.name} берет карту`);
+            }
+          }
+          G.hasDrawn = true;
           recalcPassives(G);
-          G.log.push(`${ruYou2(p.name)} (Кац) сбрасывает ${toDiscard} карт, чтобы после добора в руке было не больше 7.`);
           G.botNextActAtMs = nowMs() + 600;
           return;
         }
@@ -4387,6 +4488,17 @@ var PolitikumGame = {
           return;
         }
         if (!G.hasDrawn) {
+          const currentHandCount = Array.isArray(p?.hand) ? p.hand.length : 0;
+          const needPreDrawDiscard = Math.max(0, currentHandCount - 6);
+          if (needPreDrawDiscard > 0) {
+            G.pending = {
+              kind: "hand_limit_discard_before_draw",
+              playerId: String(p.id),
+              remaining: needPreDrawDiscard,
+            };
+            G.botNextActAtMs = nowMs() + 250;
+            return;
+          }
           const c = G.deck.shift();
           if (c) {
             if (c.type === "event") {

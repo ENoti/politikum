@@ -635,7 +635,7 @@ useEffect(() => {
 
   const pendingP16 = pending?.kind === 'persona_16_discard3_from_hand' && String(pending?.playerId) === String(playerID);
   const pendingP16RequiredDiscard = pendingP16 ? Math.max(0, (Array.isArray(me?.hand) ? me.hand.length : 0) - 6) : 0;
-  const pendingHandLimit = isMyTurn && !pending && !responseActive && (me?.hand || []).length > 7;
+  const pendingHandLimit = pending?.kind === 'hand_limit_discard_before_draw' && String(pending?.playerId) === String(playerID);
   const pendingP16Source = pendingP16 ? String(pending?.sourceCardId || '') : '';
 
   useEffect(() => {
@@ -3012,7 +3012,7 @@ Click their hand. (Esc to cancel)`}</div>
                 {G.pending?.kind === 'discard_down_to_7' && String(playerID) === String(G.pending.playerId) && String(mobileHandSelected || '') === String(card.id) && (
                   <button
                     type="button"
-                    onClick={(e) => { e.stopPropagation(); try { playSfx('ui', 0.25); moves.discardFromHandDownTo7(card.id); } catch {} setMobileHandSelected(null); }}
+                    onClick={(e) => { e.stopPropagation(); try { playSfx('ui', 0.25); moves.discardBeforeDrawForHandLimit(card.id); } catch {} setMobileHandSelected(null); }}
                     className="absolute inset-x-4 bottom-4 z-[2500] rounded-xl bg-red-600/95 hover:bg-red-500 border border-red-300/30 text-red-50 font-black text-[12px] py-2 shadow-2xl"
                   >
                     Сбросить
