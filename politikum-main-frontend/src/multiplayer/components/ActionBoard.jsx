@@ -636,6 +636,8 @@ useEffect(() => {
   const pendingP16 = pending?.kind === 'persona_16_discard3_from_hand' && String(pending?.playerId) === String(playerID);
   const pendingHandLimit = isMyTurn && !pending && !responseActive && (me?.hand || []).length > 7;
   const pendingP16Source = pendingP16 ? String(pending?.sourceCardId || '') : '';
+  const pendingHandLimitRequiredDiscard = Math.max(0, (Array.isArray(me?.hand) ? me.hand.length : 0) - 7);
+  const discardDownTo7Remaining = Math.max(0, (Array.isArray(me?.hand) ? me.hand.length : 0) - 7);
 
   useEffect(() => {
     if (!pendingP16) {
@@ -1793,13 +1795,13 @@ useEffect(() => {
         </div>
       )}
 
-      {pendingHandLimit && (
-        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9600] pointer-events-none select-none">
-          <div className="bg-black/60 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px]">
-            Сбросьте лишние карты ({(me?.hand || []).length} / 7)
-          </div>
+    {pendingHandLimit && (
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9600] pointer-events-none select-none">
+        <div className="bg-black/60 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px]">
+          Сбросьте {pendingHandLimitRequiredDiscard} лишн. карт(ы), чтобы в руке осталось не больше 7 ({(me?.hand || []).length} / 7)
         </div>
-      )}
+      </div>
+    )}
       {/* Targeting prompt (action_4 only) */}
       {!!pickTargetForAction4 && (
         <div className="fixed inset-0 z-[3200] pointer-events-none select-none">
@@ -2064,7 +2066,7 @@ Click their hand. (Esc to cancel)`}</div>
       {G.pending?.kind === 'discard_down_to_7' && String(playerID) === String(G.pending.playerId) && (
         <div className="fixed top-[62%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-[12000] pointer-events-none select-none">
           <div className="pointer-events-auto bg-black/70 border border-amber-900/30 rounded-2xl px-4 py-3 text-amber-100/90 font-mono text-[12px] shadow-2xl flex items-center gap-3">
-            <span>У тебя больше 7 карт: выбери карту на руке и сбрось её</span>
+            <span>У тебя больше 7 карт: сбрось ещё {discardDownTo7Remaining} карт(ы), чтобы в руке осталось не больше 7</span>
             <button
               type="button"
               onClick={() => {

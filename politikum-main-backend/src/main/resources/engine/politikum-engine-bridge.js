@@ -4177,7 +4177,10 @@ var PolitikumGame = {
       if (!me) return INVALID_MOVE2;
       const ids = [cardIdA, cardIdB, cardIdC].map(String);
       const unique = Array.from(new Set(ids)).filter((x) => x && x !== "undefined" && x !== "null");
-      const toDiscard = unique.slice(0, Math.min(3, (me.hand || []).length));
+      const handSize = Array.isArray(me.hand) ? me.hand.length : 0;
+      const requiredDiscard = Math.max(0, handSize - 6);
+      const toDiscard = unique.slice(0, Math.min(requiredDiscard, handSize));
+      if (requiredDiscard > 0 && toDiscard.length !== requiredDiscard) return INVALID_MOVE2;
       for (const id of toDiscard) {
         const i = (me.hand || []).findIndex((c) => String(c.id) === String(id));
         if (i >= 0) {
@@ -4194,7 +4197,7 @@ var PolitikumGame = {
       } catch {
       }
       recalcPassives(G);
-      G.log.push(`${ruYou2(me.name)} сбросил ${toDiscard.length} карт(ы) после добора 3.`);
+      G.log.push(`${ruYou2(me.name)} сбросил ${toDiscard.length} карт(ы), чтобы после добора в руке было не больше 7.`);
       G._lastPersona16ResolveSignature = '';
     },
     // Persona 20: picker from discard (any card type)
@@ -4339,14 +4342,17 @@ var PolitikumGame = {
         }
         if (pend0 && pend0.kind === "persona_16_discard3_from_hand" && String(pend0.playerId) === String(p.id)) {
           const hand = Array.isArray(p.hand) ? p.hand : [];
-          const toDiscard = Math.min(3, hand.length);
+          const toDiscard = Math.max(0, hand.length - 6);
           for (let i = 0; i < toDiscard; i++) {
             const card = hand.shift();
-            if (card) G.discard.push(card);
+            if (card) {
+              G.discard.push(card);
+              if (card.type === "persona") persona44OnPersonaDiscarded(G);
+            }
           }
           G.pending = null;
           recalcPassives(G);
-          G.log.push(`${ruYou2(p.name)} (Кац) сбрасывает ${toDiscard} карт.`);
+          G.log.push(`${ruYou2(p.name)} (Кац) сбрасывает ${toDiscard} карт, чтобы после добора в руке было не больше 7.`);
           G.botNextActAtMs = nowMs() + 600;
           return;
         }
