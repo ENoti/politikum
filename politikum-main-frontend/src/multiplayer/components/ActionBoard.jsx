@@ -639,6 +639,20 @@ useEffect(() => {
   const pendingHandLimitRequiredDiscard = Math.max(0, (Array.isArray(me?.hand) ? me.hand.length : 0) - 7);
   const discardDownTo7Remaining = Math.max(0, (Array.isArray(me?.hand) ? me.hand.length : 0) - 7);
 
+const genericPendingBlocksHandPlay = !!pending && !pendingP16;
+const genericPendingHint = genericPendingBlocksHandPlay
+  ? (() => {
+      const kind = String(pending?.kind || '');
+      if (kind === 'event_16_discard_self_persona_then_draw1') {
+        return 'Сначала выберите персонажа в вашей коалиции для event_16, затем карта будет добрана автоматически.';
+      }
+      if (kind === 'discard_down_to_7') {
+        return `Сначала сбросьте ещё ${discardDownTo7Remaining} карт(ы), чтобы в руке осталось не больше 7.`;
+      }
+      return 'Сначала завершите обязательный эффект в центре стола, затем можно играть карты с руки.';
+    })()
+  : '';
+
   useEffect(() => {
     if (!pendingP16) {
       if ((p16DiscardPick || []).length) setP16DiscardPick([]);
@@ -924,7 +938,8 @@ useEffect(() => {
       }
 
       // Number hotkeys for hand (quick-play): 1..9, 0 = 10
-      if (!responseActive && !pendingP23 && !pendingP16 && (key === '0' || (key >= '1' && key <= '9'))) {
+      // Disabled while ANY pending effect is active, because the pending must be resolved first.
+      if (!responseActive && !pending && (key === '0' || (key >= '1' && key <= '9'))) {
         const n = key === '0' ? 10 : Number(key);
         const idx = n - 1;
         const card = (me?.hand || [])[idx];
@@ -944,8 +959,7 @@ useEffect(() => {
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [isMyTurn, G.hasDrawn, G.hasPlayed, moves, responseKind, responseSecondsLeft, response?.playedBy, playerID, me?.hand, pendingP16, p16DiscardPick]);
-
+    }, [isMyTurn, G.hasDrawn, G.hasPlayed, moves, responseKind, responseSecondsLeft, response?.playedBy, playerID, me?.hand, pending, pendingP16, p16DiscardPick]);
   // Drive bot turns.
   // In single-human-vs-bot games, avoid lease logic entirely: the only human client should always tick the bot.
   // In other game shapes, fall back to the lease-based single-driver election.
@@ -1799,6 +1813,13 @@ useEffect(() => {
       <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9600] pointer-events-none select-none">
         <div className="bg-black/60 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px]">
           Сбросьте {pendingHandLimitRequiredDiscard} лишн. карт(ы), чтобы в руке осталось не больше 7 ({(me?.hand || []).length} / 7)
+        </div>
+      </div>
+    )}
+    {genericPendingBlocksHandPlay && (
+      <div className="fixed top-[58%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9600] pointer-events-none select-none">
+        <div className="bg-black/60 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px]">
+          {genericPendingHint}
         </div>
       </div>
     )}
