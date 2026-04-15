@@ -4158,15 +4158,15 @@ var PolitikumGame = {
       const pend = G.pending;
       if (!pend || pend.kind !== "persona_16_discard3_from_hand") return INVALID_MOVE2;
       if (String(pend.playerId) !== String(playerID)) return INVALID_MOVE2;
-      const _p16Chosen = [cardId1, cardId2, cardId3]
+      const _p16Chosen = [cardIdA, cardIdB, cardIdC]
         .filter(Boolean)
         .map((x) => String(x))
         .sort()
         .join(',');
 
-      const _p16Signature = `${String(G.pending?.sourceCardId || '')}:${_p16Chosen}`;
+      const _p16Signature = `${String(pend.sourceCardId || '')}:${_p16Chosen}`;
 
-      if (String(G._lastPersona16ResolveSignature || '') === _p16Signature) {
+      if (_p16Chosen && String(G._lastPersona16ResolveSignature || '') === _p16Signature) {
         G.pending = null;
         G._lastPersona16ResolveSignature = '';
         return;
@@ -4195,6 +4195,7 @@ var PolitikumGame = {
       }
       recalcPassives(G);
       G.log.push(`${ruYou2(me.name)} сбросил ${toDiscard.length} карт(ы) после добора 3.`);
+      G._lastPersona16ResolveSignature = '';
     },
     // Persona 20: picker from discard (any card type)
     persona20PickFromDiscard: ({ G, playerID }, cardId) => {

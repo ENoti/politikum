@@ -637,6 +637,15 @@ useEffect(() => {
   const pendingHandLimit = isMyTurn && !pending && !responseActive && (me?.hand || []).length > 7;
   const pendingP16Source = pendingP16 ? String(pending?.sourceCardId || '') : '';
 
+  useEffect(() => {
+    if (!pendingP16) {
+      if ((p16DiscardPick || []).length) setP16DiscardPick([]);
+      return;
+    }
+    const handIds = new Set((me?.hand || []).map((c) => String(c?.id || '')));
+    setP16DiscardPick((prev) => (prev || []).filter((id) => handIds.has(String(id))).slice(0, 3));
+  }, [pendingP16, pendingP16Source, me?.hand]);
+
   const pendingP12 = pending?.kind === 'persona_12_choose_adjacent_red' && String(pending?.playerId) === String(playerID);
   const pendingP12Left = pendingP12 ? String(pending?.leftId || '') : '';
   const pendingP12Right = pendingP12 ? String(pending?.rightId || '') : '';
@@ -904,7 +913,7 @@ useEffect(() => {
           return;
         }
         if (key === 'enter') {
-          const ids = (p16DiscardPick || []).slice(0, 3);
+          const ids = Array.from(new Set((p16DiscardPick || []).map((x) => String(x)))).slice(0, 3);
           if (ids.length < Math.min(3, (me?.hand || []).length)) return;
           try { moves.persona16Discard3FromHand(ids[0], ids[1], ids[2]); } catch {}
           setP16DiscardPick([]);
