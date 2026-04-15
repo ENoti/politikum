@@ -1834,7 +1834,7 @@ useEffect(() => {
       {pendingHandLimit && (
         <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9600] pointer-events-none select-none">
           <div className="bg-black/60 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px]">
-            Сбросьте {Math.max(0, (me?.hand || []).length - 7)} лишн. карт(ы), чтобы осталось не больше 7 ({(me?.hand || []).length} / 7)
+            Сбросьте {Math.max(0, (me?.hand || []).length - 6)} лишн. карт(ы) перед добором, чтобы после взятия в руке было не больше 7 ({(me?.hand || []).length} + 1 / 7)
           </div>
         </div>
       )}
@@ -3009,10 +3009,18 @@ Click their hand. (Esc to cancel)`}</div>
                 <div className="w-full h-full rounded-2xl overflow-hidden">
                   <img src={card.img} alt={card.id} className="w-full h-full object-cover" draggable={false} />
                 </div>
-                {G.pending?.kind === 'discard_down_to_7' && String(playerID) === String(G.pending.playerId) && String(mobileHandSelected || '') === String(card.id) && (
+                {((pendingHandLimit || (G.pending?.kind === 'discard_down_to_7' && String(playerID) === String(G.pending.playerId))) && String(mobileHandSelected || '') === String(card.id)) && (
                   <button
                     type="button"
-                    onClick={(e) => { e.stopPropagation(); try { playSfx('ui', 0.25); moves.discardBeforeDrawForHandLimit(card.id); } catch {} setMobileHandSelected(null); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      try {
+                        playSfx('ui', 0.25);
+                        if (G.pending?.kind === 'discard_down_to_7') moves.discardFromHandDownTo7(card.id);
+                        else moves.discardBeforeDrawForHandLimit(card.id);
+                      } catch {}
+                      setMobileHandSelected(null);
+                    }}
                     className="absolute inset-x-4 bottom-4 z-[2500] rounded-xl bg-red-600/95 hover:bg-red-500 border border-red-300/30 text-red-50 font-black text-[12px] py-2 shadow-2xl"
                   >
                     Сбросить

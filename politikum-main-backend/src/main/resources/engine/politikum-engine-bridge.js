@@ -4156,7 +4156,7 @@ var PolitikumGame = {
     },
     discardBeforeDrawForHandLimit: ({ G, ctx, playerID }, cardId) => {
       const pend = G.pending;
-      if (!pend || pend.kind !== "hand_limit_discard_before_draw") return INVALID_MOVE2;
+      if (!pend) return INVALID_MOVE2;
       if (String(pend.playerId) !== String(playerID)) return INVALID_MOVE2;
       if (String(ctx.currentPlayer) !== String(playerID)) return INVALID_MOVE2;
 
@@ -4171,6 +4171,15 @@ var PolitikumGame = {
         G.discard.push(drop);
         if (drop.type === "persona") persona44OnPersonaDiscarded(G);
       }
+
+      if (pend.kind === "discard_down_to_7") {
+        G.log.push(`${ruYou2(me.name)} сбросил ${drop?.name || drop?.id || "карту"}, чтобы в руке осталось не больше 7.`);
+        if (Number((me.hand || []).length) <= 7) G.pending = null;
+        recalcPassives(G);
+        return;
+      }
+
+      if (pend.kind !== "hand_limit_discard_before_draw") return INVALID_MOVE2;
 
       pend.remaining = Number(pend.remaining || 0) - 1;
       G.log.push(`${ruYou2(me.name)} сбросил ${drop?.name || drop?.id || "карту"} перед добором.`);
