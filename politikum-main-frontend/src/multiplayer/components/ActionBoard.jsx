@@ -634,24 +634,9 @@ useEffect(() => {
   }, [pendingP34, p34Remaining.length]);
 
   const pendingP16 = pending?.kind === 'persona_16_discard3_from_hand' && String(pending?.playerId) === String(playerID);
+  const pendingP16RequiredDiscard = pendingP16 ? Math.max(0, (Array.isArray(me?.hand) ? me.hand.length : 0) - 6) : 0;
   const pendingHandLimit = isMyTurn && !pending && !responseActive && (me?.hand || []).length > 7;
   const pendingP16Source = pendingP16 ? String(pending?.sourceCardId || '') : '';
-  const pendingHandLimitRequiredDiscard = Math.max(0, (Array.isArray(me?.hand) ? me.hand.length : 0) - 7);
-  const discardDownTo7Remaining = Math.max(0, (Array.isArray(me?.hand) ? me.hand.length : 0) - 7);
-
-const genericPendingBlocksHandPlay = !!pending && !pendingP16;
-const genericPendingHint = genericPendingBlocksHandPlay
-  ? (() => {
-      const kind = String(pending?.kind || '');
-      if (kind === 'event_16_discard_self_persona_then_draw1') {
-        return 'Сначала выберите персонажа в вашей коалиции для event_16, затем карта будет добрана автоматически.';
-      }
-      if (kind === 'discard_down_to_7') {
-        return `Сначала сбросьте ещё ${discardDownTo7Remaining} карт(ы), чтобы в руке осталось не больше 7.`;
-      }
-      return 'Сначала завершите обязательный эффект в центре стола, затем можно играть карты с руки.';
-    })()
-  : '';
 
   useEffect(() => {
     if (!pendingP16) {
@@ -659,8 +644,8 @@ const genericPendingHint = genericPendingBlocksHandPlay
       return;
     }
     const handIds = new Set((me?.hand || []).map((c) => String(c?.id || '')));
-    setP16DiscardPick((prev) => (prev || []).filter((id) => handIds.has(String(id))).slice(0, 3));
-  }, [pendingP16, pendingP16Source, me?.hand]);
+    setP16DiscardPick((prev) => (prev || []).filter((id) => handIds.has(String(id))).slice(0, pendingP16RequiredDiscard));
+  }, [pendingP16, pendingP16Source, me?.hand, pendingP16RequiredDiscard]);
 
   const pendingP12 = pending?.kind === 'persona_12_choose_adjacent_red' && String(pending?.playerId) === String(playerID);
   const pendingP12Left = pendingP12 ? String(pending?.leftId || '') : '';
@@ -924,13 +909,13 @@ const genericPendingHint = genericPendingBlocksHandPlay
             const s = new Set(arr || []);
             if (s.has(c.id)) s.delete(c.id);
             else s.add(c.id);
-            return Array.from(s).slice(0, 3);
+            return Array.from(s).slice(0, pendingP16RequiredDiscard);
           });
           return;
         }
         if (key === 'enter') {
-          const ids = Array.from(new Set((p16DiscardPick || []).map((x) => String(x)))).slice(0, 3);
-          if (ids.length < Math.min(3, (me?.hand || []).length)) return;
+          const ids = Array.from(new Set((p16DiscardPick || []).map((x) => String(x)))).slice(0, pendingP16RequiredDiscard);
+          if (ids.length !== pendingP16RequiredDiscard) return;
           try { moves.persona16Discard3FromHand(ids[0], ids[1], ids[2]); } catch {}
           setP16DiscardPick([]);
           return;
@@ -938,7 +923,6 @@ const genericPendingHint = genericPendingBlocksHandPlay
       }
 
       // Number hotkeys for hand (quick-play): 1..9, 0 = 10
-      // Disabled while ANY pending effect is active, because the pending must be resolved first.
       if (!responseActive && !pending && (key === '0' || (key >= '1' && key <= '9'))) {
         const n = key === '0' ? 10 : Number(key);
         const idx = n - 1;
@@ -959,7 +943,8 @@ const genericPendingHint = genericPendingBlocksHandPlay
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-    }, [isMyTurn, G.hasDrawn, G.hasPlayed, moves, responseKind, responseSecondsLeft, response?.playedBy, playerID, me?.hand, pending, pendingP16, p16DiscardPick]);
+  }, [isMyTurn, G.hasDrawn, G.hasPlayed, moves, responseKind, responseSecondsLeft, response?.playedBy, playerID, me?.hand, pending, pendingP16, pendingP16RequiredDiscard, p16DiscardPick]);
+
   // Drive bot turns.
   // In single-human-vs-bot games, avoid lease logic entirely: the only human client should always tick the bot.
   // In other game shapes, fall back to the lease-based single-driver election.
@@ -1611,6 +1596,43 @@ const genericPendingHint = genericPendingBlocksHandPlay
 
       {/* Pending banner */}
 
+      {showEventSplash && G?.lastEvent && (
+        <div className="fixed inset-0 z-[6100] pointer-events-auto select-none bg-black/35 backdrop-blur-[2px]">
+          <div className="absolute left-1/2 top-[47%] -translate-x-1/2 -translate-y-1/2 w-[min(420px,90vw)]">
+            <div className="relative rounded-3xl border border-amber-900/35 bg-black/75 shadow-2xl overflow-hidden">
+              <button
+                type="button"
+                className="absolute right-3 top-3 z-20 px-3 py-1 rounded-full bg-black/60 hover:bg-black/80 border border-amber-900/25 text-amber-50 font-black text-[11px]"
+                onClick={() => {
+                  setEventSplashClosedId(String(G?.lastEvent?.id || ''));
+                  setShowEventSplash(false);
+                }}
+              >
+                Закрыть
+              </button>
+              <div className="px-5 pt-5 text-center">
+                <div className="text-amber-200/70 text-[10px] uppercase tracking-[0.3em] font-black">Событие</div>
+                <div className="mt-2 text-amber-50 text-lg font-black">{String(G?.lastEvent?.text || G?.lastEvent?.name || G?.lastEvent?.id || '')}</div>
+                {eventSplashSecondsLeft > 0 && (
+                  <div className="mt-1 text-amber-200/60 text-[11px] font-mono">{eventSplashSecondsLeft}с</div>
+                )}
+              </div>
+              {G?.lastEvent?.img ? (
+                <div className="px-5 pb-5 pt-4">
+                  <div className="mx-auto w-[min(260px,68vw)] aspect-[2/3] rounded-2xl overflow-hidden border border-amber-900/25 shadow-2xl">
+                    <img src={G.lastEvent.img} alt={String(G?.lastEvent?.text || G?.lastEvent?.name || G?.lastEvent?.id || 'event')} className="w-full h-full object-cover" draggable={false} />
+                  </div>
+                </div>
+              ) : (
+                <div className="px-5 pb-5 pt-4">
+                  <div className="rounded-2xl border border-amber-900/25 bg-black/30 px-4 py-5 text-center text-amber-200/80 font-mono text-sm">{String(G?.lastEvent?.id || '')}</div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {pendingP11Offer && (
         <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[6000] pointer-events-auto select-none">
           <div className="bg-black/70 border border-amber-900/30 rounded-2xl px-4 py-2 text-amber-100/90 font-mono text-[12px] flex items-center gap-3">
@@ -1791,17 +1813,17 @@ const genericPendingHint = genericPendingBlocksHandPlay
       {pendingP16 && (
         <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9600] pointer-events-none select-none">
           <div className="pointer-events-auto bg-black/60 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] flex items-center gap-3">
-            <span>Сбросьте 3 карты ({(p16DiscardPick || []).length}/3)</span>
+            <span>Сбросьте {pendingP16RequiredDiscard} карт(ы), чтобы после добора в руке было не больше 7 ({(p16DiscardPick || []).length}/{pendingP16RequiredDiscard})</span>
             <button
               type="button"
               onClick={() => {
-                const ids = (p16DiscardPick || []).slice(0, 3);
-                if (ids.length < 3) return;
+                const ids = Array.from(new Set((p16DiscardPick || []).map(String))).slice(0, pendingP16RequiredDiscard);
+                if (ids.length !== pendingP16RequiredDiscard) return;
                 try { moves.persona16Discard3FromHand?.(ids[0], ids[1], ids[2]); } catch {}
                 setP16DiscardPick([]);
               }}
-              className={("px-3 py-1 rounded-full border font-black text-[11px] " + ((p16DiscardPick || []).length >= 3 ? "bg-red-600/90 border-red-300/30 text-red-50" : "bg-red-900/40 border-red-900/20 text-red-200/40"))}
-              disabled={(p16DiscardPick || []).length < 3}
+              className={("px-3 py-1 rounded-full border font-black text-[11px] " + ((Array.from(new Set((p16DiscardPick || []).map(String))).length === pendingP16RequiredDiscard) ? "bg-red-600/90 border-red-300/30 text-red-50" : "bg-red-900/40 border-red-900/20 text-red-200/40"))}
+              disabled={Array.from(new Set((p16DiscardPick || []).map(String))).length !== pendingP16RequiredDiscard}
             >
               Сбросить
             </button>
@@ -1809,20 +1831,13 @@ const genericPendingHint = genericPendingBlocksHandPlay
         </div>
       )}
 
-    {pendingHandLimit && (
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9600] pointer-events-none select-none">
-        <div className="bg-black/60 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px]">
-          Сбросьте {pendingHandLimitRequiredDiscard} лишн. карт(ы), чтобы в руке осталось не больше 7 ({(me?.hand || []).length} / 7)
+      {pendingHandLimit && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9600] pointer-events-none select-none">
+          <div className="bg-black/60 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px]">
+            Сбросьте {Math.max(0, (me?.hand || []).length - 7)} лишн. карт(ы), чтобы осталось не больше 7 ({(me?.hand || []).length} / 7)
+          </div>
         </div>
-      </div>
-    )}
-    {genericPendingBlocksHandPlay && (
-      <div className="fixed top-[58%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9600] pointer-events-none select-none">
-        <div className="bg-black/60 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px]">
-          {genericPendingHint}
-        </div>
-      </div>
-    )}
+      )}
       {/* Targeting prompt (action_4 only) */}
       {!!pickTargetForAction4 && (
         <div className="fixed inset-0 z-[3200] pointer-events-none select-none">
@@ -2084,7 +2099,7 @@ Click their hand. (Esc to cancel)`}</div>
       )}
 
       {/* Hand limit: discard down to 7 (no modal) */}
-      {G.pending?.kind === 'discard_down_to_7' && String(playerID) === String(G.pending.playerId) && (
+      {(pendingHandLimit || (G.pending?.kind === 'discard_down_to_7' && String(playerID) === String(G.pending.playerId))) && (
         <div className="fixed top-[62%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-[12000] pointer-events-none select-none">
           <div className="pointer-events-auto bg-black/70 border border-amber-900/30 rounded-2xl px-4 py-3 text-amber-100/90 font-mono text-[12px] shadow-2xl flex items-center gap-3">
             <span>У тебя больше 7 карт: сбрось ещё {discardDownTo7Remaining} карт(ы), чтобы в руке осталось не больше 7</span>
@@ -2706,7 +2721,7 @@ Click their hand. (Esc to cancel)`}</div>
         </div>
       )}
 
-      {G.pending?.kind === 'discard_down_to_7' && String(playerID) === String(G.pending.playerId) && mobileHandSelected && (
+      {(pendingHandLimit || (G.pending?.kind === 'discard_down_to_7' && String(playerID) === String(G.pending.playerId))) && mobileHandSelected && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[13000] pointer-events-auto select-none">
           <button
             type="button"
@@ -2875,8 +2890,8 @@ Click their hand. (Esc to cancel)`}</div>
 
             const baseId = String(card.id).split('#')[0];
 
-            const canPlayPersona = isMyTurn && !responseActive && G.hasDrawn && card.type === 'persona';
-            const canPlayAction = isMyTurn && !responseActive && G.hasDrawn && !G.hasPlayed && card.type === 'action';
+            const canPlayPersona = isMyTurn && !responseActive && !pending && !pendingHandLimit && G.hasDrawn && card.type === 'persona';
+            const canPlayAction = isMyTurn && !responseActive && !pending && !pendingHandLimit && G.hasDrawn && !G.hasPlayed && card.type === 'action';
 
             // out-of-turn cancels
             // Allow clicking cancels as long as server is advertising a response window.
@@ -2888,7 +2903,7 @@ Click their hand. (Esc to cancel)`}</div>
             const baseIs14 = baseId === 'action_14';
             const canCancelEffectOnMe = responseKind === 'cancel_action' && responseTargetsMe && baseIs14;
 
-            const canDiscardDownTo7 = G.pending?.kind === 'discard_down_to_7' && String(playerID) === String(G.pending.playerId);
+            const canDiscardDownTo7 = (G.pending?.kind === 'discard_down_to_7' && String(playerID) === String(G.pending.playerId)) || pendingHandLimit;
             const canDiscardDownTo7Mobile = false;
             const canDiscardEvent12b = G.pending?.kind === 'event_12b_discard_from_hand' && Array.isArray(G.pending?.targetIds) && G.pending.targetIds.includes(String(playerID));
 
@@ -2916,7 +2931,7 @@ Click their hand. (Esc to cancel)`}</div>
                       const s = new Set(arr || []);
                       if (s.has(card.id)) s.delete(card.id);
                       else s.add(card.id);
-                      return Array.from(s).slice(0, 3);
+                      return Array.from(s).slice(0, pendingP16RequiredDiscard);
                     });
                     return;
                   }
