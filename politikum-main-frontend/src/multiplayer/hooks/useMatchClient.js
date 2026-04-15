@@ -118,6 +118,29 @@ export default function useMatchClient({ matchID, playerID, credentials }) {
         }
 
         if (
+            state?.G?.pending &&
+            ![
+              'discardFromHandDownTo7',
+              'discardFromHandForEvent12b',
+              'discardPersonaFromOwnCoalitionForEvent16',
+              'persona16Discard3FromHand',
+              'cancelPending',
+              'tickBot',
+              'tick',
+            ].includes(moveName)
+        ) {
+          const res = {
+            ok: false,
+            error: 'blocked_by_pending',
+            moveName,
+            pending: state?.G?.pending || null,
+          };
+          console.error(`[move blocked locally] ${moveName}`, JSON.stringify(res, null, 2));
+          return Promise.resolve(res);
+        }
+
+
+        if (
             state?.G?.response &&
             ![
               'playAction',
