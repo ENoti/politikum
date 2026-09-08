@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { getGameStateApi, sendMoveApi, surrenderMatchApi } from '../api.js';
 
+const BLOCKED_DURING_PENDING = new Set([
+  'drawCard', 'beginTurnDraw', 'playPersona', 'playAction', 'endTurn',
+]);
+const BLOCKED_DURING_RESPONSE = new Set([
+  'drawCard', 'beginTurnDraw', 'playPersona', 'endTurn',
+]);
+
 export default function useMatchClient({ matchID, playerID, credentials }) {
   const [gameState, setGameState] = useState(null);
   const [error, setError] = useState('');
@@ -12,12 +19,30 @@ export default function useMatchClient({ matchID, playerID, credentials }) {
   const failCountRef = useRef(0);
   const moveInFlightRef = useRef(false);
 
+  // --- all hooks live at the top level of the component ---
+  const gameStateRef = useRef(null);
+  useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
+
+  const lastAppliedTurnRef = useRef(-1);
+
+  // Ignore state snapshots older than what we've already rendered
+  // (a slow poll response landing after a faster move response, etc).
+  // Use >= so same-turn updates (pending/response changing within one
+  // turn) still apply — only strictly older turns are dropped.
+  const applyState = (state) => {
+    if (!aliveRef.current || !state) return;
+    const turn = Number(state?.ctx?.turn ?? 0);
+    if (turn < lastAppliedTurnRef.current) return;
+    lastAppliedTurnRef.current = turn;
+    setGameState(state);
+  };
+
   const refreshState = async () => {
     const json = await getGameStateApi(matchID);
     const state = json?.state || json;
     if (!aliveRef.current) return state;
     failCountRef.current = 0;
-    setGameState(state);
+    applyState(state);
     setError('');
     setLoading(false);
     return state;
@@ -25,6 +50,7 @@ export default function useMatchClient({ matchID, playerID, credentials }) {
 
   useEffect(() => {
     aliveRef.current = true;
+    lastAppliedTurnRef.current = -1; // reset for the new match/seat
     setLoading(true);
 
     const clearPoll = () => {
@@ -37,7 +63,7 @@ export default function useMatchClient({ matchID, playerID, credentials }) {
     const scheduleNext = (stateOverride = null) => {
       clearPoll();
       if (!aliveRef.current) return;
-      const state = stateOverride || gameState;
+      const state = stateOverride || gameStateRef.current;
       const hasResponse = !!state?.G?.response;
       const hasPending = !!state?.G?.pending;
       const isMyTurn = String(state?.ctx?.currentPlayer ?? '') === String(playerID ?? '');
@@ -117,18 +143,7 @@ export default function useMatchClient({ matchID, playerID, credentials }) {
           }
         }
 
-        if (
-            state?.G?.pending &&
-            ![
-              'discardFromHandDownTo7',
-              'discardFromHandForEvent12b',
-              'discardPersonaFromOwnCoalitionForEvent16',
-              'persona16Discard3FromHand',
-              'cancelPending',
-              'tickBot',
-              'tick',
-            ].includes(moveName)
-        ) {
+        if (state?.G?.pending && BLOCKED_DURING_PENDING.has(moveName)) {
           const res = {
             ok: false,
             error: 'blocked_by_pending',
@@ -139,18 +154,7 @@ export default function useMatchClient({ matchID, playerID, credentials }) {
           return Promise.resolve(res);
         }
 
-
-        if (
-            state?.G?.response &&
-            ![
-              'playAction',
-              'skipResponseWindow',
-              'cancelPersonaResponse',
-              'persona8SwapWithPlayedPersona',
-              'tickBot',
-              'tick',
-            ].includes(moveName)
-        ) {
+        if (state?.G?.response && BLOCKED_DURING_RESPONSE.has(moveName)) {
           const res = {
             ok: false,
             error: 'blocked_by_response',
@@ -181,7 +185,7 @@ export default function useMatchClient({ matchID, playerID, credentials }) {
             failCountRef.current = 0;
 
             if (res?.state) {
-              setGameState(res.state);
+              applyState(res.state);
             }
 
             await refreshState().catch((e) => {

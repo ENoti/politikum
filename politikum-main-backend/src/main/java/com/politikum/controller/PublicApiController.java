@@ -5,6 +5,7 @@ import com.politikum.service.NewsService;
 import com.politikum.service.PolitikumRepository;
 import com.politikum.util.HttpUtils;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.SneakyThrows;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpHeaders;
@@ -13,6 +14,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -28,11 +30,16 @@ public class PublicApiController {
     private final String adminToken;
     private final ConcurrentHashMap<String, Long> lobbyChatRate = new ConcurrentHashMap<>();
 
+    @SneakyThrows
     public PublicApiController(PolitikumRepository repository,
                                NewsService newsService,
                                LiveMatchService liveMatchService,
                                @Value("${politikum.profile-img-dir:var/profile_images}") String profileImgDir,
-                               @Value("${politikum.admin-token:12qw12}") String adminToken) throws Exception {
+                               @Value("${politikum.admin-token}") String adminToken){
+        if (adminToken == null || adminToken.isBlank() || adminToken.length() < 16) {
+            throw new IllegalStateException(
+                    "politikum.admin-token must be set and be at least 16 characters long");
+        }
         this.repository = repository;
         this.newsService = newsService;
         this.liveMatchService = liveMatchService;
@@ -68,14 +75,22 @@ public class PublicApiController {
         return ResponseEntity.ok(profile);
     }
 
+    private static final java.util.regex.Pattern SAFE_ID =
+            java.util.regex.Pattern.compile("^[a-zA-Z0-9_-]{1,64}$");
+
     @GetMapping("/public/profile_image/{playerId}.jpg")
     public ResponseEntity<?> profileImage(@PathVariable String playerId) {
-        Path img = profileImgDir.resolve(playerId + ".jpg");
-        if (!Files.exists(img)) return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("ok", false, "error", "not_found"));
+        if (!SAFE_ID.matcher(playerId).matches()) {
+            return ResponseEntity.badRequest().body(Map.of("ok", false, "error", "invalid_player_id"));
+        }
+        Path img = profileImgDir.resolve(playerId + ".jpg").normalize();
+        if (!img.startsWith(profileImgDir) || !Files.exists(img)) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("ok", false, "error", "not_found"));
+        }
         return ResponseEntity.ok()
-            .contentType(MediaType.IMAGE_JPEG)
-            .header(HttpHeaders.CACHE_CONTROL, "public, max-age=300")
-            .body(new FileSystemResource(img));
+                .contentType(MediaType.IMAGE_JPEG)
+                .header(HttpHeaders.CACHE_CONTROL, "public, max-age=300")
+                .body(new FileSystemResource(img));
     }
 
     @GetMapping("/public/lobby_chat")

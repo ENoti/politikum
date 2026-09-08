@@ -591,6 +591,8 @@ useEffect(() => {
   const pendingP26Source = pendingP26 ? String(pending?.sourceCardId || '') : '';
   const pendingP28 = pending?.kind === 'persona_28_pick_non_fbk' && String(pending?.playerId) === String(playerID);
   const pendingP28Source = pendingP28 ? String(pending?.sourceCardId || '') : '';
+г
+  const pendingP3Choice = pending?.kind === 'persona_3_choice' && String(pending?.playerId) === String(playerID);
 
   const pendingA7 = pending?.kind === 'action_7_block_persona' && String(pending?.attackerId) === String(playerID);
   const pendingA13 = pending?.kind === 'action_13_shield_persona' && String(pending?.attackerId) === String(playerID);
@@ -636,6 +638,7 @@ useEffect(() => {
   const pendingP16 = pending?.kind === 'persona_16_discard3_from_hand' && String(pending?.playerId) === String(playerID);
   const pendingP16RequiredDiscard = pendingP16 ? Math.max(0, (Array.isArray(me?.hand) ? me.hand.length : 0) - 6) : 0;
   const pendingHandLimit = pending?.kind === 'hand_limit_discard_before_draw' && String(pending?.playerId) === String(playerID);
+  const discardDownTo7Remaining = Math.max(0, (Array.isArray(me?.hand) ? me.hand.length : 0) - 7);
   const pendingP16Source = pendingP16 ? String(pending?.sourceCardId || '') : '';
 
   useEffect(() => {
@@ -1420,21 +1423,17 @@ useEffect(() => {
                   const canClickFaceForP26 = pendingP26 && it.kind === 'face' && it.card?.type === 'persona' && Array.isArray(it.card?.tags) && it.card.tags.includes('faction:red_nationalist') && !it.card?.shielded && !isImmovablePersona(it.card);
                   const canClickFaceForP28 = pendingP28 && it.kind === 'face' && it.card?.type === 'persona' && !(Array.isArray(it.card?.tags) && it.card.tags.includes('faction:fbk')) && !it.card?.shielded && !isImmovablePersona(it.card);
                   const canClickFaceForP37 = pendingP37 && it.kind === 'face' && it.card?.type === 'persona' && !it.card?.shielded && !isImmovablePersona(it.card);
-                  const canClickFaceForP3A = G.pending?.kind === 'persona_3_choice' && String(playerID) === String(G.pending.playerId) && it.kind === 'face' && it.card?.type === 'persona' && Array.isArray(it.card?.tags) && it.card.tags.includes('faction:leftwing') && !it.card?.shielded && !isImmovablePersona(it.card);
-                  const pendingP3Choice = G.pending?.kind === 'persona_3_choice' && String(playerID) === String(G.pending.playerId);
-                  const pendingA7 = G.pending?.kind === 'action_7_block_persona' && String(playerID) === String(G.pending.attackerId);
-                  const canClickFaceForA7 = pendingA7 && it.kind === 'face' && it.card?.type === 'persona' && !isImmovablePersona(it.card);
 
-                  const pendingA13 = G.pending?.kind === 'action_13_shield_persona' && String(playerID) === String(G.pending.attackerId);
+                  const canClickFaceForP3A = pendingP3Choice && it.kind === 'face' && it.card?.type === 'persona' && Array.isArray(it.card?.tags) && it.card.tags.includes('faction:leftwing') && !it.card?.shielded && !isImmovablePersona(it.card);
+                  const canClickFaceForA7 = pendingA7 && it.kind === 'face' && it.card?.type === 'persona' && !isImmovablePersona(it.card);
                   const canClickFaceForA13 = pendingA13 && String(p.id) === String(playerID) && it.kind === 'face' && it.card?.type === 'persona' && !isImmovablePersona(it.card);
+                  const canClickFaceForA17 = pendingA17 && String(p.id) !== String(playerID) && it.kind === 'face' && it.card?.type === 'persona' && !it.card?.shielded && !isImmovablePersona(it.card);
+
                   const canClickFaceForP7 = pendingP7 && it.kind === 'face' && it.card?.type === 'persona' && !isImmovablePersona(it.card);
                   const canClickFaceForP14 = pending?.kind === 'discard_one_persona_from_any_coalition' && String(pending?.playerId) === String(playerID) && it.kind === 'face' && it.card?.type === 'persona' && !it.card?.shielded && !isImmovablePersona(it.card);
                   const canClickFaceForP11 = pendingP11Pick && it.kind === 'face' && it.card?.type === 'persona' && !it.card?.shielded && !isImmovablePersona(it.card);
                   const canClickFaceForP13 = pendingP13 && String(p.id) === String(pendingP13AttackerId) && it.kind === 'face' && it.card?.type === 'persona' && !it.card?.shielded && !isImmovablePersona(it.card);
                   const canClickFaceForP5 = G.pending?.kind === 'persona_5_pick_liberal' && String(playerID) === String(G.pending.playerId) && String(p.id) !== String(playerID) && it.kind === 'face' && it.card?.type === 'persona' && !it.card?.shielded && !isImmovablePersona(it.card) && Array.isArray(it.card?.tags) && it.card.tags.includes('faction:liberal');
-
-                  const pendingA17 = G.pending?.kind === 'action_17_choose_opponent_persona' && String(playerID) === String(G.pending.attackerId);
-                  const canClickFaceForA17 = pendingA17 && String(p.id) !== String(playerID) && it.kind === 'face' && it.card?.type === 'persona' && !it.card?.shielded && !isImmovablePersona(it.card);
 
                   const selectedA7 = targetA7 && String(targetA7.playerId) === String(p.id) && String(targetA7.cardId) === String(it.card?.id);
                   const selectedA17 = targetA17 && String(targetA17.playerId) === String(p.id) && String(targetA17.cardId) === String(it.card?.id);
@@ -2099,10 +2098,10 @@ Click their hand. (Esc to cancel)`}</div>
       )}
 
       {/* Hand limit: discard down to 7 (no modal) */}
-      {(pendingHandLimit || (G.pending?.kind === 'discard_down_to_7' && String(playerID) === String(G.pending.playerId))) && (
-        <div className="fixed top-[62%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-[12000] pointer-events-none select-none">
-          <div className="pointer-events-auto bg-black/70 border border-amber-900/30 rounded-2xl px-4 py-3 text-amber-100/90 font-mono text-[12px] shadow-2xl flex items-center gap-3">
-            <span>У тебя больше 7 карт: сбрось ещё {discardDownTo7Remaining} карт(ы), чтобы в руке осталось не больше 7</span>
+     {(pendingHandLimit || (G.pending?.kind === 'discard_down_to_7' && String(playerID) === String(G.pending.playerId))) && (
+       <div className="fixed top-[62%] ...">
+         <div className="pointer-events-auto bg-black/70 ...">
+           <span>У тебя больше 7 карт: сбрось ещё {discardDownTo7Remaining} карт(ы)...</span>
             <button
               type="button"
               onClick={() => {
