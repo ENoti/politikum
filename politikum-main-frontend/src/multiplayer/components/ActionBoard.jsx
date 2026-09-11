@@ -591,7 +591,7 @@ useEffect(() => {
   const pendingP26Source = pendingP26 ? String(pending?.sourceCardId || '') : '';
   const pendingP28 = pending?.kind === 'persona_28_pick_non_fbk' && String(pending?.playerId) === String(playerID);
   const pendingP28Source = pendingP28 ? String(pending?.sourceCardId || '') : '';
-г
+
   const pendingP3Choice = pending?.kind === 'persona_3_choice' && String(pending?.playerId) === String(playerID);
 
   const pendingA7 = pending?.kind === 'action_7_block_persona' && String(pending?.attackerId) === String(playerID);
