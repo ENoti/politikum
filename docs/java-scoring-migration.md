@@ -26,6 +26,6 @@ Validation command: `mvn clean verify` in `politikum-main-backend`.
 
 ## Remaining scope
 
-This increment completes the scoring portion of the earlier proposed stage 2; it does not finish all remaining migration work. General turn/response lifecycle, ordinary draw/play dispatch, victory resolution, individual abilities and bot decisions remain in JS. Inline arithmetic in those unported handlers and frontend display calculations also remain. The next increment should move turn/response orchestration and basic actions while keeping a single owner for state versions and transitions. Graal cannot yet be removed.
+This increment completes the scoring portion of the earlier proposed stage 2. A [subsequent increment](java-turn-migration.md) moves turn/response lifecycle, draws and ordinary game completion to Java. Card-play dispatch, individual abilities and their choice handlers, reactions, special victories and bot decisions remain in JS. Inline arithmetic in those unported handlers and frontend display calculations also remain. Graal cannot yet be removed.
 
 No REST or SQLite schema changes are required, and the privacy projection is unchanged. Deployment and previously required production-secret rotation are not performed by this code change.

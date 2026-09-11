@@ -2,95 +2,14 @@
 const INVALID_MOVE = "__INVALID_MOVE__";
 const INVALID_MOVE2 = INVALID_MOVE;
 function deepClone(v){ return v == null ? v : JSON.parse(JSON.stringify(v)); }
-function drawTopCardForPlayer2(G, p){
-  const c = G?.deck?.shift?.();
-  if (!c || !p) return null;
-  if (c.type === "event") {
-    G.lastEvent = c;
-    const evName = eventTitle2(c);
-    const bid = baseId2(String(c.id));
-    if (!(bid === "event_1" || bid === "event_2" || bid === "event_3" || bid === "event_10" || bid === "event_15")) {
-      if (bid === "event_12b") G.log.push(`${ruYou2(p.name)} ${ruDrewVerb(p.name)} \u0421\u0440\u0430\u0447 \u0432 \u0422\u0432\u0438\u0442\u0442\u0435\u0440\u0435: \u0421\u0435\u043A\u0441 \u0441\u043A\u0430\u043D\u0434\u0430\u043B!`);
-      else if (bid === "event_12c") G.log.push(`${ruYou2(p.name)} ${ruDrewVerb(p.name)} "${evName}"`);
-      else G.log.push(`${ruYou2(p.name)} ${ruDrewVerb(p.name)} ${evName}`);
-    }
-    try {
-      if (Array.isArray(c.tags) && c.tags.includes("event_type:twitter_squabble")) {
-        for (const pp of G.players || []) {
-          for (const cc of pp.coalition || []) {
-            if (baseId2(String(cc.id)) === "persona_4") applyTokenDelta2(G, cc, -2);
-          }
-        }
-      }
-    } catch {}
-    runAbility(c.abilityKey, { G, me: p, card: c });
-    persona38OnEventPlayed(G, c);
-    recalcPassives(G);
-    G.discard.push(c);
-  } else {
-    p.hand.push(c);
-    G.log.push(`${p.name} \u0431\u0435\u0440\u0435\u0442 \u043A\u0430\u0440\u0442\u0443`);
-  }
-  return c;
-}
-function numPlayersOf(state){ return Number(state?.ctx?.numPlayers || state?.G?.players?.length || 5) || 5; }
-function activeIds(state){
-  const ids = (state?.G?.activePlayerIds || []).map(x => String(x));
-  if (ids.length) return ids;
-  const n = numPlayersOf(state);
-  return Array.from({length:n}, (_,i)=>String(i));
-}
-function computeNextPlayer(state, current){
-  const ids = activeIds(state);
-  if (!ids.length) return String(current || '0');
-  const cur = String(current ?? state?.ctx?.currentPlayer ?? ids[0]);
-  const i = ids.indexOf(cur);
-  return ids[(i >= 0 ? i + 1 : 0) % ids.length];
-}
-function syncPlayOrderPos(state){
-  const ids = activeIds(state);
-  const cur = String(state.ctx.currentPlayer || ids[0] || '0');
-  const i = ids.indexOf(cur);
-  state.ctx.playOrderPos = i >= 0 ? i : 0;
-}
-function runTurnOnBegin(state){
-  const ph = PolitikumGame?.phases?.[state?.ctx?.phase || ''];
-  const fn = ph?.turn?.onBegin;
-  if (typeof fn === 'function') fn({ G: state.G, ctx: state.ctx, events: makeEvents(state) });
-}
-function runTurnOnEnd(state){
-  const ph = PolitikumGame?.phases?.[state?.ctx?.phase || ''];
-  const fn = ph?.turn?.onEnd;
-  if (typeof fn === 'function') fn({ G: state.G, ctx: state.ctx, events: makeEvents(state) });
-}
-function applySetPhase(state, phase){
-  state.ctx.phase = String(phase || state.ctx.phase || 'lobby');
-}
-function applyEndTurn(state, payload){
-  try { runTurnOnEnd(state); } catch (e) {}
-  const next = payload && payload.next != null ? String(payload.next) : computeNextPlayer(state);
-  state.ctx.currentPlayer = String(next || '0');
-  state.ctx.turn = Number(state.ctx.turn || 0) + 1;
-  syncPlayOrderPos(state);
-  try { runTurnOnBegin(state); } catch (e) {}
-}
 function makeEvents(state){
   const queue = state.__eventQueue || (state.__eventQueue = []);
   return {
+    _queue: queue,
     endTurn(payload){ queue.push({ type:'endTurn', payload: payload || null }); },
     setPhase(phase){ queue.push({ type:'setPhase', payload: phase }); },
     endGame(payload){ state.ctx.gameover = payload || true; state.G.gameOver = payload || true; }
   };
-}
-function flushEvents(state){
-  const queue = state.__eventQueue || [];
-  while (queue.length){
-    const evt = queue.shift();
-    if (!evt) continue;
-    if (evt.type === 'setPhase') applySetPhase(state, evt.payload);
-    else if (evt.type === 'endTurn') applyEndTurn(state, evt.payload || null);
-  }
-  state.__eventQueue = [];
 }
 function applyMove(state, playerID, moveName, args){
   if (!state || !state.G || !state.ctx) throw new Error('bad_state');
@@ -284,74 +203,13 @@ var ABILITIES = {
   },
   // Personas
   on_enter_adjacent_bonus: ({ G, me, card }) => {
-    const neighbors = Array.isArray(card?.params?.neighbors) ? card.params.neighbors.map(String) : [];
-    const tokens = Number(card?.params?.tokens ?? 4);
-    const idx = (me.coalition || []).findIndex((c) => String(c.id) === String(card.id));
-    if (idx < 0) return;
-    const leftCard = idx > 0 ? me.coalition[idx - 1] : null;
-    const rightCard = idx < (me.coalition || []).length - 1 ? me.coalition[idx + 1] : null;
-    const leftBid = leftCard ? baseId(String(leftCard.id)) : null;
-    const rightBid = rightCard ? baseId(String(rightCard.id)) : null;
-    const matchLeft = leftBid && neighbors.includes(leftBid);
-    const matchRight = rightBid && neighbors.includes(rightBid);
-    if (!matchLeft && !matchRight) return;
-    const affected = [];
-    const tryGive = (c) => {
-      if (!c || c.type !== "persona") return;
-      if (c._adjBonusApplied) return;
-      c._adjBonusApplied = true;
-      applyTokenDelta(c, tokens);
-      affected.push(c);
-    };
-    tryGive(card);
-    if (matchLeft) tryGive(leftCard);
-    if (matchRight) tryGive(rightCard);
-    if (affected.length) {
-      const names = affected.map((x) => String(x.name || x.id)).join(" + ");
-      G.log.push(`${me.name} adjacency bonus: +${tokens} (${names}).`);
-    }
+    nativeAbility("on_enter_adjacent_bonus", G, me, card);
   },
   persona_4_on_enter_twitter_penalty: ({ G, me, card }) => {
-    const n = (G.discard || []).filter((c) => Array.isArray(c.tags) && c.tags.includes("event_type:twitter_squabble")).length;
-    if (!n) return;
-    applyTokenDelta(card, -2 * n);
-    G.log.push(`${me.name} (${card.name || card.id}) got ${2 * n} \xD7 -1 from twitter squabbles in discard.`);
+    nativeAbility("persona_4_on_enter_twitter_penalty", G, me, card);
   },
   persona_12_on_enter_adjacent_red_buff: ({ G, me, card }) => {
-    const idx = (me.coalition || []).findIndex((c) => String(c.id) === String(card.id));
-    const left = idx > 0 ? (me.coalition || [])[idx - 1] : null;
-    const right = idx >= 0 && idx < (me.coalition || []).length - 1 ? (me.coalition || [])[idx + 1] : null;
-    const isRed = (x) => x && x.type === "persona" && Array.isArray(x.tags) && x.tags.includes("faction:red_nationalist") && !x.shielded;
-    const L = isRed(left);
-    const R = isRed(right);
-    if (!L && !R) {
-      G.log.push(`${me.name} (${card.name || card.id}) has no valid adjacent red_nationalist target.`);
-      return;
-    }
-    if (L && !R) {
-      applyTokenDelta(left, 2);
-      G.log.push(`${me.name} (${card.name || card.id}) buffed ${left.name || left.id} (+2).`);
-      return;
-    }
-    if (R && !L) {
-      applyTokenDelta(right, 2);
-      G.log.push(`${me.name} (${card.name || card.id}) buffed ${right.name || right.id} (+2).`);
-      return;
-    }
-    const leftId = left ? String(left.id) : "";
-    const rightId = right ? String(right.id) : "";
-    if (!leftId && !rightId) {
-      G.log.push(`${me.name} (${card.name || card.id}) was placed without adjacent targets; ability skipped.`);
-      return;
-    }
-    G.pending = {
-      kind: "persona_12_choose_adjacent_red",
-      playerId: String(me.id),
-      sourceCardId: String(card.id),
-      leftId,
-      rightId
-    };
-    G.log.push(`${me.name} (${card.name || card.id}) choose adjacent red_nationalist to buff (+2).`);
+    nativeAbility("persona_12_on_enter_adjacent_red_buff", G, me, card);
   },
   persona_3_on_enter_choice: ({ G, me, card }) => {
     G.pending = { kind: "persona_3_choice", playerId: String(me.id), sourceCardId: String(card.id) };
@@ -834,153 +692,20 @@ function persona38OnEventPlayed(G, eventCard) {
   } catch {
   }
 }
-function endGameNow(G, ctx, events) {
-  let best = null;
-  let bestScore = -1;
-  for (const pp of G.players || []) {
-    const sc = scorePlayer(pp);
-    if (sc > bestScore) {
-      bestScore = sc;
-      best = pp;
-    }
-  }
-  G.gameOver = true;
-  G.winnerId = best ? String(best.id) : null;
-  const winnerPlayerId = best ? String(best.id) : null;
-  const winnerName = best ? String(best.name || best.id) : null;
-  try {
-    const scoreNow = (pp) => (pp.coalition || []).reduce((s, c) => s + Number(c.vp || 0), 0);
-    const scores = Object.fromEntries((G.players || []).map((pp) => [String(pp.id), scoreNow(pp)]));
-    (G.history || (G.history = [])).push({ turn: Number(ctx?.turn || 0), scores });
-  } catch {
-  }
-  G.log.push(`\u0418\u0433\u0440\u0430 \u043E\u043A\u043E\u043D\u0447\u0435\u043D\u0430. \u041F\u043E\u0431\u0435\u0434\u0438\u0442\u0435\u043B\u044C: ${winnerName || best?.id} (${bestScore} vp).`);
-  events.endGame?.({ winnerPlayerId, winnerName });
-}
-function maybeTriggerRoundEnd(G, ctx) {
-  if (G.roundEnding) return;
-  const trigger = (G.players || []).find((pp) => (pp.coalition || []).length >= 7);
-  if (!trigger) return;
-  const active = (G.activePlayerIds || []).map(String).filter((id) => {
-    const p = (G.players || []).find((pp) => String(pp.id) === String(id));
-    return !!p?.active;
-  });
-  const remaining = Math.max(0, active.length - 1);
-  G.roundEnding = true;
-  G.roundEndTurn = Number(ctx.turn || 0) + remaining;
-  G.log.push(`\u041A\u043E\u043D\u0435\u0446 \u0440\u0430\u0443\u043D\u0434\u0430: \u043A\u0442\u043E-\u0442\u043E \u0441\u043E\u0431\u0440\u0430\u043B 7 \u043A\u0430\u0440\u0442. \u041E\u0441\u0442\u0430\u043B\u043E\u0441\u044C \u0445\u043E\u0434\u043E\u0432: ${remaining}.`);
-}
-function maybeEndAfterRound(G, ctx, events) {
-  if (!G.roundEnding) return false;
-  try {
-    if (G.pending) return false;
-    if (G.response && !responseExpired(G)) return false;
-  } catch {
-  }
-  const t = Number(G.roundEndTurn ?? -1);
-  if (t < 0) return false;
-  if (Number(ctx.turn || 0) >= t) {
-    endGameNow(G, ctx, events);
-    return true;
-  }
-  return false;
-}
 var nowMs = () => Date.now();
 var RESPONSE_ACTION_MS = 15e3;
 var RESPONSE_PERSONA_MS = 15e3;
 var MAX_COALITION = 7;
-function responseExpired(G) {
-  const r = G.response;
-  if (!r) return true;
-  return nowMs() >= Number(r.expiresAtMs || 0) + 900;
-}
-function expireResponseAndResolveDeferred(G) {
-  try {
-    if (G.response && responseExpired(G)) G.response = null;
-  } catch {
-  }
-  try {
-    maybeResolveDeferredPersona(G);
-  } catch {
-  }
-  try {
-    if (!G.pending && !G.response && G.persona16AfterEvents) {
-      const q = G.persona16AfterEvents;
-      const me = (G.players || []).find((pp) => String(pp.id) === String(q.playerId));
-      const events = Array.isArray(q.events) ? q.events : [];
-      if (events.length > 0) {
-        const next = events.shift();
-        q.events = events;
-        G.lastEvent = next;
-        const title = eventTitle2(next);
-        G.log.push(`${ruYou2(me?.name)} \u0432\u044B\u0442\u044F\u043D\u0443\u043B \u0421\u043E\u0431\u044B\u0442\u0438\u0435 "${title}" \u0438\u0437 \u0441\u043F\u043E\u0441\u043E\u0431\u043D\u043E\u0441\u0442\u0438 ${q.sourceCardId}.`);
-        runAbility(String(next.abilityKey || ""), { G, me, card: next });
-        (G.discard || []).push(next);
-      } else {
-        G.pending = { kind: "persona_16_discard3_from_hand", playerId: String(q.playerId), sourceCardId: String(q.sourceCardId) };
-        G.persona16AfterEvents = null;
-      }
-    }
-  } catch {
-  }
-  try {
-    if (!G.pending && G.pendingDeferred) {
-      G.pending = G.pendingDeferred;
-      G.pendingDeferred = null;
-    }
-  } catch {
-  }
-}
 function actorWithPersona(me, personaBase) {
   const p = (me?.coalition || []).find((c) => baseId2(String(c.id)) === String(personaBase));
   const pname = String(p?.name || p?.text || personaBase);
   return `${ruYou2(me?.name)} ${pname}`;
 }
-function applyAdjacencyBonusesAround(G, owner, placedCard) {
-  try {
-    if (!owner || !placedCard) return;
-    const idx = (owner.coalition || []).findIndex((c) => String(c.id) === String(placedCard.id));
-    if (idx < 0) return;
-    const neighbors = [];
-    if (idx > 0) neighbors.push(owner.coalition[idx - 1]);
-    if (idx < (owner.coalition || []).length - 1) neighbors.push(owner.coalition[idx + 1]);
-    for (const n of neighbors) {
-      if (!n || n.type !== "persona") continue;
-      if (String(n.abilityKey || "") !== "on_enter_adjacent_bonus") continue;
-      try {
-        runAbility("on_enter_adjacent_bonus", { G, me: owner, card: n });
-      } catch {
-      }
-    }
-  } catch {
-  }
+function nativeAbility(operation, G, me = null, card = null, ctx = null, actor = '', target = '') {
+  return __politikumNativeAbility(operation, G, me, card, ctx, String(actor), String(target || ''));
 }
-function maybeResolveDeferredPersona(G) {
-  const pend = G.pending;
-  if (!pend || pend.kind !== "resolve_persona_after_response") return false;
-  if (G.response && !responseExpired(G)) return false;
-  if (G.response && responseExpired(G)) G.response = null;
-  try {
-    const pid = String(pend.personaId || "");
-    const owner = (G.players || []).find((pp) => (pp.coalition || []).some((cc) => String(cc.id) === pid));
-    const card = owner?.coalition?.find((cc) => String(cc.id) === pid);
-    if (owner && card) {
-      const key = String(pend.abilityKey || card.abilityKey || "");
-      if (key) runAbility(key, { G, me: owner, card });
-      applyAdjacencyBonusesAround(G, owner, card);
-    }
-  } catch {
-  }
-  try {
-    const pk = G.pending;
-    if (pk && pk.kind === "resolve_persona_after_response") G.pending = null;
-  } catch {
-  }
-  try {
-    recalcPassives(G);
-  } catch {
-  }
-  return true;
+function applyAdjacencyBonusesAround(G, owner, placedCard) {
+  nativeAbility('around', G, owner, placedCard);
 }
 function tracePush(G, entry) {
   try {
@@ -1068,158 +793,8 @@ function wrapMoves(moves) {
 }
 var PolitikumGame = {
   name: "politikum",
-  phases: {
-    lobby: {
-      start: true,
-      next: "action",
-      turn: { activePlayers: { all: "lobby" } }
-    },
-    action: {
-      turn: {
-        // Only rotate through active seats (chosen in lobby).
-        order: {
-          first: ({ G }) => {
-            const id = String((G.activePlayerIds || [])[0] || "0");
-            return parseInt(id, 10) || 0;
-          },
-          next: ({ G, ctx }) => {
-            const ids = (G.activePlayerIds || []).map(String).filter(Boolean);
-            if (!ids.length) return (Number(ctx.playOrderPos || 0) + 1) % Number(ctx.numPlayers || 1);
-            const cur = String(ctx.currentPlayer);
-            const i = ids.indexOf(cur);
-            const nextId = ids[(i >= 0 ? i + 1 : 0) % ids.length];
-            return parseInt(String(nextId), 10) || 0;
-          }
-        },
-        // allow out-of-turn cancels; we enforce legality inside moves
-        activePlayers: { all: "all" },
-        onBegin: ({ G, ctx, events }) => {
-          try {
-            if (G.roundEnding) {
-              const t = Number(G.roundEndTurn ?? -1);
-              if (t >= 0 && Number(ctx?.turn || 0) >= t && !G.pending && !G.response) {
-                endGameNow(G, ctx, events);
-                return;
-              }
-            }
-          } catch {
-          }
-          G.turnStartedAtMs = nowMs();
-          G.turnN = Number(ctx?.turn || 0);
-          G.hasDrawn = false;
-          G.hasPlayed = false;
-          G.playsThisTurn = 0;
-          G.maxPlaysThisTurn = 1;
-          G.playVpDelta = 0;
-          G.drawsThisTurn = 0;
-          try {
-            const cur = (G.players || []).find((pp) => String(pp.id) === String(ctx.currentPlayer));
-            const isBot = !!cur?.isBot || String(cur?.name || "").startsWith("[B]");
-            if (cur && isBot) {
-              const drawn = drawTopCardForPlayer2(G, cur);
-              G.hasDrawn = true;
-              G.drawsThisTurn = drawn ? 1 : 0;
-            } else if (cur && cur.skipMandatoryDrawThisTurn) {
-              cur.skipMandatoryDrawThisTurn = false;
-              G.hasDrawn = true;
-              G.drawsThisTurn = 0;
-              G.log.push(`${ruYou2(cur.name)} пропускает обязательный добор в начале хода.`);
-            } else {
-              G.hasDrawn = false;
-              G.drawsThisTurn = 0;
-            }
-            G.botNextActAtMs = isBot ? nowMs() + 2e3 : null;
-          } catch {
-            G.botNextActAtMs = null;
-          }
-          try {
-            const me = (G.players || []).find((pp) => String(pp.id) === String(ctx.currentPlayer));
-            if (me && (me.coalition || []).some((c) => baseId2(String(c.id)) === "persona_11")) {
-              const haveTargets = (G.players || []).some((pp) => {
-                if (String(pp.id) === String(me.id)) return false;
-                return (pp.coalition || []).some((c) => c.type === "persona" && baseId2(String(c.id)) !== "persona_31" && !c.shielded);
-              });
-              if (haveTargets) {
-                G.pending = { kind: "persona_11_offer", playerId: String(me.id), sourceCardId: "persona_11" };
-              }
-            }
-          } catch {
-          }
-        },
-        onEnd: ({ G, ctx, events }) => {
-          try {
-            const scoreNow = (pp) => (pp.coalition || []).reduce((s, c) => s + Number(c.vp || 0), 0);
-            const scores = Object.fromEntries((G.players || []).map((pp) => [String(pp.id), scoreNow(pp)]));
-            (G.history || (G.history = [])).push({ turn: Number(ctx.turn || 0), scores });
-          } catch {
-          }
-          try {
-            if (!G.gameOver && Array.isArray(G.deck) && G.deck.length <= 0) {
-              endGameNow(G, ctx, events);
-            }
-          } catch {
-          }
-        }
-        // (bot actions are driven by moves.tickBot for pacing)
-      }
-    }
-  },
   moves: wrapMoves({
-    forceSkipTurn: ({ G, ctx, playerID, events }) => {
-      if (String(ctx.phase || "") !== "action") return INVALID_MOVE2;
-      const cur = (G.players || []).find((pp) => String(pp.id) === String(ctx.currentPlayer));
-      const curIsBot = !!cur?.isBot || String(cur?.name || "").startsWith("[B]");
-      if (!curIsBot) return INVALID_MOVE2;
-      try {
-        G.pending = null;
-      } catch {
-      }
-      try {
-        G.response = null;
-      } catch {
-      }
-      try {
-        G.botPauseUntilMs = 0;
-      } catch {
-      }
-      try {
-        G.hasDrawn = true;
-      } catch {
-      }
-      try {
-        G.hasPlayed = true;
-      } catch {
-      }
-      try {
-        G.log.push(`${ruYou2(cur?.name || "Bot")} turn force-skipped by ${ruYou2((G.players || []).find((pp) => String(pp.id) === String(playerID))?.name || playerID)}.`);
-      } catch {
-      }
-      try {
-        if (maybeEndAfterRound(G, ctx, events)) return;
-      } catch {
-      }
-      events.endTurn?.();
-    },
-    skipResponseWindow: ({ G, ctx, playerID, events }) => {
-      const r = G.response;
-      if (!r) return INVALID_MOVE2;
-      G.response = null;
-      try {
-        maybeResolveDeferredPersona(G);
-      } catch {
-      }
-      try {
-        recalcPassives(G);
-      } catch {
-      }
-      try {
-        if (String(ctx?.currentPlayer || "") === String(playerID) && !G.response && !G.pending && G.hasDrawn && G.hasPlayed) {
-          if (maybeEndAfterRound(G, ctx, events)) return;
-          events.endTurn?.();
-        }
-      } catch {
-      }
-    },
+    ...NATIVE_TURN_MOVES,
     applyPendingToken: ({ G, ctx, playerID }, coalitionCardId) => {
       expireResponseAndResolveDeferred(G);
       const pend = G.pending;
@@ -1361,38 +936,7 @@ var PolitikumGame = {
       events.endTurn?.();
     },
     persona12ChooseAdjacentRed: ({ G, ctx, playerID }, targetCoalitionCardId) => {
-      const pend = G.pending;
-      if (!pend || pend.kind !== "persona_12_choose_adjacent_red") return INVALID_MOVE2;
-      if (String(playerID) !== String(ctx.currentPlayer)) return INVALID_MOVE2;
-      if (String(pend.playerId) !== String(playerID)) return INVALID_MOVE2;
-      const me = (G.players || []).find((pp) => String(pp.id) === String(playerID));
-      if (!me) return INVALID_MOVE2;
-      const candidates = [String(pend.leftId || ""), String(pend.rightId || "")].filter(Boolean).map((id) => (me.coalition || []).find((c) => String(c.id) === id)).filter((t) => t && t.type === "persona" && Array.isArray(t.tags) && t.tags.includes("faction:red_nationalist") && !t.shielded);
-      if (!candidates.length) {
-        G.log.push(`${me.name} (${pend.sourceCardId}) has no valid adjacent target anymore; ability skipped.`);
-        G.pending = null;
-        recalcPassives(G);
-        return;
-      }
-      if (candidates.length === 1 && !String(targetCoalitionCardId || "")) {
-        const only = candidates[0];
-        applyTokenDelta2(G, only, 2);
-        G.log.push(`${me.name} (${pend.sourceCardId}) auto-buffed ${only.name || only.id} (+2).`);
-        G.pending = null;
-        recalcPassives(G);
-        return;
-      }
-      const tid = String(targetCoalitionCardId || "");
-      if (!(tid === String(pend.leftId) || tid === String(pend.rightId))) return INVALID_MOVE2;
-      const t = (me.coalition || []).find((c) => String(c.id) === tid);
-      if (!t || t.type !== "persona") return INVALID_MOVE2;
-      if (!Array.isArray(t.tags) || !t.tags.includes("faction:red_nationalist")) return INVALID_MOVE2;
-      if (t.shielded) return INVALID_MOVE2;
-      applyTokenDelta2(G, t, 2);
-      G.log.push(`${me.name} (${pend.sourceCardId}) buffed ${t.name || t.id} (+2).`);
-      G.pending = null;
-      recalcPassives(G);
-      return;
+      return nativeAbility('chooseRed', G, null, null, ctx, playerID, targetCoalitionCardId) ? undefined : INVALID_MOVE2;
     },
     persona5PickLiberal: ({ G, ctx, playerID, events }, ownerId, coalitionCardId) => {
       const pend = G.pending;
@@ -1453,30 +997,6 @@ var PolitikumGame = {
         } catch {
         }
       }
-    },
-    // Hand limit: if you end turn with >7 cards, discard down to 7 by clicking hand cards.
-    discardFromHandDownTo7: ({ G, ctx, playerID }, cardId) => {
-      const pend = G.pending;
-      const me = (G.players || []).find((pp) => String(pp.id) === String(playerID));
-      if (!me) return INVALID_MOVE2;
-      if (!pend || pend.kind !== "discard_down_to_7") {
-        const isCurrent = String(ctx?.currentPlayer || "") === String(playerID);
-        const overLimit = Number((me.hand || []).length) > 7;
-        if (!isCurrent || !overLimit) return INVALID_MOVE2;
-      } else {
-        if (String(pend.playerId) !== String(playerID)) return INVALID_MOVE2;
-      }
-      const idx = (me.hand || []).findIndex((c) => String(c.id) === String(cardId));
-      if (idx < 0) return INVALID_MOVE2;
-      const [drop] = me.hand.splice(idx, 1);
-      if (drop) {
-        G.discard.push(drop);
-        if (drop.type === "persona") persona44OnPersonaDiscarded(G);
-      }
-      if (Number((me.hand || []).length) <= 7) {
-        G.pending = null;
-      }
-      recalcPassives(G);
     },
     discardPersonaFromOwnCoalitionForEvent16: ({ G, playerID }, coalitionCardId) => {
       const pend = G.pending;
@@ -2296,15 +1816,6 @@ var PolitikumGame = {
       const title = c.type === "action" ? actionTitle(c) : c.name || c.id;
       G.log.push(`${ruYou2(me.name)} \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u044F \u0411\u044B\u043A\u043E\u0432\u0430 \u0432\u0437\u044F\u043B \xAB${title}\xBB \u0438\u0437 \u0441\u0431\u0440\u043E\u0441\u0430.`);
       G.pending = null;
-    },
-    // Tick for human turns only clears expired responses / deferred abilities.
-    // Do NOT auto-end here: that races with a manual End Turn click and produces invalid stateID errors.
-    tick: ({ G, ctx }) => {
-      try {
-        if (String(ctx.phase || "") !== "action") return INVALID_MOVE2;
-        expireResponseAndResolveDeferred(G);
-      } catch {
-      }
     },
     tickBot: ({ G, ctx, events }) => {
       try {
@@ -3209,106 +2720,6 @@ var PolitikumGame = {
         }
       } catch {
       }
-    },
-    endTurn: ({ G, ctx, playerID, events }) => {
-      expireResponseAndResolveDeferred(G);
-      if (G.pending && G.pending?.kind === "resolve_persona_after_response") return INVALID_MOVE2;
-      if (playerID !== ctx.currentPlayer) {
-        G.debugLastEndTurnReject = "not_current_player";
-        return INVALID_MOVE2;
-      }
-      if (G.pending) {
-        const pk = G.pending;
-        if (pk?.kind === "event_12b_discard_from_hand") {
-          const targets = Array.isArray(pk.targetIds) ? pk.targetIds.map(String) : [];
-          if (!targets.includes(String(playerID))) {
-          } else {
-            G.debugLastEndTurnReject = `pending:${String(pk?.kind || "")}`;
-            return INVALID_MOVE2;
-          }
-        } else if (pk?.kind === "persona_13_pick_target") {
-          if (String(pk.playerId) !== String(playerID)) {
-          } else {
-            G.debugLastEndTurnReject = `pending:${String(pk?.kind || "")}`;
-            return INVALID_MOVE2;
-          }
-        } else {
-          G.debugLastEndTurnReject = `pending:${String(pk?.kind || "")}`;
-          return INVALID_MOVE2;
-        }
-      }
-      if (!G.hasDrawn || !G.hasPlayed) {
-        G.debugLastEndTurnReject = `need_draw_play (drawn=${String(!!G.hasDrawn)} played=${String(!!G.hasPlayed)})`;
-        return INVALID_MOVE2;
-      }
-      G.debugLastEndTurnReject = null;
-      try {
-        const p = (G.players || []).find((pp) => String(pp.id) === String(playerID));
-        if (p && String(p.name || "").startsWith("[B]") && !G.hasPlayed) {
-          const c = (p.hand || [])[0];
-          if (c) {
-            p.hand.splice(0, 1);
-            p.coalition.push(c);
-            G.hasPlayed = true;
-            G.log.push(`${p.name} played ${c.name || c.id}.`);
-          }
-        }
-      } catch {
-      }
-      try {
-        const p = (G.players || []).find((pp) => String(pp.id) === String(playerID));
-        const nHand = Number((p?.hand || []).length);
-        const isBot = !!p?.isBot || String(p?.name || "").startsWith("[B]");
-        if (nHand > 7) {
-          if (isBot) {
-            while (Number((p.hand || []).length) > 7) {
-              const drop = p.hand.pop();
-              if (drop) G.discard.push(drop);
-            }
-          } else {
-            G.pending = { kind: "discard_down_to_7", playerId: String(playerID), sourceCardId: "hand_limit" };
-            G.debugLastEndTurnReject = "hand_limit";
-            return INVALID_MOVE2;
-          }
-        }
-      } catch {
-      }
-      if (maybeEndAfterRound(G, ctx, events)) return;
-      events.endTurn();
-    },
-    beginTurnDraw: ({ G, playerID, ctx }) => {
-      expireResponseAndResolveDeferred(G);
-      if (String(playerID) !== String(ctx.currentPlayer)) return INVALID_MOVE2;
-      if (G.pending) return INVALID_MOVE2;
-      if (G.response && !responseExpired(G)) return INVALID_MOVE2;
-      if (G.hasDrawn) return INVALID_MOVE2;
-      const p = G.players.find((pp) => String(pp.id) === String(playerID));
-      if (!p) return INVALID_MOVE2;
-      const c = drawTopCardForPlayer2(G, p);
-      if (!c) return INVALID_MOVE2;
-      G.hasDrawn = true;
-      G.drawsThisTurn = Math.max(1, Number(G.drawsThisTurn || 0) + 1);
-      return;
-    },
-    drawCard: ({ G, playerID, ctx, events }) => {
-      expireResponseAndResolveDeferred(G);
-      if (G.pending && G.pending?.kind === "resolve_persona_after_response") return INVALID_MOVE2;
-      if (playerID !== ctx.currentPlayer) return INVALID_MOVE2;
-      if (G.pending) return INVALID_MOVE2;
-      if (G.response && !responseExpired(G)) return INVALID_MOVE2;
-      const draws = Number(G.drawsThisTurn || 0);
-      if (!G.hasDrawn) return INVALID_MOVE2;
-      if (draws >= 2) return INVALID_MOVE2;
-      if (G.hasPlayed) return INVALID_MOVE2;
-      const p = G.players.find((pp) => String(pp.id) === String(playerID));
-      if (!p) return INVALID_MOVE2;
-      const c = drawTopCardForPlayer2(G, p);
-      if (!c) return INVALID_MOVE2;
-      G.drawsThisTurn = draws + 1;
-      G.hasDrawn = true;
-      G.hasPlayed = true;
-      if (maybeEndAfterRound(G, ctx, events)) return;
-      events.endTurn?.();
     },
     playPersona: ({ G, playerID, ctx, events }, cardId, placeAfterId, side, targetPlayerId) => {
       expireResponseAndResolveDeferred(G);

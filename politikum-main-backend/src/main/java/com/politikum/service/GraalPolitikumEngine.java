@@ -9,6 +9,8 @@ import org.graalvm.polyglot.Value;
 import org.springframework.core.io.ClassPathResource;
 import com.politikum.engine.CardCatalog;
 import com.politikum.engine.ScoringBridge;
+import com.politikum.engine.GraalTurnBridge;
+import java.time.Clock;
 import org.graalvm.polyglot.proxy.ProxyExecutable;
 
 import java.io.InputStream;
@@ -36,6 +38,7 @@ public class GraalPolitikumEngine {
         ScoringBridge scoring = new ScoringBridge();
         this.context.getBindings("js").putMember("__politikumNativeScoring", (ProxyExecutable) args ->
             scoring.execute(args[0].asString(), args[1].asString()));
+        GraalTurnBridge.install(this.context, Clock.systemUTC());
         this.context.eval(Source.newBuilder("js", script, "politikum-engine-bridge.js").buildLiteral());
         this.bridge = this.context.getBindings("js").getMember("PolitikumBridge");
         if (this.bridge == null) throw new IllegalStateException("PolitikumBridge not initialized");

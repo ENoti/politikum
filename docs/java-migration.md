@@ -19,7 +19,7 @@ Initial scoring history deliberately preserves the legacy duplicate turn-zero sn
 
 ## Still in JavaScript
 
-Card play/draw effects, persona and event abilities, passives and token arithmetic, reactions and deferred choices, bot turns, general turn advancement and victory resolution remain behind `GraalPolitikumEngine`. Graal dependencies must remain until those paths are ported. The native initial-turn setup is only for a normal lobby start, not a replacement for later card-dependent turn hooks.
+After the later increments, shared scoring and turn lifecycle are also native; see [scoring](java-scoring-migration.md) and [turn lifecycle](java-turn-migration.md). Card-play dispatch, individual abilities and choice handlers, reactions, special card victories and bot decisions remain behind `GraalPolitikumEngine`. Graal dependencies must remain until those paths are ported.
 
 ## Evidence and tests
 
@@ -31,7 +31,9 @@ Run `mvn clean verify` from `politikum-main-backend`. The frontend contract is u
 
 ## Next bounded stages
 
-2. Shared scoring/token functions are now native; see [the second increment](java-scoring-migration.md). Turn/response lifecycle and ordinary draw/play actions are still pending. Add controlled Java callbacks only where a still-JS ability is needed. Keep one owner for version increments and turn transitions. Extend the privacy projection deliberately when adding fields.
+The first ability group is now native too; see [the fourth increment](java-ability-migration.md).
+
+2. Shared scoring/token functions and turn/response lifecycle are now native; see [scoring](java-scoring-migration.md) and [turn lifecycle](java-turn-migration.md). Keep one owner for version increments and turn transitions. Extend the privacy projection deliberately when adding fields.
 3. Port abilities and bot decisions in tested groups, remove JS dispatch and Graal, then replace remaining map-based state with typed effect/player/card models without changing stored JSON accidentally.
 
 Do not combine migration with speculative rule changes. Existing card and tournament bugs from the initial review need separate regression cases; translating them is not automatically fixing them. Production secret rotation from the previous security patch remains a separate rollout requirement.

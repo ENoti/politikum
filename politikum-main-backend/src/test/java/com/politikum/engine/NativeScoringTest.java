@@ -23,6 +23,7 @@ class NativeScoringTest {
         guest.getBindings("js").putMember("__politikumCatalogJson", new CardCatalog().json());
         var bridge = new ScoringBridge();
         guest.getBindings("js").putMember("__politikumNativeScoring", (ProxyExecutable) args -> bridge.execute(args[0].asString(), args[1].asString()));
+        GraalTurnBridge.install(guest, java.time.Clock.systemUTC());
         try (var in = new ClassPathResource("engine/politikum-engine-bridge.js").getInputStream()) {
             guest.eval("js", new String(in.readAllBytes(), StandardCharsets.UTF_8));
         }
