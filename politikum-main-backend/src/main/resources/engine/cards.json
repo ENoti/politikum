@@ -1,0 +1,752 @@
+[
+  {
+    "id": "persona_1",
+    "type": "persona",
+    "vp": 1,
+    "count": 1,
+    "tags": [
+      "faction:red_nationalist",
+      "gender:m"
+    ],
+    "text": "Рунов",
+    "abilityKey": "on_enter_adjacent_bonus",
+    "params": {
+      "neighbors": [
+        "persona_19",
+        "persona_42"
+      ],
+      "tokens": 4
+    }
+  },
+  {
+    "id": "persona_2",
+    "type": "persona",
+    "vp": 7,
+    "count": 1,
+    "tags": [
+      "faction:leftwing",
+      "gender:f"
+    ],
+    "text": "Сережко"
+  },
+  {
+    "id": "persona_3",
+    "type": "persona",
+    "vp": 3,
+    "count": 1,
+    "tags": [
+      "faction:rightwing"
+    ],
+    "text": "SVTV",
+    "abilityKey": "persona_3_on_enter_choice"
+  },
+  {
+    "id": "persona_4",
+    "type": "persona",
+    "vp": 7,
+    "count": 1,
+    "tags": [
+      "faction:liberal",
+      "gender:m"
+    ],
+    "text": "Яшин",
+    "abilityKey": "persona_4_on_enter_twitter_penalty"
+  },
+  {
+    "id": "persona_5",
+    "type": "persona",
+    "vp": 2,
+    "count": 1,
+    "tags": [
+      "faction:fbk",
+      "gender:f"
+    ],
+    "text": "Певчих",
+    "abilityKey": "persona_5_discard_liberal_steal_tokens"
+  },
+  {
+    "id": "persona_6",
+    "type": "persona",
+    "vp": 2,
+    "count": 1,
+    "tags": [
+      "faction:rightwing",
+      "gender:m"
+    ],
+    "text": "Кашин",
+    "abilityKey": "persona_6_on_action8_plus1"
+  },
+  {
+    "id": "persona_7",
+    "type": "persona",
+    "vp": 2,
+    "count": 1,
+    "tags": [
+      "faction:liberal",
+      "gender:m"
+    ],
+    "text": "Каспаров",
+    "abilityKey": "persona_7_swap_two_in_coalition"
+  },
+  {
+    "id": "persona_8",
+    "type": "persona",
+    "vp": 2,
+    "count": 1,
+    "tags": [
+      "faction:leftwing",
+      "gender:f"
+    ],
+    "text": "Лазерсон"
+  },
+  {
+    "id": "persona_9",
+    "type": "persona",
+    "vp": -3,
+    "count": 1,
+    "tags": [
+      "faction:liberal",
+      "gender:m"
+    ],
+    "text": "Пономарёв"
+  },
+  {
+    "id": "persona_10",
+    "type": "persona",
+    "vp": 3,
+    "count": 1,
+    "tags": [
+      "faction:fbk",
+      "gender:m"
+    ],
+    "text": "Наки"
+  },
+  {
+    "id": "persona_11",
+    "type": "persona",
+    "vp": 3,
+    "count": 1,
+    "tags": [
+      "faction:system",
+      "gender:m"
+    ],
+    "text": "Соловей"
+  },
+  {
+    "id": "persona_12",
+    "type": "persona",
+    "vp": 3,
+    "count": 1,
+    "tags": [
+      "faction:red_nationalist",
+      "gender:m"
+    ],
+    "text": "Савин",
+    "abilityKey": "persona_12_on_enter_adjacent_red_buff"
+  },
+  {
+    "id": "persona_13",
+    "type": "persona",
+    "vp": 2,
+    "count": 1,
+    "tags": [
+      "faction:system",
+      "gender:m"
+    ],
+    "text": "Венедитков",
+    "abilityKey": "persona_13_retaliate_on_targeted_action"
+  },
+  {
+    "id": "persona_14",
+    "type": "persona",
+    "vp": 2,
+    "count": 1,
+    "tags": [
+      "faction:liberal",
+      "gender:m"
+    ],
+    "text": "Ройзман",
+    "abilityKey": "discard_one_persona_from_any_coalition"
+  },
+  {
+    "id": "persona_15",
+    "type": "persona",
+    "vp": 3,
+    "count": 1,
+    "tags": [
+      "faction:rightwing",
+      "gender:m"
+    ],
+    "text": "Пожарский"
+  },
+  {
+    "id": "persona_16",
+    "type": "persona",
+    "vp": 3,
+    "count": 1,
+    "tags": [
+      "faction:liberal",
+      "gender:m"
+    ],
+    "text": "Кац",
+    "abilityKey": "persona_16_on_enter_draw3_discard3"
+  },
+  {
+    "id": "persona_17",
+    "type": "persona",
+    "vp": 2,
+    "count": 1,
+    "tags": [
+      "faction:liberal",
+      "gender:f"
+    ],
+    "text": "Арно",
+    "abilityKey": "persona_17_on_enter_steal_persona"
+  },
+  {
+    "id": "persona_18",
+    "type": "persona",
+    "vp": 5,
+    "count": 1,
+    "tags": [
+      "faction:fbk",
+      "gender:f"
+    ],
+    "text": "Соболь"
+  },
+  {
+    "id": "persona_19",
+    "type": "persona",
+    "vp": 1,
+    "count": 1,
+    "tags": [
+      "faction:red_nationalist",
+      "gender:m"
+    ],
+    "text": "Гиркин",
+    "abilityKey": "on_enter_adjacent_bonus",
+    "params": {
+      "neighbors": [
+        "persona_1",
+        "persona_42"
+      ],
+      "tokens": 4
+    }
+  },
+  {
+    "id": "persona_20",
+    "type": "persona",
+    "vp": 2,
+    "count": 1,
+    "tags": [
+      "faction:liberal",
+      "gender:m"
+    ],
+    "text": "Быков",
+    "abilityKey": "persona_20_on_enter_take_from_discard"
+  },
+  {
+    "id": "persona_21",
+    "type": "persona",
+    "vp": 1,
+    "count": 1,
+    "tags": [
+      "faction:leftwing",
+      "gender:m"
+    ],
+    "text": "Штефанов",
+    "abilityKey": "persona_21_on_enter_invert_tokens"
+  },
+  {
+    "id": "persona_22",
+    "type": "persona",
+    "vp": 3,
+    "count": 1,
+    "tags": [
+      "faction:rightwing",
+      "gender:m"
+    ],
+    "text": "Светов",
+    "abilityKey": "persona_22_global_enter_mods"
+  },
+  {
+    "id": "persona_23",
+    "type": "persona",
+    "vp": 4,
+    "count": 1,
+    "tags": [
+      "faction:fbk",
+      "gender:m"
+    ],
+    "text": "Волков",
+    "abilityKey": "persona_23_on_enter_self_inflict_draw"
+  },
+  {
+    "id": "persona_24",
+    "type": "persona",
+    "vp": 3,
+    "count": 1,
+    "tags": [
+      "faction:rightwing",
+      "gender:f"
+    ],
+    "text": "Латынина",
+    "abilityKey": "persona_24_passive_dual_leftwing_scaler"
+  },
+  {
+    "id": "persona_25",
+    "type": "persona",
+    "vp": 1,
+    "count": 1,
+    "tags": [
+      "faction:system",
+      "gender:m"
+    ],
+    "text": "Надеждин"
+  },
+  {
+    "id": "persona_26",
+    "type": "persona",
+    "vp": 1,
+    "count": 1,
+    "tags": [
+      "faction:rightwing",
+      "gender:m"
+    ],
+    "text": "Демушкин",
+    "abilityKey": "persona_26_on_enter_purge_red_inherit_plus"
+  },
+  {
+    "id": "persona_27",
+    "type": "persona",
+    "vp": 7,
+    "count": 1,
+    "tags": [
+      "faction:leftwing",
+      "gender:m"
+    ],
+    "text": "Юдин"
+  },
+  {
+    "id": "persona_28",
+    "type": "persona",
+    "vp": 2,
+    "count": 1,
+    "tags": [
+      "faction:fbk",
+      "gender:f"
+    ],
+    "text": "Ведута",
+    "abilityKey": "persona_28_on_enter_steal_plus_tokens"
+  },
+  {
+    "id": "persona_29",
+    "type": "persona",
+    "vp": 4,
+    "count": 1,
+    "tags": [
+      "faction:red_nationalist",
+      "gender:m"
+    ],
+    "text": "Юнеман"
+  },
+  {
+    "id": "persona_30",
+    "type": "persona",
+    "vp": 1,
+    "count": 1,
+    "tags": [
+      "faction:liberal",
+      "gender:m"
+    ],
+    "text": "Ходорковский",
+    "abilityKey": "persona_30_on_enter_buff_liberals"
+  },
+  {
+    "id": "persona_31",
+    "type": "persona",
+    "vp": 3,
+    "count": 1,
+    "tags": [
+      "faction:system",
+      "gender:m",
+      "persona:immovable"
+    ],
+    "text": "Шлосберг"
+  },
+  {
+    "id": "persona_32",
+    "type": "persona",
+    "vp": 3,
+    "count": 1,
+    "tags": [
+      "faction:liberal",
+      "gender:m"
+    ],
+    "text": "Плющев",
+    "abilityKey": "persona_32_activate_bounce"
+  },
+  {
+    "id": "persona_33",
+    "type": "persona",
+    "vp": 0,
+    "count": 1,
+    "tags": [
+      "faction:neutral",
+      "gender:f"
+    ],
+    "text": "Собчак",
+    "abilityKey": "persona_33_on_enter_choose_faction"
+  },
+  {
+    "id": "persona_34",
+    "type": "persona",
+    "vp": 2,
+    "count": 1,
+    "tags": [
+      "faction:fbk",
+      "gender:m"
+    ],
+    "text": "Милов",
+    "abilityKey": "persona_34_on_enter_guess_topdeck"
+  },
+  {
+    "id": "persona_35",
+    "type": "persona",
+    "vp": 4,
+    "count": 1,
+    "tags": [
+      "faction:fbk",
+      "gender:m"
+    ],
+    "text": "Жданов",
+    "abilityKey": "persona_35_no_ability"
+  },
+  {
+    "id": "persona_36",
+    "type": "persona",
+    "vp": 2,
+    "count": 1,
+    "tags": [
+      "faction:leftwing",
+      "gender:m"
+    ],
+    "text": "Кагалицкий",
+    "abilityKey": "persona_36_passive_ignore_action7"
+  },
+  {
+    "id": "persona_37",
+    "type": "persona",
+    "vp": 4,
+    "count": 1,
+    "tags": [
+      "faction:leftwing",
+      "gender:m"
+    ],
+    "text": "Гуриев",
+    "abilityKey": "persona_37_on_enter_bribe_and_silence"
+  },
+  {
+    "id": "persona_38",
+    "type": "persona",
+    "vp": 0,
+    "count": 1,
+    "tags": [
+      "faction:leftwing"
+    ],
+    "text": "VotVot",
+    "abilityKey": "persona_38_global_event_token_vacuum"
+  },
+  {
+    "id": "persona_39",
+    "type": "persona",
+    "vp": 2,
+    "count": 1,
+    "tags": [
+      "faction:red_nationalist",
+      "gender:m"
+    ],
+    "text": "Лефт"
+  },
+  {
+    "id": "persona_40",
+    "type": "persona",
+    "vp": 1,
+    "count": 1,
+    "tags": [
+      "faction:system",
+      "gender:f"
+    ],
+    "text": "Дунцова",
+    "abilityKey": "place_tokens_plus_vp",
+    "params": {
+      "tokens": 3,
+      "delta": 1
+    }
+  },
+  {
+    "id": "persona_41",
+    "type": "persona",
+    "vp": 2,
+    "count": 1,
+    "tags": [
+      "faction:liberal"
+    ],
+    "text": "Дождь",
+    "abilityKey": "persona_41_on_enter_buff_fbk"
+  },
+  {
+    "id": "persona_42",
+    "type": "persona",
+    "vp": 1,
+    "count": 1,
+    "tags": [
+      "faction:red_nationalist",
+      "gender:m"
+    ],
+    "text": "Стрелков",
+    "abilityKey": "on_enter_adjacent_bonus",
+    "params": {
+      "neighbors": [
+        "persona_1",
+        "persona_19"
+      ],
+      "tokens": 4
+    }
+  },
+  {
+    "id": "persona_43",
+    "type": "persona",
+    "vp": 1,
+    "count": 1,
+    "tags": [
+      "faction:leftwing"
+    ],
+    "text": "Доха",
+    "abilityKey": "persona_43_on_enter_drain_rightwing"
+  },
+  {
+    "id": "persona_44",
+    "type": "persona",
+    "vp": 1,
+    "count": 1,
+    "tags": [
+      "faction:leftwing",
+      "gender:m"
+    ],
+    "text": "Рудой"
+  },
+  {
+    "id": "persona_45",
+    "type": "persona",
+    "vp": 2,
+    "count": 1,
+    "tags": [
+      "faction:liberal",
+      "gender:f"
+    ],
+    "text": "Шульман",
+    "abilityKey": "persona_45_steal_from_opponent"
+  },
+  {
+    "id": "event_1",
+    "type": "event",
+    "vp": 0,
+    "count": 3,
+    "timing": "on_draw",
+    "abilityKey": "place_tokens_plus_vp",
+    "params": {
+      "tokens": 3,
+      "delta": 1
+    }
+  },
+  {
+    "id": "event_2",
+    "type": "event",
+    "vp": 0,
+    "count": 2,
+    "timing": "on_draw",
+    "abilityKey": "place_tokens_plus_vp",
+    "params": {
+      "tokens": 2,
+      "delta": 1
+    }
+  },
+  {
+    "id": "event_3",
+    "type": "event",
+    "vp": 0,
+    "count": 1,
+    "timing": "on_draw",
+    "abilityKey": "place_tokens_plus_vp",
+    "params": {
+      "tokens": 5,
+      "delta": 1
+    }
+  },
+  {
+    "id": "event_10",
+    "type": "event",
+    "vp": 0,
+    "count": 2,
+    "timing": "on_draw",
+    "abilityKey": "place_tokens_plus_vp",
+    "params": {
+      "tokens": 4,
+      "delta": 1
+    }
+  },
+  {
+    "id": "event_11",
+    "type": "event",
+    "vp": 0,
+    "count": 2,
+    "timing": "on_draw",
+    "abilityKey": "event_draw_cards",
+    "params": {
+      "count": 2
+    }
+  },
+  {
+    "id": "event_12a",
+    "type": "event",
+    "vp": 0,
+    "count": 1,
+    "tags": [
+      "event_type:twitter_squabble"
+    ],
+    "timing": "on_draw",
+    "abilityKey": "event_faction_minus1_draw1",
+    "params": {
+      "factionTag": "faction:fbk"
+    }
+  },
+  {
+    "id": "event_12b",
+    "type": "event",
+    "vp": 0,
+    "count": 1,
+    "tags": [
+      "event_type:twitter_squabble"
+    ],
+    "timing": "on_draw",
+    "abilityKey": "event_12b_discard_others_hand"
+  },
+  {
+    "id": "event_12c",
+    "type": "event",
+    "vp": 0,
+    "count": 1,
+    "tags": [
+      "event_type:twitter_squabble"
+    ],
+    "timing": "on_draw",
+    "abilityKey": "event_faction_minus1_draw1",
+    "params": {
+      "factionTag": "faction:liberal"
+    }
+  },
+  {
+    "id": "event_15",
+    "type": "event",
+    "vp": 0,
+    "count": 1,
+    "timing": "on_draw",
+    "abilityKey": "event_shuffle_all_hands_redeal"
+  },
+  {
+    "id": "event_16",
+    "type": "event",
+    "vp": 0,
+    "count": 1,
+    "timing": "on_draw",
+    "abilityKey": "event_16_discard_self_persona_then_draw1"
+  },
+  {
+    "id": "action_4",
+    "type": "action",
+    "vp": 0,
+    "count": 2,
+    "timing": "on_play"
+  },
+  {
+    "id": "action_5",
+    "type": "action",
+    "vp": 0,
+    "count": 1,
+    "timing": "on_play"
+  },
+  {
+    "id": "action_6",
+    "type": "action",
+    "vp": 0,
+    "count": 1,
+    "timing": "response"
+  },
+  {
+    "id": "action_7",
+    "type": "action",
+    "vp": 0,
+    "count": 3,
+    "tags": [
+      "action:block_persona",
+      "action:persists"
+    ],
+    "timing": "on_play"
+  },
+  {
+    "id": "action_8",
+    "type": "action",
+    "vp": 0,
+    "count": 8,
+    "timing": "response"
+  },
+  {
+    "id": "action_9",
+    "type": "action",
+    "vp": 0,
+    "count": 2,
+    "timing": "on_play"
+  },
+  {
+    "id": "action_13",
+    "type": "action",
+    "vp": 0,
+    "count": 2,
+    "tags": [
+      "action:shield",
+      "action:persists"
+    ],
+    "timing": "on_play"
+  },
+  {
+    "id": "action_14",
+    "type": "action",
+    "vp": 0,
+    "count": 1,
+    "tags": [
+      "action:cancel_effect_on_persona"
+    ],
+    "timing": "response"
+  },
+  {
+    "id": "action_17",
+    "type": "action",
+    "vp": 0,
+    "count": 1,
+    "tags": [
+      "action:minus_tokens"
+    ],
+    "timing": "on_play"
+  },
+  {
+    "id": "action_18",
+    "type": "action",
+    "vp": 0,
+    "count": 2,
+    "tags": [
+      "action:retrieve_persona_discard"
+    ],
+    "timing": "on_play"
+  }
+]

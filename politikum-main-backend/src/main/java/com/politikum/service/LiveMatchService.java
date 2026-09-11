@@ -2,6 +2,7 @@
 package com.politikum.service;
 
 import com.politikum.util.JsonUtils;
+import com.politikum.engine.GameEngine;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -17,10 +18,10 @@ import java.util.stream.Collectors;
 @Service
 public class LiveMatchService {
     private final JdbcTemplate jdbc;
-    private final GraalPolitikumEngine engine;
+    private final GameEngine engine;
     private final PolitikumRepository repository;
 
-    public LiveMatchService(JdbcTemplate jdbc, GraalPolitikumEngine engine, PolitikumRepository repository) {
+    public LiveMatchService(JdbcTemplate jdbc, GameEngine engine, PolitikumRepository repository) {
         this.jdbc = jdbc;
         this.engine = engine;
         this.repository = repository;
