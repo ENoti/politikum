@@ -20,6 +20,11 @@ public final class JavaAbilityRules {
             case "persona_12_on_enter_adjacent_red_buff" -> redBuff(g, me, card);
             case "around" -> around(g, me, card);
             case "chooseRed" -> { return chooseRed(g, ctx, actor, target); }
+            case "retaliate" -> { return retaliate(g, ctx.get("ownerId").text(), actor, target); }
+            case "skipRetaliation" -> {
+                if (!ownsRetaliation(g, actor)) return false;
+                g.set("pending", null);
+            }
             default -> throw new IllegalArgumentException("Unknown native ability: " + operation);
         }
         return true;
@@ -38,6 +43,27 @@ public final class JavaAbilityRules {
         if (l) give(left, tokens, affected);
         if (r) give(right, tokens, affected);
         if (!affected.isEmpty()) log(g, me.get("name").text() + " adjacency bonus: +" + num(tokens) + " (" + String.join(" + ", affected) + ").");
+    }
+    private static boolean ownsRetaliation(RuleNode g, String actor) {
+        RuleNode pending = g.get("pending");
+        return pending.get("kind").text().equals("persona_13_pick_target")
+            && pending.get("playerId").text().equals(actor);
+    }
+    private boolean retaliate(RuleNode g, String owner, String actor, String targetId) {
+        if (!ownsRetaliation(g, actor)) return false;
+        RuleNode players = g.get("players");
+        RuleNode attacker = players.at(find(players, g.get("pending").get("attackerId").text()));
+        if (attacker.missing() || !owner.equals(attacker.get("id").text())) return false;
+        RuleNode target = attacker.get("coalition").at(find(attacker.get("coalition"), targetId));
+        if (!persona(target) || target.get("shielded").truthy()) return false;
+        scoring.tokens(g, target, -1);
+        scoring.recalculate(g);
+        RuleNode me = players.at(find(players, actor));
+        String who = me.get("name").truthy() ? me.get("name").text() : actor;
+        if (who.equals("You")) who = "Вы";
+        log(g, who + " (Венедитков): дал -1 на " + name(target) + ".");
+        g.set("pending", null);
+        return true;
     }
     private void give(RuleNode card, double amount, List<String> affected) {
         if (!persona(card) || card.get("_adjBonusApplied").truthy()) return;

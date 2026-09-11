@@ -47,5 +47,27 @@
   choice('wrong pending','left','0',s=>s.G.pending.kind='other');
   choice('wrong current','left','0',s=>s.ctx.currentPlayer='1');
   choice('wrong owner','left','0',s=>s.G.pending.playerId='1');
+  function retaliate(name, move='persona13PickTarget', actor='0', owner='1', target='victim', configure=()=>{}) {
+    const s=state([]);
+    s.ctx.currentPlayer='1';
+    s.G.players[1].coalition=[card('victim')];
+    s.G.pending={kind:'persona_13_pick_target',playerId:'0',attackerId:'1',sourceCardId:'action_4'};
+    configure(s); const before=JSON.stringify(s);
+    const result=applyMove(s,actor,move,[owner,target]);
+    if(JSON.stringify(s)!==before)throw Error('input changed');
+    if(result.state.G.trace)delete result.state.G.trace;
+    results.push({name,result});
+  }
+  retaliate('p13 valid off-turn');
+  retaliate('p13 wrong actor','persona13PickTarget','1');
+  retaliate('p13 wrong owner','persona13PickTarget','0','0');
+  retaliate('p13 missing target','persona13PickTarget','0','1','missing');
+  retaliate('p13 shield','persona13PickTarget','0','1','victim',s=>s.G.players[1].coalition[0].shielded=true);
+  retaliate('p13 action target','persona13PickTarget','0','1','victim',s=>s.G.players[1].coalition[0].type='action');
+  retaliate('p13 wrong pending','persona13PickTarget','0','1','victim',s=>s.G.pending.kind='other');
+  retaliate('p13 missing attacker','persona13PickTarget','0','1','victim',s=>s.G.pending.attackerId='missing');
+  retaliate('p13 skip','persona13Skip');
+  retaliate('p13 skip wrong actor','persona13Skip','1');
+  retaliate('p13 skip wrong pending','persona13Skip','0','1','victim',s=>s.G.pending=null);
   return JSON.stringify(results);
 })()

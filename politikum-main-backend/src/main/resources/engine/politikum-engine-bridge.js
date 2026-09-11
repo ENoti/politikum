@@ -3259,30 +3259,11 @@ var PolitikumGame = {
       events.endTurn?.();
     },
     // Persona 13: pick attacker persona to receive -1
-    persona13PickTarget: ({ G, ctx, playerID }, ownerId, coalitionCardId) => {
-      const pend = G.pending;
-      if (!pend || pend.kind !== "persona_13_pick_target") return INVALID_MOVE2;
-      if (String(pend.playerId) !== String(playerID)) return INVALID_MOVE2;
-      const attacker = (G.players || []).find((pp) => String(pp.id) === String(pend.attackerId));
-      if (!attacker) return INVALID_MOVE2;
-      if (String(ownerId) !== String(attacker.id)) return INVALID_MOVE2;
-      const idx = (attacker.coalition || []).findIndex((c) => String(c.id) === String(coalitionCardId));
-      if (idx < 0) return INVALID_MOVE2;
-      const target = attacker.coalition[idx];
-      if (!target || target.type !== "persona") return INVALID_MOVE2;
-      if (target.shielded) return INVALID_MOVE2;
-      applyTokenDelta2(G, target, -1);
-      recalcPassives(G);
-      const me = (G.players || []).find((pp) => String(pp.id) === String(playerID));
-      G.log.push(`${ruYou2(me?.name || playerID)} (\u0412\u0435\u043D\u0435\u0434\u0438\u0442\u043A\u043E\u0432): \u0434\u0430\u043B -1 \u043D\u0430 ${target.name || target.id}.`);
-      G.pending = null;
+    persona13PickTarget: ({ G, playerID }, ownerId, coalitionCardId) => {
+      return nativeAbility('retaliate', G, null, null, { ownerId: String(ownerId) }, playerID, coalitionCardId) ? undefined : INVALID_MOVE2;
     },
     persona13Skip: ({ G, playerID }) => {
-      const pend = G.pending;
-      if (!pend || pend.kind !== "persona_13_pick_target") return INVALID_MOVE2;
-      if (String(pend.playerId) !== String(playerID)) return INVALID_MOVE2;
-      G.pending = null;
-      return;
+      return nativeAbility('skipRetaliation', G, null, null, null, playerID) ? undefined : INVALID_MOVE2;
     }
   })
 };

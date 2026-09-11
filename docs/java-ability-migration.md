@@ -16,4 +16,12 @@ The existing distinction between simple entry-effect tokens and counter-aware ch
 
 Validation: `mvn clean verify` in `politikum-main-backend`. Earlier privacy, lobby, scoring and lifecycle tests remain enabled. No REST, database or frontend contract changes are required.
 
-Remaining work: other ability families, their choice handlers, card-play dispatch, reactions, special victories and bot decisions. Graal remains required. This is a bounded migration increment, not completion of all card mechanics.
+## Fifth bounded increment: persona 13 response
+
+`JavaAbilityRules` now also handles `persona13PickTarget` and `persona13Skip`. It validates the pending-choice owner, attacker, target type and shield before applying the penalty or clearing the choice. The response deliberately does not require the responder to be the current player. Token mirroring and recalculation still use the shared native scoring rules.
+
+The corresponding JS handlers contain transport only. Creation of this response during card-play resolution and automatic bot retaliation remain in JS for a later increment.
+
+Eleven additional legacy scenarios bring the ability fixture to 34 cases: off-turn response, wrong actor/owner/target, shielded or non-persona targets, missing attacker, invalid pending state, and allowed/rejected skips. The first 23 captured outputs remain unchanged. The existing scoring integration test also exercises persona 13 with token mirroring.
+
+Remaining work: other ability families, their choice handlers, card-play dispatch, reactions, special victories and bot decisions. Graal remains required. These are bounded migration increments, not completion of all card mechanics.
