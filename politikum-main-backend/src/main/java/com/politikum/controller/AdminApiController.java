@@ -20,7 +20,7 @@ public class AdminApiController {
 
     public AdminApiController(PolitikumRepository repository,
                               LiveMatchService liveMatchService,
-                              @Value("${politikum.admin-token:12qw12}") String adminToken) {
+                              @Value("${politikum.admin-token}") String adminToken) {
         this.repository = repository;
         this.liveMatchService = liveMatchService;
         this.adminToken = adminToken;

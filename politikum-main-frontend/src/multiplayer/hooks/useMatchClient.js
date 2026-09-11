@@ -38,7 +38,7 @@ export default function useMatchClient({ matchID, playerID, credentials }) {
   };
 
   const refreshState = async () => {
-    const json = await getGameStateApi(matchID);
+    const json = await getGameStateApi(matchID, { playerID, credentials });
     const state = json?.state || json;
     if (!aliveRef.current) return state;
     failCountRef.current = 0;
@@ -96,7 +96,7 @@ export default function useMatchClient({ matchID, playerID, credentials }) {
       aliveRef.current = false;
       clearPoll();
     };
-  }, [matchID, playerID]);
+  }, [matchID, playerID, credentials]);
 
   const moves = useMemo(() => new Proxy({}, {
     get(_target, prop) {

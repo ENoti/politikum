@@ -30,7 +30,7 @@ jobs:
       - name: Build backend
         run: |
           cd politikum-main-backend
-          mvn -DskipTests clean package
+          mvn clean verify
 
   frontend:
     name: Frontend build

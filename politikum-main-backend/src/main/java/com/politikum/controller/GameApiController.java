@@ -56,10 +56,15 @@ public class GameApiController {
     }
 
     @GetMapping("/games/politikum/{matchId}/state")
-    public ResponseEntity<?> getState(@PathVariable String matchId) {
-        Map<String, Object> state = liveMatchService.getState(matchId);
+    public ResponseEntity<?> getState(@PathVariable String matchId,
+                                      @RequestHeader(value = "X-Player-ID", required = false) String playerId,
+                                      @RequestHeader(value = "X-Player-Credentials", required = false) String credentials) {
+        Map<String, Object> state = liveMatchService.getState(matchId, playerId, credentials);
         if (state == null) return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("ok", false, "error", "not_found"));
-        return ResponseEntity.ok(state);
+        if (Boolean.FALSE.equals(state.get("ok"))) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).cacheControl(org.springframework.http.CacheControl.noStore()).body(state);
+        }
+        return ResponseEntity.ok().cacheControl(org.springframework.http.CacheControl.noStore()).body(state);
     }
 
     @PostMapping("/games/politikum/{matchId}/join")

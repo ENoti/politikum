@@ -64,14 +64,19 @@ public class LiveMatchService {
         return row == null ? null : clientMatchView(row);
     }
 
-    public Map<String, Object> getState(String matchId) {
+    public Map<String, Object> getState(String matchId, String playerId, String credentials) {
         Map<String, Object> row = loadRow(matchId);
         if (row == null) return null;
+        Map<String, Object> metadata = parseMap(row.get("metadata_json"));
+        String seatId = blankToNull(playerId);
+        if (seatId != null || blankToNull(credentials) != null) {
+            if (!validCredential(playersMap(metadata), seatId, credentials)) return error("bad_credentials");
+        }
         Map<String, Object> state = parseMap(row.get("state_json"));
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("ok", true);
         out.put("matchID", row.get("match_id"));
-        out.put("state", state);
+        out.put("state", MatchClientView.state(state, seatId));
         out.put("metadata", clientMatchView(row));
         return out;
     }
@@ -158,13 +163,9 @@ public class LiveMatchService {
         Map<String, Object> players = playersMap(metadata);
         String move = string(moveName);
         String seatId = string(playerId);
-        if (!isTickMove(move)) {
-            Map<String, Object> seat = map(players.get(seatId));
-            String expected = blankToNull(string(seat.get("credentials")));
-            if (expected == null || !expected.equals(blankToNull(credentials))) return error("bad_credentials");
-        } else {
-            if (!hasAnyCredential(players, credentials)) return error("bad_credentials");
-        }
+        if (!validCredential(players, seatId, credentials)) return error("bad_credentials");
+        // Identity can only be established by the authenticated join endpoint.
+        if ("setPlayerIdentity".equals(move)) return error("forbidden_move");
 
         Map<String, Object> state = ensureState(parseMap(row.get("state_json")));
         Map<String, Object> engineRes = engine.applyMove(state, seatId, move, args == null ? List.of() : args);
@@ -174,8 +175,9 @@ public class LiveMatchService {
             out.put("error", blankToNull(string(engineRes.get("error"))) == null ? "invalid_move" : string(engineRes.get("error")));
             out.put("message", engineRes.get("message"));
             out.put("currentPlayer", map(map(engineRes.get("state")).get("ctx")).get("currentPlayer"));
-            out.put("pending", map(map(engineRes.get("state")).get("G")).get("pending"));
-            out.put("response", map(map(engineRes.get("state")).get("G")).get("response"));
+            Map<String, Object> publicG = map(MatchClientView.state(map(engineRes.get("state")), seatId).get("G"));
+            out.put("pending", publicG.get("pending"));
+            out.put("response", publicG.get("response"));
             return out;
         }
         Map<String, Object> nextState = ensureState(map(engineRes.get("state")));
@@ -187,7 +189,7 @@ public class LiveMatchService {
         }
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("ok", true);
-        out.put("state", nextState);
+        out.put("state", MatchClientView.state(nextState, seatId));
         return out;
     }
 
@@ -346,7 +348,7 @@ public class LiveMatchService {
 
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("ok", true);
-        out.put("state", state);
+        out.put("state", MatchClientView.state(state, seatId));
         out.put("surrendered", true);
         out.put("gameContinues", !bool(g.get("gameOver")));
         return out;
@@ -656,6 +658,7 @@ public class LiveMatchService {
     private List<Map<String, Object>> clientPlayersList(Map<String, Object> metadata) {
         return playersMap(metadata).values().stream()
             .map(this::map)
+            .map(MatchClientView::seat)
             .sorted(Comparator.comparingInt(m -> number(m.get("id"), 0)))
             .collect(Collectors.toList());
     }
@@ -706,14 +709,9 @@ public class LiveMatchService {
         metadata.put("status", statusOf(state));
     }
 
-    private boolean isTickMove(String move) {
-        return "tick".equals(move) || "tickBot".equals(move);
-    }
-
-    private boolean hasAnyCredential(Map<String, Object> players, String credentials) {
-        String cred = blankToNull(credentials);
-        if (cred == null) return false;
-        return players.values().stream().map(this::map).anyMatch(p -> cred.equals(blankToNull(string(p.get("credentials")))));
+    private boolean validCredential(Map<String, Object> players, String playerId, String credentials) {
+        String expected = blankToNull(string(map(players.get(playerId)).get("credentials")));
+        return expected != null && expected.equals(blankToNull(credentials));
     }
 
     private Map<String, Object> requireRow(String matchId) {

@@ -954,8 +954,8 @@ public class PolitikumRepository {
         dto.put("matchId", row.get("matchId"));
         dto.put("status", row.get("status"));
         dto.put("winnerPlayerId", row.get("winnerPlayerId"));
-        dto.put("seats", res.getOrDefault("seats", List.of()));
-        dto.put("result", res.get("result"));
+        dto.put("seats", tableSeats((String) row.get("resultJson")));
+        dto.put("result", MatchClientView.withoutSecrets(res.get("result")));
         return dto;
     }
 
@@ -967,7 +967,7 @@ public class PolitikumRepository {
                 if (item instanceof Map<?, ?> m) {
                     Map<String, Object> copy = new LinkedHashMap<>();
                     for (Map.Entry<?, ?> e : m.entrySet()) copy.put(String.valueOf(e.getKey()), e.getValue());
-                    out.add(copy);
+                    out.add(MatchClientView.seat(copy));
                 }
             }
             return out;

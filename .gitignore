@@ -10,3 +10,12 @@ politikum-main-backend/*.log
 
 .idea/
 .vscode/
+
+# Local runtime data and secrets
+politikum-main-backend/var/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+.env
+.env.*
+!.env.example

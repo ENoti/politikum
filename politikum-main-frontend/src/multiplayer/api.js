@@ -42,8 +42,14 @@ export async function joinMatchApi(matchID, { playerID, playerName } = {}) {
   return parseJson(res);
 }
 
-export async function getGameStateApi(matchID) {
-  const res = await fetch(`${SERVER}/games/politikum/${encodeURIComponent(String(matchID))}/state`, { cache: 'no-store' });
+export async function getGameStateApi(matchID, { playerID, credentials } = {}) {
+  const res = await fetch(`${SERVER}/games/politikum/${encodeURIComponent(String(matchID))}/state`, {
+    cache: 'no-store',
+    headers: playerID != null && credentials ? {
+      'X-Player-ID': String(playerID),
+      'X-Player-Credentials': credentials,
+    } : {},
+  });
   return parseJson(res);
 }
 
