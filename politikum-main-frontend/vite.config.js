@@ -7,7 +7,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT_DIR = path.dirname(fileURLToPath(import.meta.url));
-const API_TARGET = process.env.VITE_API_SERVER || "http://localhost:8080";
+const API_TARGET = process.env.VITE_API_SERVER || "http://localhost:8081";
 
 function hasGitRepo(cwd = ROOT_DIR) {
   return existsSync(path.join(cwd, ".git"));
