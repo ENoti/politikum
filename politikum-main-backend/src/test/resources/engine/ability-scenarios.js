@@ -99,5 +99,40 @@
   faction('p33 text fallback','faction:system','0',s=>{s.G.players[0].name='Alice'; delete s.G.players[0].coalition[0].name; s.G.players[0].coalition[0].text='Persona text';});
   faction('p33 base name fallback','faction:neutral','0',s=>delete s.G.players[0].coalition[0].name);
   faction('p33 first matching card','faction:leftwing','0',s=>{s.G.players[0].coalition.push(p33({id:'persona_33#2'}));s.G.pending.sourceCardId='persona_33#2';});
+  const p37 = extra => card('persona_37#1', {abilityKey:'persona_37_on_enter_bribe_and_silence', ...extra});
+  ability('p37 entry no target',[p37()],0);
+  ability('p37 entry opponent',[p37()],0,g=>g.players[1].coalition=[card('victim')]);
+  ability('p37 entry shielded opponent',[p37()],0,g=>g.players[1].coalition=[card('victim',{shielded:true})]);
+  ability('p37 entry persona31 excluded',[p37()],0,g=>g.players[1].coalition=[card('persona_31#1')]);
+  ability('p37 entry non-persona excluded',[p37()],0,g=>g.players[1].coalition=[card('victim',{type:'action'})]);
+  ability('p37 blocked entry',[p37({blockedAbilities:true})],0,g=>g.players[1].coalition=[card('victim')]);
+  ability('p37 entry inactive opponent',[p37()],0,g=>{g.players[1].active=false;g.players[1].coalition=[card('victim')];});
+  ability('p37 entry mixed targets',[p37()],0,g=>g.players[1].coalition=[card('persona_31#1'),card('shield',{shielded:true}),card('victim')]);
+  function bribe(name, actor='0', owner='1', target='victim', configure=()=>{}) {
+    const s=state([p37()]);
+    s.G.players[1].coalition=[card('victim')];
+    s.G.pending={kind:'persona_37_pick_opponent_persona',playerId:'0',sourceCardId:'persona_37#1'};
+    configure(s); const before=JSON.stringify(s);
+    const result=applyMove(s,actor,'persona37BribeAndSilence',[owner,target]);
+    if(JSON.stringify(s)!==before)throw Error('input changed');
+    if(result.state.G.trace)delete result.state.G.trace;
+    results.push({name,result});
+  }
+  bribe('p37 valid');
+  bribe('p37 wrong actor','1');
+  bribe('p37 own target','0','0','persona_37#1');
+  bribe('p37 missing owner','0','missing');
+  bribe('p37 missing target','0','1','missing');
+  bribe('p37 shield','0','1','victim',s=>s.G.players[1].coalition[0].shielded=true);
+  bribe('p37 non-persona','0','1','victim',s=>s.G.players[1].coalition[0].type='action');
+  bribe('p37 no pending','0','1','victim',s=>s.G.pending=null);
+  bribe('p37 wrong pending','0','1','victim',s=>s.G.pending.kind='other');
+  bribe('p37 missing player','0','1','victim',s=>s.G.players=s.G.players.slice(1));
+  bribe('p37 off turn','0','1','victim',s=>s.ctx.currentPlayer='1');
+  bribe('p37 absent source still resolves','0','1','victim',s=>s.G.players[0].coalition=[]);
+  bribe('p37 text fallback','0','1','victim',s=>{delete s.G.players[0].coalition[0].name;s.G.players[0].coalition[0].text='Briber';s.G.players[0].name='Alice';delete s.G.players[1].coalition[0].name;});
+  bribe('p37 already blocked','0','1','victim',s=>s.G.players[1].coalition[0].blockedAbilities=true);
+  bribe('p37 existing negative tokens','0','1','victim',s=>Object.assign(s.G.players[1].coalition[0],{vpDelta:-3,minusTokens:3,plusTokens:0}));
+  bribe('p37 pending permits persona31','0','1','persona_31#1',s=>s.G.players[1].coalition=[card('persona_31#1')]);
   return JSON.stringify(results);
 })()

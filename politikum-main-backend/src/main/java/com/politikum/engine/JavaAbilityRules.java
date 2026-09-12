@@ -22,6 +22,8 @@ public final class JavaAbilityRules {
                 "kind", "persona_33_choose_faction", "playerId", me.get("id").text(),
                 "sourceCardId", card.get("id").text()));
             case "chooseFaction" -> { return chooseFaction(g, actor, target); }
+            case "persona_37_on_enter_bribe_and_silence" -> offerBribe(g, me, card);
+            case "bribeAndSilence" -> { return bribeAndSilence(g, ctx.get("ownerId").text(), actor, target); }
             case "around" -> around(g, me, card);
             case "chooseRed" -> { return chooseRed(g, ctx, actor, target); }
             case "retaliate" -> { return retaliate(g, ctx.get("ownerId").text(), actor, target); }
@@ -81,6 +83,53 @@ public final class JavaAbilityRules {
         RuleNode pending = g.get("pending");
         return pending.get("kind").text().equals("persona_13_pick_target")
             && pending.get("playerId").text().equals(actor);
+    }
+    private void offerBribe(RuleNode g, RuleNode me, RuleNode card) {
+        RuleNode players = g.get("players");
+        for (int i = 0; i < players.size(); i++) {
+            RuleNode owner = players.at(i);
+            if (owner.get("id").text().equals(me.get("id").text())) continue;
+            RuleNode coalition = owner.get("coalition");
+            for (int j = 0; j < coalition.size(); j++) {
+                RuleNode candidate = coalition.at(j);
+                if (!persona(candidate) || base(candidate).equals("persona_31") || candidate.get("shielded").truthy()) continue;
+                g.set("pending", object("kind", "persona_37_pick_opponent_persona",
+                    "playerId", me.get("id").text(), "sourceCardId", card.get("id").text()));
+                return;
+            }
+        }
+        String who = me.get("name").text();
+        log(g, (who.equals("You") ? "Вы" : who) + " (persona_37): нет цели для подкупа.");
+    }
+
+    private boolean bribeAndSilence(RuleNode g, String ownerId, String actor, String targetId) {
+        RuleNode pending = g.get("pending");
+        if (!pending.get("kind").text().equals("persona_37_pick_opponent_persona")
+            || !pending.get("playerId").text().equals(actor)) return false;
+        RuleNode players = g.get("players");
+        RuleNode me = players.at(find(players, actor));
+        RuleNode owner = players.at(find(players, ownerId));
+        if (me.missing() || owner.missing() || owner.get("id").text().equals(actor)) return false;
+        RuleNode target = owner.get("coalition").at(find(owner.get("coalition"), targetId));
+        if (!persona(target) || target.get("shielded").truthy()) return false;
+        // Legacy choice resolution does not repeat the entry-time persona_31 exclusion.
+        scoring.tokens(g, target, 2);
+        target.set("blockedAbilities", true);
+        scoring.recalculate(g);
+        String selfName = "persona_37";
+        RuleNode coalition = me.get("coalition");
+        for (int i = 0; i < coalition.size(); i++) {
+            RuleNode self = coalition.at(i);
+            if (!base(self).equals("persona_37")) continue;
+            selfName = self.get("name").truthy() ? self.get("name").text()
+                : self.get("text").truthy() ? self.get("text").text() : "persona_37";
+            break;
+        }
+        String who = me.get("name").text();
+        log(g, (who.equals("You") ? "Вы" : who) + " " + selfName + " подкупил " + name(target)
+            + " (+2) и навсегда заблокировал способности.");
+        g.set("pending", null);
+        return true;
     }
     private boolean retaliate(RuleNode g, String owner, String actor, String targetId) {
         if (!ownsRetaliation(g, actor)) return false;

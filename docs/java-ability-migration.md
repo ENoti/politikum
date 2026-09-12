@@ -47,4 +47,25 @@ including logs and state versions, are compared; input snapshots remain unchange
 The separate automatic faction-selection path for bots still lives in JS. Its
 decision policy and different log wording are deferred with the other bot rules.
 
+## Seventh bounded increment: persona 37 bribe and silence
+
+`JavaAbilityRules` now owns `persona_37_on_enter_bribe_and_silence` and
+`persona37BribeAndSilence`. Java searches opposing coalitions for entry targets,
+creates the pending choice, validates the selected owner/card, awards two tokens
+through the shared scoring rules, permanently blocks the target's abilities,
+recalculates passives, logs the result and clears the pending choice.
+The previous JS bodies are replaced by transport calls.
+
+The port deliberately preserves legacy differences between entry and resolution:
+entry excludes persona 31, but an already pending choice can select an unshielded
+persona 31; inactive opponents are not excluded. Resolution does not require the
+current turn or continued presence of persona 37. An already blocked target remains
+eligible. Bot target selection and its separate resolution path are still in JS.
+
+The 24 new pre-migration snapshots bring the fixture to 82 scenarios, with the
+previous 58 unchanged. Cases cover empty, mixed, shielded, non-persona and inactive
+targets, blocked entry, actor/owner validation, missing participants/cards, invalid
+pending state, off-turn resolution, source-name fallbacks, existing negative tokens
+and repeated blocking. Full state/log equivalence and input immutability are checked.
+
 Remaining work: other ability families, their choice handlers, card-play dispatch, reactions, special victories and bot decisions. Graal remains required. These are bounded migration increments, not completion of all card mechanics.

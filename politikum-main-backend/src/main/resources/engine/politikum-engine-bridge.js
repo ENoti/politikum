@@ -297,15 +297,7 @@ var ABILITIES = {
   persona_36_passive_ignore_action7: () => {
   },
   persona_37_on_enter_bribe_and_silence: ({ G, me, card }) => {
-    const haveTarget = (G.players || []).some((pp) => {
-      if (String(pp.id) === String(me.id)) return false;
-      return (pp.coalition || []).some((c) => c.type === "persona" && baseId(String(c.id)) !== "persona_31" && !c.shielded);
-    });
-    if (!haveTarget) {
-      G.log.push(`${ruYou(me.name)} (persona_37): \u043D\u0435\u0442 \u0446\u0435\u043B\u0438 \u0434\u043B\u044F \u043F\u043E\u0434\u043A\u0443\u043F\u0430.`);
-      return;
-    }
-    G.pending = { kind: "persona_37_pick_opponent_persona", playerId: String(me.id), sourceCardId: String(card.id) };
+    nativeAbility('persona_37_on_enter_bribe_and_silence', G, me, card);
   },
   persona_16_on_enter_draw3_discard3: ({ G, me, card }) => {
     const queuedEvents = [];
@@ -1432,25 +1424,7 @@ var PolitikumGame = {
       G.pending = null;
     },
     persona37BribeAndSilence: ({ G, playerID }, ownerId, coalitionCardId) => {
-      const pend = G.pending;
-      if (!pend || pend.kind !== "persona_37_pick_opponent_persona") return INVALID_MOVE2;
-      if (String(pend.playerId) !== String(playerID)) return INVALID_MOVE2;
-      const me = (G.players || []).find((pp) => String(pp.id) === String(playerID));
-      if (!me) return INVALID_MOVE2;
-      const owner = (G.players || []).find((pp) => String(pp.id) === String(ownerId));
-      if (!owner || String(owner.id) === String(playerID)) return INVALID_MOVE2;
-      const idx = (owner.coalition || []).findIndex((c) => String(c.id) === String(coalitionCardId));
-      if (idx < 0) return INVALID_MOVE2;
-      const target = owner.coalition[idx];
-      if (!target || target.type !== "persona") return INVALID_MOVE2;
-      if (target.shielded) return INVALID_MOVE2;
-      applyTokenDelta2(G, target, 2);
-      target.blockedAbilities = true;
-      recalcPassives(G);
-      const self37 = (me.coalition || []).find((c) => baseId2(String(c.id)) === "persona_37");
-      const selfName = String(self37?.name || self37?.text || "persona_37");
-      G.log.push(`${ruYou2(me.name)} ${selfName} \u043F\u043E\u0434\u043A\u0443\u043F\u0438\u043B ${target.name || target.id} (+2) \u0438 \u043D\u0430\u0432\u0441\u0435\u0433\u0434\u0430 \u0437\u0430\u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u0430\u043B \u0441\u043F\u043E\u0441\u043E\u0431\u043D\u043E\u0441\u0442\u0438.`);
-      G.pending = null;
+      return nativeAbility('bribeAndSilence', G, null, null, { ownerId: String(ownerId) }, playerID, coalitionCardId) ? undefined : INVALID_MOVE2;
     },
     persona33ChooseFaction: ({ G, playerID }, factionTag) => {
       return nativeAbility('chooseFaction', G, null, null, null, playerID, factionTag) ? undefined : INVALID_MOVE2;
