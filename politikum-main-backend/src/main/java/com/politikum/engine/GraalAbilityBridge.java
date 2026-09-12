@@ -21,6 +21,14 @@ public final class GraalAbilityBridge {
             public String persona(String baseId) {
                 return context.getBindings("js").getMember("personaTitleByBaseId").execute(baseId).asString();
             }
+        }, new AbilityEffects() {
+            private Value value(RuleNode n) { return ((GraalRuleNode)n).value(); }
+            public void run(RuleNode g,RuleNode me,RuleNode card) { context.eval("js", "(G,me,card)=>runAbility(card.abilityKey,{G,me,card})").execute(value(g),value(me),value(card)); }
+            public void expire(RuleNode g) { context.getBindings("js").getMember("expireResponseAndResolveDeferred").execute(value(g)); }
+            public boolean endRound(RuleNode g,RuleNode ctx) { return context.getBindings("js").getMember("maybeEndAfterRound").execute(value(g),value(ctx)).asBoolean(); }
+            public double random() { return context.eval("js", "Math.random()").asDouble(); }
+            public String eventTitle(RuleNode card) { return context.getBindings("js").getMember("eventTitle").execute(value(card)).asString(); }
+            public String actor(RuleNode me,String persona) { return context.getBindings("js").getMember("actorWithPersona").execute(value(me),persona).asString(); }
         });
         context.getBindings("js").putMember("__politikumNativeAbility", (ProxyExecutable) args ->
             rules.invoke(args[0].asString(), new GraalRuleNode(args[1],parse), new GraalRuleNode(args[2],parse),

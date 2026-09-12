@@ -165,3 +165,17 @@ owner inference for older clients, token transfer and persona 44 discard bonuses
 The migration preserves the existing differences between entry target filtering
 and final target validation. Clock-fixed comparisons include complete resulting
 state and logs and verify that rejected moves do not mutate the input.
+
+## Hand abilities: personas 16, 17 and 45
+
+`JavaHandAbilityRules` owns drawing three cards, queued-event entry, discard
+selection and duplicate signatures, opponent selection, revealed persona theft,
+and random hand theft. `AbilityEffects` forwards event execution to the remaining
+ability dispatcher and lifecycle work to the existing Java turn engine. Randomness
+and presentation helpers remain adapter inputs. The old hand-limit and missing-id
+selection semantics are preserved for a separate rules review.
+
+The one intentional fix is persona 45 against an empty hand: reject the choice
+without state mutation instead of throwing `toDiscard is not defined`.
+The legacy fixture retains the original exception; the test explicitly checks
+this controlled difference. Other scenarios compare the full legacy state.

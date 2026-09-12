@@ -221,12 +221,7 @@ var ABILITIES = {
     nativeAbility("persona_7_swap_two_in_coalition", G, me, card);
   },
   persona_45_steal_from_opponent: ({ G, me, card }) => {
-    G.pending = {
-      kind: "persona_45_steal_from_opponent",
-      playerId: String(me.id),
-      sourceCardId: String(card.id)
-    };
-    G.log.push(`${me.name} (${card.name || card.id}) \u0441\u043F\u043E\u0441\u043E\u0431\u043D\u043E\u0441\u0442\u044C: \u0437\u0430\u0431\u0438\u0440\u0430\u0435\u0442 \u0441\u043B\u0443\u0447\u0430\u0439\u043D\u0443\u044E \u043A\u0430\u0440\u0442\u0443 \u0438\u0437 \u0440\u0443\u043A\u0438 \u043E\u043F\u043F\u043E\u043D\u0435\u043D\u0442\u0430`);
+    nativeAbility("persona_45_steal_from_opponent", G, me, card);
   },
   // p35: no special abilities
   persona_35_no_ability: () => {
@@ -269,31 +264,7 @@ var ABILITIES = {
     nativeAbility('persona_37_on_enter_bribe_and_silence', G, me, card);
   },
   persona_16_on_enter_draw3_discard3: ({ G, me, card }) => {
-    const queuedEvents = [];
-    for (let i = 0; i < 3; i++) {
-      const next = (G.deck || []).shift();
-      if (!next) break;
-      if (next.type === "event") queuedEvents.push(next);
-      else me.hand.push(next);
-    }
-    G.persona16AfterEvents = {
-      playerId: String(me.id),
-      sourceCardId: String(card.id),
-      events: queuedEvents
-    };
-    const srcName = String(card?.text || card?.name || card?.id || "").trim();
-    if (queuedEvents.length > 0) {
-      const next = queuedEvents.shift();
-      G.persona16AfterEvents.events = queuedEvents;
-      G.lastEvent = next;
-      const title = eventTitle(next);
-      G.log.push(`${ruYou(me.name)} \u0432\u044B\u0442\u044F\u043D\u0443\u043B \u0421\u043E\u0431\u044B\u0442\u0438\u0435 "${title}" \u0438\u0437 \u0441\u043F\u043E\u0441\u043E\u0431\u043D\u043E\u0441\u0442\u0438 ${srcName}.`);
-      runAbility(next.abilityKey, { G, me, card: next });
-      G.discard.push(next);
-    } else {
-      G.pending = { kind: "persona_16_discard3_from_hand", playerId: String(me.id), sourceCardId: String(card.id) };
-    }
-    G.log.push(`${actorWithPersona(me, "persona_16")}: возьмите 3 карты, затем сбросьте 3 карты с руки.`);
+    nativeAbility("persona_16_on_enter_draw3_discard3", G, me, card);
   },
   persona_33_on_enter_choose_faction: ({ G, me, card }) => {
     nativeAbility("persona_33_on_enter_choose_faction", G, me, card);
@@ -332,8 +303,7 @@ var ABILITIES = {
     G.log.push(`${ruYou(me.name)} (${card.name || card.id}) \u0443\u0441\u0438\u043B\u0438\u043B ${affected} \u043B\u0438\u0431\u0435\u0440\u0430\u043B(\u043E\u0432) \u0432 \u0441\u0432\u043E\u0435\u0439 \u043A\u043E\u0430\u043B\u0438\u0446\u0438\u0438 (+1).`);
   },
   persona_17_on_enter_steal_persona: ({ G, me, card }) => {
-    G.pending = { kind: "persona_17_pick_opponent", playerId: String(me.id), sourceCardId: String(card.id) };
-    G.log.push(`${ruYou(me.name)} (${card.name || card.id}): \u0432\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u0441\u043E\u043F\u0435\u0440\u043D\u0438\u043A\u0430 \u2014 \u043F\u043E\u0441\u043C\u043E\u0442\u0440\u0438\u0442\u0435 \u0435\u0433\u043E \u0440\u0443\u043A\u0443 \u0438 \u0437\u0430\u0431\u0435\u0440\u0438\u0442\u0435 1 \u043F\u0435\u0440\u0441\u043E\u043D\u0443.`);
+    nativeAbility("persona_17_on_enter_steal_persona", G, me, card);
   },
   // persona_13 retaliation is implemented in politikum.ts (after action targeting is confirmed)
   persona_13_retaliate_on_targeted_action: () => {
@@ -1084,45 +1054,11 @@ var PolitikumGame = {
       if (!nativeAbility("discardSolovei", G, null, args, ctx, playerID)) return INVALID_MOVE2;
     },
     // Persona 17 (Arno): choose opponent, reveal hand, steal a persona into your hand.
-    persona17PickOpponent: ({ G, ctx, playerID, events }, targetId) => {
-      const pend = G.pending;
-      if (!pend || pend.kind !== "persona_17_pick_opponent") return INVALID_MOVE2;
-      if (String(pend.playerId) !== String(playerID)) return INVALID_MOVE2;
-      if (String(ctx.currentPlayer) !== String(playerID)) return INVALID_MOVE2;
-      const tid = String(targetId || "");
-      if (!tid || tid === String(playerID)) return INVALID_MOVE2;
-      const target = (G.players || []).find((pp) => String(pp.id) === tid);
-      if (!target) return INVALID_MOVE2;
-      const personaCount = (target.hand || []).filter((c) => c && c.type === "persona").length;
-      if (personaCount <= 0) {
-        G.log.push(`${ruYou2(String((G.players || []).find((pp) => String(pp.id) === String(playerID))?.name || ""))} (\u0410\u0440\u043D\u043E): \u0443 ${target.name} \u043D\u0435\u0442 \u043F\u0435\u0440\u0441\u043E\u043D \u0432 \u0440\u0443\u043A\u0435 (\u043F\u0440\u043E\u043F\u0443\u0441\u043A).`);
-        G.pending = null;
-        recalcPassives(G);
-        if (G.hasDrawn && G.hasPlayed && !G.response) {
-          if (maybeEndAfterRound(G, ctx, events)) return;
-          events.endTurn?.();
-        }
-        return;
-      }
-      G.pending = { kind: "persona_17_pick_persona_from_hand", playerId: String(playerID), sourceCardId: String(pend.sourceCardId || "persona_17"), targetId: tid };
+    persona17PickOpponent: ({ G, ctx, playerID, events }, ...args) => {
+      return nativeAbility("pick17", G, events?._queue || [], args, ctx, playerID) ? undefined : INVALID_MOVE2;
     },
-    persona17StealPersonaFromHand: ({ G, ctx, playerID }, cardId) => {
-      const pend = G.pending;
-      if (!pend || pend.kind !== "persona_17_pick_persona_from_hand") return INVALID_MOVE2;
-      if (String(pend.playerId) !== String(playerID)) return INVALID_MOVE2;
-      if (String(ctx.currentPlayer) !== String(playerID)) return INVALID_MOVE2;
-      const me = (G.players || []).find((pp) => String(pp.id) === String(playerID));
-      const target = (G.players || []).find((pp) => String(pp.id) === String(pend.targetId));
-      if (!me || !target) return INVALID_MOVE2;
-      const idx = (target.hand || []).findIndex((c2) => String(c2.id) === String(cardId));
-      if (idx < 0) return INVALID_MOVE2;
-      const c = target.hand[idx];
-      if (!c || c.type !== "persona") return INVALID_MOVE2;
-      target.hand.splice(idx, 1);
-      me.hand.push(c);
-      G.log.push(`${ruYou2(me.name)} (\u0410\u0440\u043D\u043E) \u0437\u0430\u0431\u0440\u0430\u043B ${c.name || c.id} \u0438\u0437 \u0440\u0443\u043A\u0438 ${target.name}.`);
-      G.pending = null;
-      recalcPassives(G);
+    persona17StealPersonaFromHand: ({ G, ctx, playerID, events }, ...args) => {
+      return nativeAbility("steal17", G, events?._queue || [], args, ctx, playerID) ? undefined : INVALID_MOVE2;
     },
     // Persona 32: return a chosen persona from your coalition to your hand.
     persona32BounceToHand: ({ G, playerID }, coalitionCardId) => {
@@ -1221,27 +1157,8 @@ var PolitikumGame = {
       recalcPassives(G);
       G.log.push(`${actorWithPersona(me, "persona_39")} \u0432\u0435\u0440\u043D\u0443\u043B \u0441\u0435\u0431\u044F \u0432 \u043A\u043E\u043B\u043E\u0434\u0443 \u0438 \u0443\u0441\u0438\u043B\u0438\u043B ${buffed} \u043A\u0440\u0430\u0441\u043D.\u043D\u0430\u0446. \u043F\u0435\u0440\u0441\u043E\u043D\u0430\u0436(\u0435\u0439) (+2).`);
     },
-    persona45StealFromOpponent: ({ G, playerID }, targetId) => {
-      const pend = G.pending;
-      if (!pend || pend.kind !== "persona_45_steal_from_opponent") return INVALID_MOVE2;
-      if (String(pend.playerId) !== String(playerID)) return INVALID_MOVE2;
-      const me = (G.players || []).find((pp) => String(pp.id) === String(playerID));
-      if (!me) return INVALID_MOVE2;
-      const target = (G.players || []).find((pp) => String(pp.id) === String(targetId));
-      if (!target || String(target.id) === String(playerID)) return INVALID_MOVE2;
-      const hand = target.hand || [];
-      if (!hand.length) {
-        G.log.push(`${ruYou2(me.name)} сбросил ${toDiscard.length} карт(ы) после добора 3.`);
-        G.pending = null;
-        return;
-      }
-      const idx = Math.floor(Math.random() * hand.length);
-      const [stolen] = hand.splice(idx, 1);
-      if (stolen) {
-        me.hand.push(stolen);
-        G.log.push(`\u0412\u044B \u0441 \u0428\u0443\u043B\u044C\u043C\u0430\u043D \u0437\u0430\u0431\u0440\u0430\u043B\u0438 1 \u043A\u0430\u0440\u0442\u0443 \u0443 ${target.name}.`);
-      }
-      G.pending = null;
+    persona45StealFromOpponent: ({ G, ctx, playerID, events }, ...args) => {
+      return nativeAbility("steal45", G, events?._queue || [], args, ctx, playerID) ? undefined : INVALID_MOVE2;
     },
     // Action 7: pick any persona (any coalition); its abilities are blocked and all vpDelta tokens are cleared.
     blockPersonaForAction7: ({ G, playerID, ctx, events }, ownerId, coalitionCardId) => {
@@ -1419,51 +1336,8 @@ var PolitikumGame = {
       G.hasDrawn = true;
       recalcPassives(G);
     },
-    persona16Discard3FromHand: ({ G, playerID }, cardIdA, cardIdB, cardIdC) => {
-      const pend = G.pending;
-      if (!pend || pend.kind !== "persona_16_discard3_from_hand") return INVALID_MOVE2;
-      if (String(pend.playerId) !== String(playerID)) return INVALID_MOVE2;
-      const _p16Chosen = [cardIdA, cardIdB, cardIdC]
-        .filter(Boolean)
-        .map((x) => String(x))
-        .sort()
-        .join(',');
-
-      const _p16Signature = `${String(pend.sourceCardId || '')}:${_p16Chosen}`;
-
-      if (_p16Chosen && String(G._lastPersona16ResolveSignature || '') === _p16Signature) {
-        G.pending = null;
-        G._lastPersona16ResolveSignature = '';
-        return;
-      }
-
-      G._lastPersona16ResolveSignature = _p16Signature;
-      const me = (G.players || []).find((pp) => String(pp.id) === String(playerID));
-      if (!me) return INVALID_MOVE2;
-      const ids = [cardIdA, cardIdB, cardIdC].map(String);
-      const unique = Array.from(new Set(ids)).filter((x) => x && x !== "undefined" && x !== "null");
-      const handSize = Array.isArray(me.hand) ? me.hand.length : 0;
-      const requiredDiscard = Math.max(0, handSize - 6);
-      const toDiscard = unique.slice(0, Math.min(requiredDiscard, handSize));
-      if (requiredDiscard > 0 && toDiscard.length !== requiredDiscard) return INVALID_MOVE2;
-      for (const id of toDiscard) {
-        const i = (me.hand || []).findIndex((c) => String(c.id) === String(id));
-        if (i >= 0) {
-          const [drop] = me.hand.splice(i, 1);
-          if (drop) {
-            G.discard.push(drop);
-            if (drop.type === "persona") persona44OnPersonaDiscarded(G);
-          }
-        }
-      }
-      G.pending = null;
-      try {
-        expireResponseAndResolveDeferred(G);
-      } catch {
-      }
-      recalcPassives(G);
-      G.log.push(`${ruYou2(me.name)} сбросил ${toDiscard.length} карт(ы), чтобы после добора в руке было не больше 7.`);
-      G._lastPersona16ResolveSignature = '';
+    persona16Discard3FromHand: ({ G, ctx, playerID, events }, ...args) => {
+      return nativeAbility("discard16", G, events?._queue || [], args, ctx, playerID) ? undefined : INVALID_MOVE2;
     },
     // Persona 20: picker from discard (any card type)
     persona20PickFromDiscard: ({ G, playerID }, cardId) => {
