@@ -5,6 +5,11 @@ import static com.politikum.engine.GameState.object;
 
 /** Native adjacency, entry effects and player choices; JS only transports these calls. */
 public final class JavaAbilityRules {
+    /** Display-only compatibility callbacks; game decisions remain in native rules. */
+    public interface Titles {
+        String action(RuleNode card);
+        String persona(String baseId);
+    }
     public interface Scoring {
         void simple(RuleNode card, double delta);
         void tokens(RuleNode g, RuleNode card, double delta);
@@ -14,14 +19,18 @@ public final class JavaAbilityRules {
     private final Scoring scoring;
     private final JavaTokenAbilityRules tokenAbilities;
     private final JavaRecoveryAbilityRules recoveryAbilities;
-    public JavaAbilityRules(Scoring scoring, java.util.function.Function<RuleNode, String> actionTitle) {
+    private final JavaTopdeckAbilityRules topdeckAbility;
+    public JavaAbilityRules(Scoring scoring, Titles titles) {
         this.scoring = scoring;
         this.tokenAbilities = new JavaTokenAbilityRules(scoring);
-        this.recoveryAbilities = new JavaRecoveryAbilityRules(scoring, actionTitle);
+        this.recoveryAbilities = new JavaRecoveryAbilityRules(scoring, titles::action);
+        this.topdeckAbility = new JavaTopdeckAbilityRules(titles::persona);
     }
 
     public boolean invoke(String operation, RuleNode g, RuleNode me, RuleNode card, RuleNode ctx, String actor, String target) {
         switch (operation) {
+            case "persona_34_on_enter_guess_topdeck" -> topdeckAbility.enter(g, me, card);
+            case "guessTopdeck" -> { return topdeckAbility.guess(g, ctx, actor, target); }
             case "persona_20_on_enter_take_from_discard" -> recoveryAbilities.enterDiscard(g, me, card);
             case "persona_32_activate_bounce" -> recoveryAbilities.enterBounce(g, me, card);
             case "recoverDiscard" -> { return recoveryAbilities.pickDiscard(g, actor, target); }

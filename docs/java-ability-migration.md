@@ -128,4 +128,29 @@ missing cards/players/source, action title fallbacks, duplicate IDs, card order,
 shielded/blocked recovery, returning the source itself and cancellation. Earlier
 ability and token fixtures remain unchanged.
 
+## Tenth bounded increment: persona 34 topdeck guess
+
+`JavaTopdeckAbilityRules` owns the entry effect and `persona34GuessTopdeck`.
+Java validates the pending owner, handles skipping, finds the first persona while
+counting intervening non-persona cards, compares base IDs and resolves instant
+victory. It preserves the deck and writes both `G.gameOver` and `ctx.gameover`,
+plus `G.winnerId`, matching the existing `makeEvents.endGame()` behavior without
+running normal round-end scoring. The two JS rule bodies are now transport only.
+
+Display-only action/persona title callbacks are grouped under `JavaAbilityRules.Titles`;
+the shared JS catalog-name formatter remains for now. No card lookup for gameplay,
+winner decision or deck inspection is delegated to that formatter.
+
+Legacy behavior is retained: an existing pending choice can resolve off-turn or
+after the source has disappeared or become blocked. Null deck entries are ignored
+without increasing the skipped count. A guess containing an instance suffix does
+not match the card's base ID. Entry still respects the generic blocked-ability guard.
+
+`topdeck-ability-legacy.json` contains 29 pre-migration snapshots. Tests compare
+complete states, logs and versions and assert input/deck immutability. They cover
+correct/incorrect/unknown guesses, skip and empty inputs, invalid owners/pending,
+missing source/player/deck, mixed decks, title fallbacks and terminal states.
+Follow-up moves after instant victory must fail with `gameover`. All earlier
+ability, token and recovery fixtures remain unchanged.
+
 Remaining work: other ability families, their choice handlers, card-play dispatch, reactions, special victories and bot decisions. Graal remains required. These are bounded migration increments, not completion of all card mechanics.

@@ -312,8 +312,7 @@ var ABILITIES = {
     nativeAbility("persona_33_on_enter_choose_faction", G, me, card);
   },
   persona_34_on_enter_guess_topdeck: ({ G, me, card }) => {
-    G.pending = { kind: "persona_34_guess_topdeck", playerId: String(me.id), sourceCardId: String(card.id) };
-    G.log.push(`${ruYou(me.name)} (${card.name || card.id}): \u0443\u0433\u0430\u0434\u0430\u0439\u0442\u0435 \u0432\u0435\u0440\u0445\u043D\u044E\u044E \u043A\u0430\u0440\u0442\u0443 \u043A\u043E\u043B\u043E\u0434\u044B.`);
+    nativeAbility('persona_34_on_enter_guess_topdeck', G, me, card);
   },
   // persona_39 is activated via move during your turn (no on-enter pending)
   persona_43_on_enter_drain_rightwing: ({ G, me, card }) => {
@@ -1312,46 +1311,8 @@ var PolitikumGame = {
     persona33ChooseFaction: ({ G, playerID }, factionTag) => {
       return nativeAbility('chooseFaction', G, null, null, null, playerID, factionTag) ? undefined : INVALID_MOVE2;
     },
-    persona34GuessTopdeck: ({ G, ctx, playerID, events }, guessBaseId) => {
-      const pend = G.pending;
-      if (!pend || pend.kind !== "persona_34_guess_topdeck") return INVALID_MOVE2;
-      if (String(pend.playerId) !== String(playerID)) return INVALID_MOVE2;
-      const me = (G.players || []).find((pp) => String(pp.id) === String(playerID));
-      if (!me) return INVALID_MOVE2;
-      const guess = String(guessBaseId || "");
-      if (!guess || guess === "skip") {
-        G.pending = null;
-        G.log.push(`${actorWithPersona(me, "persona_34")} \u043F\u0440\u043E\u043F\u0443\u0441\u0442\u0438\u043B \u0433\u0430\u0434\u0430\u043D\u0438\u0435.`);
-        return;
-      }
-      const deck = Array.isArray(G.deck) ? G.deck : [];
-      let found = null;
-      let skipped = 0;
-      for (const c of deck) {
-        if (!c) continue;
-        if (c.type === "persona") {
-          found = c;
-          break;
-        }
-        skipped++;
-      }
-      if (!found) {
-        const guessName2 = personaTitleByBaseId(guess);
-        G.log.push(`${actorWithPersona(me, "persona_34")} \u0437\u0430\u0433\u0430\u0434\u0430\u043B ${guessName2}, \u043D\u043E \u0432 \u043A\u043E\u043B\u043E\u0434\u0435 \u0431\u043E\u043B\u044C\u0448\u0435 \u043D\u0435\u0442 \u043F\u0435\u0440\u0441\u043E\u043D.`);
-        G.pending = null;
-        return;
-      }
-      const actual = baseId2(String(found.id));
-      const guessName = personaTitleByBaseId(guess);
-      const actualName = personaTitleByBaseId(actual);
-      G.log.push(`${actorWithPersona(me, "persona_34")} \u0437\u0430\u0433\u0430\u0434\u0430\u043B ${guessName}. \u0421\u043B\u0435\u0434\u0443\u044E\u0449\u0430\u044F \u043F\u0435\u0440\u0441\u043E\u043D\u0430 \u0432 \u043A\u043E\u043B\u043E\u0434\u0435 (${skipped} \u043F\u0440\u043E\u043F\u0443\u0449\u0435\u043D\u043E): ${actualName}.`);
-      if (guess === actual) {
-        G.gameOver = true;
-        G.winnerId = String(playerID);
-        G.log.push(`${actorWithPersona(me, "persona_34")}: \u0443\u0433\u0430\u0434\u0430\u043B \u2014 \u043C\u0433\u043D\u043E\u0432\u0435\u043D\u043D\u0430\u044F \u043F\u043E\u0431\u0435\u0434\u0430 \u0434\u043B\u044F ${ruYou2(me.name)}.`);
-        events.endGame?.();
-      }
-      G.pending = null;
+    persona34GuessTopdeck: ({ G, ctx, playerID }, guessBaseId) => {
+      return nativeAbility('guessTopdeck', G, null, null, ctx, playerID, guessBaseId) ? undefined : INVALID_MOVE2;
     },
     persona39ActivateRecycle: ({ G, ctx, playerID }) => {
       if (String(ctx.phase || "") !== "action") return INVALID_MOVE2;

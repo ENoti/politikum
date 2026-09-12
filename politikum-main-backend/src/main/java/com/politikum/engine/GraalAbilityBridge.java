@@ -14,7 +14,14 @@ public final class GraalAbilityBridge {
             public void tokens(RuleNode g, RuleNode card, double delta) { context.getBindings("js").getMember("applyTokenDelta2").execute(value(g), value(card), delta); }
             public void recalculate(RuleNode g) { context.getBindings("js").getMember("recalcPassives").execute(value(g)); }
             public void personaDiscarded(RuleNode g) { context.getBindings("js").getMember("persona44OnPersonaDiscarded").execute(value(g)); }
-        }, card -> context.getBindings("js").getMember("actionTitle").execute(((GraalRuleNode) card).value()).asString());
+        }, new JavaAbilityRules.Titles() {
+            public String action(RuleNode card) {
+                return context.getBindings("js").getMember("actionTitle").execute(((GraalRuleNode) card).value()).asString();
+            }
+            public String persona(String baseId) {
+                return context.getBindings("js").getMember("personaTitleByBaseId").execute(baseId).asString();
+            }
+        });
         context.getBindings("js").putMember("__politikumNativeAbility", (ProxyExecutable) args ->
             rules.invoke(args[0].asString(), new GraalRuleNode(args[1],parse), new GraalRuleNode(args[2],parse),
                 new GraalRuleNode(args[3],parse), new GraalRuleNode(args[4],parse), args[5].asString(), args[6].asString()));
