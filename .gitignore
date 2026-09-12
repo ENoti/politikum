@@ -19,3 +19,6 @@ politikum-main-backend/var/
 .env
 .env.*
 !.env.example
+
+politikum-main-frontend/test-results/
+politikum-main-frontend/playwright-report/

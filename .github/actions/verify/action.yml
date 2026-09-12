@@ -1,0 +1,32 @@
+name: Verify release
+description: Build and test Java API and the production frontend before installation
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '21'
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+    - name: Backend tests and package
+      shell: bash
+      run: mvn -B -f politikum-main-backend/pom.xml clean verify
+    - name: HTTP readiness checker tests
+      shell: bash
+      run: node --test scripts/check-http.test.mjs
+    - name: Frontend dependencies, reference checks and production build
+      shell: bash
+      working-directory: politikum-main-frontend
+      run: |
+        npm ci
+        npm run check
+    - name: Install test browser
+      shell: bash
+      working-directory: politikum-main-frontend
+      run: npx playwright install --with-deps chromium
+    - name: Browser create and join smoke test
+      shell: bash
+      working-directory: politikum-main-frontend
+      run: npm run test:e2e

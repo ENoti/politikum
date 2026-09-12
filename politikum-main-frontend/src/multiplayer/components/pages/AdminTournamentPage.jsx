@@ -28,7 +28,7 @@ export default function AdminTournamentPage() {
   const {
     loading, error, items, includeFinished, setIncludeFinished,
     name, setName, type, setType, tableSize, setTableSize, maxPlayers, setMaxPlayers,
-    load, create, setStatus, generateRound1,
+    load, create, setStatus, generateRound1, setLoading, setError, adminPost,
   } = useAdminTournamentData(token);
 
   const fmt = (ms) => {

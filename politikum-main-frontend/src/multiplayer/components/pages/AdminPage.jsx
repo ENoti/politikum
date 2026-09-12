@@ -48,7 +48,7 @@ export default function AdminPage() {
   const {
     summary, games, gamesOffset, gamesHasMore, gamesTotalFinished,
     liveMatches, liveTotal, leaderboard, loading, error,
-    matchLogId, setMatchLogId, matchLogJson,
+    matchLogId, setMatchLogId, matchLogJson, setMatchLogJson,
     setError, setLoading, fetchAdmin, forceSync, killMatch, fetchMatchLog,
   } = useAdminDashboard(token);
 

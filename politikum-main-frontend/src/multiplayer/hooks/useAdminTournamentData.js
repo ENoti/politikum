@@ -104,6 +104,6 @@ export default function useAdminTournamentData(token) {
   return {
     loading, error, items, includeFinished, setIncludeFinished,
     name, setName, type, setType, tableSize, setTableSize, maxPlayers, setMaxPlayers,
-    setError, load, create, setStatus, generateRound1,
+    setError, setLoading, adminPost, load, create, setStatus, generateRound1,
   };
 }

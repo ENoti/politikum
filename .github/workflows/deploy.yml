@@ -6,35 +6,20 @@ on:
 
 concurrency:
   group: production-deploy
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   deploy:
     runs-on: self-hosted
     environment: production
+    timeout-minutes: 25
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build backend
-        run: |
-          cd politikum-main-backend
-          mvn clean verify
-
-      - name: Install frontend dependencies
-        run: |
-          cd politikum-main-frontend
-          if [ -f package-lock.json ]; then
-            npm ci
-          else
-            npm install
-          fi
-
-      - name: Build frontend
-        run: |
-          cd politikum-main-frontend
-          npm run build
+      - name: Verify release before installing files
+        uses: ./.github/actions/verify
 
       - name: Install backend
         run: |
@@ -55,3 +40,18 @@ jobs:
         run: |
           systemctl is-active politikum-backend
           systemctl is-active nginx
+
+      - name: Wait for Java API and nginx routes
+        env:
+          PROBE_HOST: 109.107.167.179
+        run: node scripts/check-http.mjs http://127.0.0.1:8081 http://127.0.0.1
+
+      - name: Save test failure details
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-test-failures
+          path: |
+            politikum-main-backend/target/surefire-reports/
+            politikum-main-frontend/test-results/
+          retention-days: 7
