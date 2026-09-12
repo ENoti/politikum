@@ -25,7 +25,7 @@ runs:
     - name: Install test browser
       shell: bash
       working-directory: politikum-main-frontend
-      run: npx playwright install --with-deps chromium
+      run: npx playwright install chromium
     - name: Browser create and join smoke test
       shell: bash
       working-directory: politikum-main-frontend
