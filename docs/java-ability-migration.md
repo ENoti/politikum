@@ -101,4 +101,31 @@ numeric inputs, capped/fractional requests, own-card transfers, discarding the
 source itself and persona 44's discard bonus. The earlier 82 ability snapshots
 remain unchanged and run alongside these tests.
 
+## Ninth bounded increment: persona 20/32 card recovery
+
+`JavaRecoveryAbilityRules` owns persona 20's entry effect and discard picker, and
+persona 32's entry effect, coalition-to-hand move and cancellation. The five JS
+rule bodies are now transport calls. Java preserves card references, hand order,
+pending ownership, log order and the existing passive recalculation points.
+Action-card display names still use the shared JS `actionTitle` formatter through
+a callback; it makes no game decisions. Bot paths and generic `cancelPending`
+remain in JS.
+
+Legacy behavior is retained deliberately: persona 20's single-action automatic
+pickup adds the live card to the hand without removing it from `G.discard`, because
+the old code removed it only from a filtered array. This is a known duplication
+bug, captured explicitly and deferred to a separate fix. Entry considers only
+actions, while an already pending picker accepts any non-event card. Persona 32
+can return itself, shielded or blocked cards, preserving their token fields; it
+does not trigger persona 44's discard bonus. Choices are not restricted to the
+current turn, and cancel only checks pending kind and owner.
+
+`recovery-ability-legacy.json` contains 51 snapshots captured before replacing the
+JS bodies. `NativeRecoveryAbilityTest` compares complete states/logs/versions and
+the runner checks input immutability and the single-card entry alias. Cases cover
+empty/mixed discards, automatic/manual pickup, wrong actors and pending states,
+missing cards/players/source, action title fallbacks, duplicate IDs, card order,
+shielded/blocked recovery, returning the source itself and cancellation. Earlier
+ability and token fixtures remain unchanged.
+
 Remaining work: other ability families, their choice handlers, card-play dispatch, reactions, special victories and bot decisions. Graal remains required. These are bounded migration increments, not completion of all card mechanics.

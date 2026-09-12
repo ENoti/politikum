@@ -13,10 +13,20 @@ public final class JavaAbilityRules {
     }
     private final Scoring scoring;
     private final JavaTokenAbilityRules tokenAbilities;
-    public JavaAbilityRules(Scoring scoring) { this.scoring = scoring; this.tokenAbilities = new JavaTokenAbilityRules(scoring); }
+    private final JavaRecoveryAbilityRules recoveryAbilities;
+    public JavaAbilityRules(Scoring scoring, java.util.function.Function<RuleNode, String> actionTitle) {
+        this.scoring = scoring;
+        this.tokenAbilities = new JavaTokenAbilityRules(scoring);
+        this.recoveryAbilities = new JavaRecoveryAbilityRules(scoring, actionTitle);
+    }
 
     public boolean invoke(String operation, RuleNode g, RuleNode me, RuleNode card, RuleNode ctx, String actor, String target) {
         switch (operation) {
+            case "persona_20_on_enter_take_from_discard" -> recoveryAbilities.enterDiscard(g, me, card);
+            case "persona_32_activate_bounce" -> recoveryAbilities.enterBounce(g, me, card);
+            case "recoverDiscard" -> { return recoveryAbilities.pickDiscard(g, actor, target); }
+            case "bounceToHand" -> { return recoveryAbilities.bounce(g, actor, target); }
+            case "cancelBounce" -> { return recoveryAbilities.cancelBounce(g, actor); }
             case "persona_21_on_enter_invert_tokens" -> tokenAbilities.enter(21, g, me, card);
             case "persona_26_on_enter_purge_red_inherit_plus" -> tokenAbilities.enter(26, g, me, card);
             case "persona_28_on_enter_steal_plus_tokens" -> tokenAbilities.enter(28, g, me, card);

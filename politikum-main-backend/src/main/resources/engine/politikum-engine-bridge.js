@@ -262,8 +262,7 @@ var ABILITIES = {
     nativeAbility('persona_28_on_enter_steal_plus_tokens', G, me, card);
   },
   persona_32_activate_bounce: ({ G, me, card }) => {
-    G.pending = { kind: "persona_32_pick_bounce_target", playerId: String(me.id), sourceCardId: String(card.id), cancellable: true };
-    G.log.push(`${ruYou(me.name)} (${card.name || card.id}): \u0432\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043F\u0435\u0440\u0441\u043E\u043D\u0443 \u0432 \u0441\u0432\u043E\u0435\u0439 \u043A\u043E\u0430\u043B\u0438\u0446\u0438\u0438, \u0447\u0442\u043E\u0431\u044B \u0432\u0435\u0440\u043D\u0443\u0442\u044C \u0432 \u0440\u0443\u043A\u0443.`);
+    nativeAbility('persona_32_activate_bounce', G, me, card);
   },
   persona_38_global_event_token_vacuum: () => {
   },
@@ -354,26 +353,7 @@ var ABILITIES = {
   persona_13_retaliate_on_targeted_action: () => {
   },
   persona_20_on_enter_take_from_discard: ({ G, me, card }) => {
-    const discard = (G.discard || []).filter((c) => c && c.type === "action");
-    if (!discard.length) {
-      G.log.push(`\u0412 \u0441\u0442\u043E\u043F\u043A\u0435 \u0441\u0431\u0440\u043E\u0441\u0430 \u043D\u0438\u0447\u0435\u0433\u043E \u043D\u0435 \u043D\u0430\u0448\u043B\u043E\u0441\u044C!`);
-      return;
-    }
-    if (discard.length === 1) {
-      const [only] = discard.splice(0, 1);
-      if (only) {
-        me.hand.push(only);
-        const actionName = String(only?.text || only?.name || only.name || only.id);
-        G.log.push(`${ruYou(me.name)} \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u044F \u0411\u044B\u043A\u043E\u0432\u0430 \u0432\u0437\u044F\u043B ${actionName} \u0438\u0437 \u0441\u0431\u0440\u043E\u0441\u0430.`);
-      }
-      return;
-    }
-    G.pending = {
-      kind: "persona_20_pick_from_discard",
-      playerId: String(me.id),
-      sourceCardId: String(card.id)
-    };
-    G.log.push(`${ruYou(me.name)} \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043B\u0438 \u0411\u044B\u043A\u043E\u0432\u0430: \u0432\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043A\u0430\u0440\u0442\u0443 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044F \u0438\u0437 \u0441\u0442\u043E\u043F\u043A\u0438 \u0441\u0431\u0440\u043E\u0441\u0430 \u0441\u0435\u0431\u0435 \u0432 \u0440\u0443\u043A\u0443`);
+    nativeAbility('persona_20_on_enter_take_from_discard', G, me, card);
   },
   event_draw_cards: ({ G, me, card }) => {
     const count = Number(card?.params?.count ?? 1);
@@ -1264,20 +1244,7 @@ var PolitikumGame = {
     },
     // Persona 32: return a chosen persona from your coalition to your hand.
     persona32BounceToHand: ({ G, playerID }, coalitionCardId) => {
-      const pend = G.pending;
-      if (!pend || pend.kind !== "persona_32_pick_bounce_target") return INVALID_MOVE2;
-      if (String(pend.playerId) !== String(playerID)) return INVALID_MOVE2;
-      const me = (G.players || []).find((pp) => String(pp.id) === String(playerID));
-      if (!me) return INVALID_MOVE2;
-      const idx = (me.coalition || []).findIndex((c) => String(c.id) === String(coalitionCardId));
-      if (idx < 0) return INVALID_MOVE2;
-      const target = me.coalition[idx];
-      if (!target || target.type !== "persona") return INVALID_MOVE2;
-      me.coalition.splice(idx, 1);
-      me.hand.push(target);
-      G.log.push(`${actorWithPersona(me, "persona_32")} \u0432\u0435\u0440\u043D\u0443\u043B ${target.name || target.id} \u0432 \u0440\u0443\u043A\u0443.`);
-      G.pending = null;
-      recalcPassives(G);
+      return nativeAbility('bounceToHand', G, null, null, null, playerID, coalitionCardId) ? undefined : INVALID_MOVE2;
     },
     // Generic cancel for selected pendings (stability)
     cancelPending: ({ G, ctx, playerID }) => {
@@ -1337,10 +1304,7 @@ var PolitikumGame = {
     },
     // Persona 32: cancel (do nothing)
     persona32CancelBounce: ({ G, playerID }) => {
-      const pend = G.pending;
-      if (!pend || pend.kind !== "persona_32_pick_bounce_target") return INVALID_MOVE2;
-      if (String(pend.playerId) !== String(playerID)) return INVALID_MOVE2;
-      G.pending = null;
+      return nativeAbility('cancelBounce', G, null, null, null, playerID) ? undefined : INVALID_MOVE2;
     },
     persona37BribeAndSilence: ({ G, playerID }, ownerId, coalitionCardId) => {
       return nativeAbility('bribeAndSilence', G, null, null, { ownerId: String(ownerId) }, playerID, coalitionCardId) ? undefined : INVALID_MOVE2;
@@ -1659,21 +1623,7 @@ var PolitikumGame = {
     },
     // Persona 20: picker from discard (any card type)
     persona20PickFromDiscard: ({ G, playerID }, cardId) => {
-      const pend = G.pending;
-      if (!pend || pend.kind !== "persona_20_pick_from_discard") return INVALID_MOVE2;
-      if (String(pend.playerId) !== String(playerID)) return INVALID_MOVE2;
-      const idx = (G.discard || []).findIndex((c2) => String(c2.id) === String(cardId));
-      if (idx < 0) return INVALID_MOVE2;
-      const c = G.discard[idx];
-      if (!c) return INVALID_MOVE2;
-      if (c.type === "event") return INVALID_MOVE2;
-      G.discard.splice(idx, 1);
-      const me = (G.players || []).find((pp) => String(pp.id) === String(playerID));
-      if (!me) return INVALID_MOVE2;
-      me.hand.push(c);
-      const title = c.type === "action" ? actionTitle(c) : c.name || c.id;
-      G.log.push(`${ruYou2(me.name)} \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u044F \u0411\u044B\u043A\u043E\u0432\u0430 \u0432\u0437\u044F\u043B \xAB${title}\xBB \u0438\u0437 \u0441\u0431\u0440\u043E\u0441\u0430.`);
-      G.pending = null;
+      return nativeAbility('recoverDiscard', G, null, null, null, playerID, cardId) ? undefined : INVALID_MOVE2;
     },
     tickBot: ({ G, ctx, events }) => {
       try {
