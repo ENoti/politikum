@@ -215,23 +215,10 @@ var ABILITIES = {
     G.pending = { kind: "persona_3_choice", playerId: String(me.id), sourceCardId: String(card.id) };
   },
   persona_5_discard_liberal_steal_tokens: ({ G, me, card }) => {
-    const haveTarget = (G.players || []).some((pp) => {
-      if (!pp || String(pp.id) === String(me.id)) return false;
-      return (pp.coalition || []).some((c) => c && c.type === "persona" && !c.shielded && baseId(String(c.id)) !== "persona_31" && Array.isArray(c.tags) && c.tags.includes("faction:liberal"));
-    });
-    if (!haveTarget) {
-      G.log.push(`\u041D\u0438 \u043E\u0434\u043D\u043E\u0433\u043E \u043B\u0438\u0431\u0435\u0440\u0430\u043B\u0430 \u043D\u0430 \u0432\u0441\u044E \u0438\u0433\u0440\u0443. \u042D\u0442\u043E \u043F\u0440\u043E\u0432\u0430\u043B!`);
-      return;
-    }
-    G.pending = { kind: "persona_5_pick_liberal", playerId: String(me.id), sourceCardId: String(card.id) };
+    nativeAbility("persona_5_discard_liberal_steal_tokens", G, me, card);
   },
   persona_7_swap_two_in_coalition: ({ G, me, card }) => {
-    G.pending = {
-      kind: "persona_7_swap_two_in_coalition",
-      playerId: String(me.id),
-      sourceCardId: String(card.id)
-    };
-    G.log.push(`${ruYou(me.name)} \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043B\u0438 \u0441\u043F\u043E\u0441\u043E\u0431\u043D\u043E\u0441\u0442\u044C \u041A\u0430\u0441\u043F\u0430\u0440\u043E\u0432\u0430: \u0432\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043A\u043E\u0430\u043B\u0438\u0446\u0438\u044E \u0438 \u0434\u0432\u0443\u0445 \u043F\u0435\u0440\u0441\u043E\u043D \u0434\u043B\u044F \u043F\u0435\u0440\u0435\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0438.`);
+    nativeAbility("persona_7_swap_two_in_coalition", G, me, card);
   },
   persona_45_steal_from_opponent: ({ G, me, card }) => {
     G.pending = {
@@ -872,34 +859,8 @@ var PolitikumGame = {
     persona12ChooseAdjacentRed: ({ G, ctx, playerID }, targetCoalitionCardId) => {
       return nativeAbility('chooseRed', G, null, null, ctx, playerID, targetCoalitionCardId) ? undefined : INVALID_MOVE2;
     },
-    persona5PickLiberal: ({ G, ctx, playerID, events }, ownerId, coalitionCardId) => {
-      const pend = G.pending;
-      if (!pend || pend.kind !== "persona_5_pick_liberal") return INVALID_MOVE2;
-      if (String(playerID) !== String(ctx.currentPlayer)) return INVALID_MOVE2;
-      if (String(pend.playerId) !== String(playerID)) return INVALID_MOVE2;
-      const me = (G.players || []).find((pp) => String(pp.id) === String(playerID));
-      if (!me) return INVALID_MOVE2;
-      const self = (me.coalition || []).find((c) => String(c.id) === String(pend.sourceCardId));
-      if (!self) return INVALID_MOVE2;
-      const owner = (G.players || []).find((pp) => String(pp.id) === String(ownerId));
-      if (!owner || String(owner.id) === String(playerID)) return INVALID_MOVE2;
-      const idx = (owner.coalition || []).findIndex((c) => String(c.id) === String(coalitionCardId));
-      if (idx < 0) return INVALID_MOVE2;
-      const target = owner.coalition[idx];
-      if (target?.shielded) return INVALID_MOVE2;
-      if (!Array.isArray(target?.tags) || !target.tags.includes("faction:liberal")) return INVALID_MOVE2;
-      const [drop] = owner.coalition.splice(idx, 1);
-      if (drop) G.discard.push(drop);
-      const tok = Number(drop?.vpDelta || 0);
-      if (tok) {
-        applyTokenDelta2(G, self, tok);
-        drop.vpDelta = 0;
-        drop.plusTokens = 0;
-        drop.minusTokens = 0;
-      }
-      G.log.push(`${ruYou2(me.name)} (${self?.name || self?.text || "persona_5"}): \u0441\u0431\u0440\u043E\u0441\u0438\u043B ${drop?.name || drop?.id} \u0438 \u0443\u043A\u0440\u0430\u043B ${tok} \u0436\u0435\u0442\u043E\u043D(\u043E\u0432).`);
-      G.pending = null;
-      recalcPassives(G);
+    persona5PickLiberal: ({ G, ctx, playerID, events }, ...args) => {
+      if (!nativeAbility("pickLiberal", G, null, args, ctx, playerID)) return INVALID_MOVE2;
       maybeTriggerRoundEnd(G, ctx);
       if (maybeEndAfterRound(G, ctx, events)) return;
       events.endTurn?.();
@@ -982,37 +943,8 @@ var PolitikumGame = {
     // Persona 7: on-enter, swap two personas within a chosen coalition.
     // Robustness: some clients accidentally send the wrong ownerId (mobile/old UI path).
     // If ownerId doesn't match, infer the owner by locating BOTH persona instance ids in the same coalition.
-    persona7SwapTwoInCoalition: ({ G, ctx, playerID }, ownerId, firstPersonaId, secondPersonaId) => {
-      const pend = G.pending;
-      if (!pend || pend.kind !== "persona_7_swap_two_in_coalition") return INVALID_MOVE2;
-      if (String(pend.playerId) !== String(playerID)) return INVALID_MOVE2;
-      if (String(ctx?.currentPlayer || "") !== String(playerID)) return INVALID_MOVE2;
-      const fid = String(firstPersonaId || "");
-      const sid = String(secondPersonaId || "");
-      if (!fid || !sid || fid === sid) return INVALID_MOVE2;
-      let owner = (G.players || []).find((pp) => String(pp.id) === String(ownerId));
-      const findOwnerByBoth = () => {
-        return (G.players || []).find((pp) => {
-          const ids = new Set((pp.coalition || []).map((c) => String(c?.id || "")));
-          return ids.has(fid) && ids.has(sid);
-        });
-      };
-      if (!owner) owner = findOwnerByBoth();
-      const idxA0 = (owner?.coalition || []).findIndex((c) => String(c.id) === fid);
-      const idxB0 = (owner?.coalition || []).findIndex((c) => String(c.id) === sid);
-      if (!owner || idxA0 < 0 || idxB0 < 0) owner = findOwnerByBoth();
-      const idxA = (owner?.coalition || []).findIndex((c) => String(c.id) === fid);
-      const idxB = (owner?.coalition || []).findIndex((c) => String(c.id) === sid);
-      if (!owner || idxA < 0 || idxB < 0 || idxA === idxB) return INVALID_MOVE2;
-      const ca = owner.coalition[idxA];
-      const cb = owner.coalition[idxB];
-      if (!ca || !cb || ca.type !== "persona" || cb.type !== "persona") return INVALID_MOVE2;
-      owner.coalition[idxA] = cb;
-      owner.coalition[idxB] = ca;
-      const me = (G.players || []).find((pp) => String(pp.id) === String(playerID));
-      G.log.push(`${ruYou2(me?.name || playerID)} \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043B\u0438 \u0441\u043F\u043E\u0441\u043E\u0431\u043D\u043E\u0441\u0442\u044C \u041A\u0430\u0441\u043F\u0430\u0440\u043E\u0432\u0430 \u0438 \u043F\u043E\u043C\u0435\u043D\u044F\u043B\u0438 \u043C\u0435\u0441\u0442\u0430\u043C\u0438 ${ca.name || ca.id} \u0438 ${cb.name || cb.id} \u0443 ${owner.name}.`);
-      G.pending = null;
-      recalcPassives(G);
+    persona7SwapTwoInCoalition: ({ G, ctx, playerID, events }, ...args) => {
+      if (!nativeAbility("swapCoalition", G, null, args, ctx, playerID)) return INVALID_MOVE2;
     },
     // Persona 8: swap Lazerson (p8) with the just-played persona (during cancel_persona response window)
     persona8SwapWithPlayedPersona: ({ G, playerID }) => {
@@ -1142,63 +1074,14 @@ var PolitikumGame = {
       return nativeAbility('stealPlus', G, null, null, { ownerId: String(ownerId), amount: Number(n ?? 3) }, playerID, coalitionCardId) ? undefined : INVALID_MOVE2;
     },
     // Persona 11 (Solovei): optional at start of turn
-    persona11Skip: ({ G, ctx, playerID }) => {
-      const pend = G.pending;
-      if (!pend || pend.kind !== "persona_11_offer") return INVALID_MOVE2;
-      if (String(pend.playerId) !== String(playerID)) return INVALID_MOVE2;
-      if (String(ctx.currentPlayer) !== String(playerID)) return INVALID_MOVE2;
-      G.pending = null;
+    persona11Skip: ({ G, ctx, playerID, events }, ...args) => {
+      if (!nativeAbility("skipSolovei", G, null, args, ctx, playerID)) return INVALID_MOVE2;
     },
-    persona11Use: ({ G, ctx, playerID }) => {
-      const pend = G.pending;
-      if (!pend || pend.kind !== "persona_11_offer") return INVALID_MOVE2;
-      if (String(pend.playerId) !== String(playerID)) return INVALID_MOVE2;
-      if (String(ctx.currentPlayer) !== String(playerID)) return INVALID_MOVE2;
-      if (G.hasDrawn) return INVALID_MOVE2;
-      const me = (G.players || []).find((pp) => String(pp.id) === String(playerID));
-      if (!me) return INVALID_MOVE2;
-      const i11 = (me.coalition || []).findIndex((c) => baseId2(String(c.id)) === "persona_11");
-      if (i11 < 0) return INVALID_MOVE2;
-      const haveTargets = (G.players || []).some((pp) => {
-        if (String(pp.id) === String(me.id)) return false;
-        return (pp.coalition || []).some((c) => c.type === "persona" && baseId2(String(c.id)) !== "persona_31" && !c.shielded);
-      });
-      if (!haveTargets) {
-        G.pending = null;
-        return INVALID_MOVE2;
-      }
-      G.log.push(`${ruYou2(me.name)} \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0435\u0442 \u0421\u043E\u043B\u043E\u0432\u044C\u044F: \u0434\u043E\u0431\u043E\u0440 \u043F\u0440\u043E\u043F\u0443\u0449\u0435\u043D.`);
-      G.pending = { kind: "persona_11_pick_opponent_persona", playerId: String(playerID), sourceCardId: "persona_11" };
+    persona11Use: ({ G, ctx, playerID, events }, ...args) => {
+      if (!nativeAbility("useSolovei", G, null, args, ctx, playerID)) return INVALID_MOVE2;
     },
-    persona11DiscardOpponentPersona: ({ G, ctx, playerID, events }, ownerId, coalitionCardId) => {
-      const pend = G.pending;
-      if (!pend || pend.kind !== "persona_11_pick_opponent_persona") return INVALID_MOVE2;
-      if (String(pend.playerId) !== String(playerID)) return INVALID_MOVE2;
-      if (String(ctx.currentPlayer) !== String(playerID)) return INVALID_MOVE2;
-      const me = (G.players || []).find((pp) => String(pp.id) === String(playerID));
-      if (!me) return INVALID_MOVE2;
-      const i11 = (me.coalition || []).findIndex((c) => baseId2(String(c.id)) === "persona_11");
-      if (i11 < 0) return INVALID_MOVE2;
-      const owner = (G.players || []).find((pp) => String(pp.id) === String(ownerId));
-      if (!owner || String(owner.id) === String(playerID)) return INVALID_MOVE2;
-      const idx = (owner.coalition || []).findIndex((c) => String(c.id) === String(coalitionCardId));
-      if (idx < 0) return INVALID_MOVE2;
-      const target = owner.coalition[idx];
-      if (!target || target.type !== "persona") return INVALID_MOVE2;
-      if (target.shielded) return INVALID_MOVE2;
-      const [sol] = me.coalition.splice(i11, 1);
-      if (sol) {
-        G.discard.push(sol);
-        if (sol.type === "persona") persona44OnPersonaDiscarded(G);
-      }
-      const [drop] = owner.coalition.splice(idx, 1);
-      if (drop) {
-        G.discard.push(drop);
-        if (drop.type === "persona") persona44OnPersonaDiscarded(G);
-      }
-      G.log.push(`${ruYou2(me.name)} (\u0421\u043E\u043B\u043E\u0432\u0435\u0439): \u0441\u0431\u0440\u043E\u0441\u0438\u043B \u0441\u0435\u0431\u044F \u0438 ${drop?.name || drop?.id} \u0443 ${owner.name}.`);
-      G.pending = null;
-      recalcPassives(G);
+    persona11DiscardOpponentPersona: ({ G, ctx, playerID, events }, ...args) => {
+      if (!nativeAbility("discardSolovei", G, null, args, ctx, playerID)) return INVALID_MOVE2;
     },
     // Persona 17 (Arno): choose opponent, reveal hand, steal a persona into your hand.
     persona17PickOpponent: ({ G, ctx, playerID, events }, targetId) => {

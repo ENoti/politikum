@@ -17,11 +17,13 @@ public final class JavaAbilityRules {
         void personaDiscarded(RuleNode g);
     }
     private final Scoring scoring;
+    private final JavaCoalitionAbilityRules coalitionAbilities;
     private final JavaTokenAbilityRules tokenAbilities;
     private final JavaRecoveryAbilityRules recoveryAbilities;
     private final JavaTopdeckAbilityRules topdeckAbility;
     public JavaAbilityRules(Scoring scoring, Titles titles) {
         this.scoring = scoring;
+        this.coalitionAbilities = new JavaCoalitionAbilityRules(scoring);
         this.tokenAbilities = new JavaTokenAbilityRules(scoring);
         this.recoveryAbilities = new JavaRecoveryAbilityRules(scoring, titles::action);
         this.topdeckAbility = new JavaTopdeckAbilityRules(titles::persona);
@@ -29,6 +31,9 @@ public final class JavaAbilityRules {
 
     public boolean invoke(String operation, RuleNode g, RuleNode me, RuleNode card, RuleNode ctx, String actor, String target) {
         switch (operation) {
+            case "persona_5_discard_liberal_steal_tokens" -> coalitionAbilities.enter(5,g,me,card);
+            case "persona_7_swap_two_in_coalition" -> coalitionAbilities.enter(7,g,me,card);
+            case "pickLiberal", "swapCoalition", "skipSolovei", "useSolovei", "discardSolovei" -> { return coalitionAbilities.choose(operation,g,ctx,actor,card); }
             case "persona_34_on_enter_guess_topdeck" -> topdeckAbility.enter(g, me, card);
             case "guessTopdeck" -> { return topdeckAbility.guess(g, ctx, actor, target); }
             case "persona_20_on_enter_take_from_discard" -> recoveryAbilities.enterDiscard(g, me, card);

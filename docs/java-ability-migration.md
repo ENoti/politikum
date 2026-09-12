@@ -154,3 +154,14 @@ Follow-up moves after instant victory must fail with `gameover`. All earlier
 ability, token and recovery fixtures remain unchanged.
 
 Remaining work: other ability families, their choice handlers, card-play dispatch, reactions, special victories and bot decisions. Graal remains required. These are bounded migration increments, not completion of all card mechanics.
+
+## Coalition choices: personas 5, 7 and 11
+
+`JavaCoalitionAbilityRules` owns entry selection for 5/7, coalition swaps,
+liberal discard/token transfer, and Solovei's optional offer and discard.
+The persona 5 wrapper only forwards the existing Java lifecycle calls.
+Legacy snapshots cover ownership, turn guards, missing sources, shielded targets,
+owner inference for older clients, token transfer and persona 44 discard bonuses.
+The migration preserves the existing differences between entry target filtering
+and final target validation. Clock-fixed comparisons include complete resulting
+state and logs and verify that rejected moves do not mutate the input.
