@@ -69,5 +69,35 @@
   retaliate('p13 skip','persona13Skip');
   retaliate('p13 skip wrong actor','persona13Skip','1');
   retaliate('p13 skip wrong pending','persona13Skip','0','1','victim',s=>s.G.pending=null);
+  const p33 = extra => card('persona_33#1', {abilityKey:'persona_33_on_enter_choose_faction', ...extra});
+  ability('p33 enter', [p33()], 0);
+  ability('p33 blocked entry', [p33({blockedAbilities:true})], 0);
+  function faction(name, tag='faction:liberal', actor='0', configure=()=>{}) {
+    const s=state([p33()]);
+    s.G.pending={kind:'persona_33_choose_faction',playerId:'0',sourceCardId:'persona_33#1'};
+    configure(s); const before=JSON.stringify(s);
+    const result=applyMove(s,actor,'persona33ChooseFaction',tag===undefined?[]:[tag]);
+    if(JSON.stringify(s)!==before)throw Error('input changed');
+    if(result.state.G.trace)delete result.state.G.trace;
+    results.push({name,result});
+  }
+  for (const tag of ['liberal','rightwing','leftwing','fbk','red_nationalist','system','neutral']) {
+    faction('p33 faction '+tag,'faction:'+tag);
+  }
+  faction('p33 unknown faction','faction:unknown');
+  faction('p33 missing prefix','liberal');
+  faction('p33 empty','');
+  faction('p33 null',null);
+  faction('p33 wrong actor','faction:fbk','1');
+  faction('p33 wrong pending','faction:fbk','0',s=>s.G.pending.kind='other');
+  faction('p33 no pending','faction:fbk','0',s=>s.G.pending=null);
+  faction('p33 missing player','faction:fbk','0',s=>s.G.players=s.G.players.slice(1));
+  faction('p33 missing card','faction:fbk','0',s=>s.G.players[0].coalition=[]);
+  faction('p33 off turn','faction:fbk','0',s=>s.ctx.currentPlayer='1');
+  faction('p33 replace faction','faction:fbk','0',s=>s.G.players[0].coalition[0].chosenFactionTag='faction:liberal');
+  faction('p33 blocked existing choice','faction:fbk','0',s=>s.G.players[0].coalition[0].blockedAbilities=true);
+  faction('p33 text fallback','faction:system','0',s=>{s.G.players[0].name='Alice'; delete s.G.players[0].coalition[0].name; s.G.players[0].coalition[0].text='Persona text';});
+  faction('p33 base name fallback','faction:neutral','0',s=>delete s.G.players[0].coalition[0].name);
+  faction('p33 first matching card','faction:leftwing','0',s=>{s.G.players[0].coalition.push(p33({id:'persona_33#2'}));s.G.pending.sourceCardId='persona_33#2';});
   return JSON.stringify(results);
 })()

@@ -3,7 +3,7 @@ package com.politikum.engine;
 import java.util.*;
 import static com.politikum.engine.GameState.object;
 
-/** First native ability group: adjacency and persona 4/12 effects. */
+/** Native adjacency, entry effects and player choices; JS only transports these calls. */
 public final class JavaAbilityRules {
     public interface Scoring {
         void simple(RuleNode card, double delta);
@@ -18,6 +18,10 @@ public final class JavaAbilityRules {
             case "on_enter_adjacent_bonus" -> adjacent(g, me, card);
             case "persona_4_on_enter_twitter_penalty" -> twitter(g, me, card);
             case "persona_12_on_enter_adjacent_red_buff" -> redBuff(g, me, card);
+            case "persona_33_on_enter_choose_faction" -> g.set("pending", object(
+                "kind", "persona_33_choose_faction", "playerId", me.get("id").text(),
+                "sourceCardId", card.get("id").text()));
+            case "chooseFaction" -> { return chooseFaction(g, actor, target); }
             case "around" -> around(g, me, card);
             case "chooseRed" -> { return chooseRed(g, ctx, actor, target); }
             case "retaliate" -> { return retaliate(g, ctx.get("ownerId").text(), actor, target); }
@@ -43,6 +47,35 @@ public final class JavaAbilityRules {
         if (l) give(left, tokens, affected);
         if (r) give(right, tokens, affected);
         if (!affected.isEmpty()) log(g, me.get("name").text() + " adjacency bonus: +" + num(tokens) + " (" + String.join(" + ", affected) + ").");
+    }
+    private static final Map<String, String> FACTIONS = Map.of(
+        "faction:liberal", "Либерал", "faction:rightwing", "Правый",
+        "faction:leftwing", "Левый", "faction:fbk", "ФБК",
+        "faction:red_nationalist", "Красный Националист",
+        "faction:system", "Системный", "faction:neutral", "Нейтрал");
+
+    private boolean chooseFaction(RuleNode g, String actor, String tag) {
+        RuleNode pending = g.get("pending");
+        if (!pending.get("kind").text().equals("persona_33_choose_faction")
+            || !pending.get("playerId").text().equals(actor)) return false;
+        RuleNode me = g.get("players").at(find(g.get("players"), actor));
+        if (me.missing()) return false;
+        // Preserve legacy selection of the first persona_33, even if sourceCardId differs.
+        RuleNode coalition = me.get("coalition");
+        for (int i = 0; i < coalition.size(); i++) {
+            RuleNode self = coalition.at(i);
+            if (!base(self).equals("persona_33")) continue;
+            if (!FACTIONS.containsKey(tag)) return false;
+            self.set("chosenFactionTag", tag);
+            scoring.recalculate(g);
+            String title = self.get("name").truthy() ? self.get("name").text()
+                : self.get("text").truthy() ? self.get("text").text() : "persona_33";
+            String who = me.get("name").text();
+            log(g, (who.equals("You") ? "Вы" : who) + " " + title + " выбрала фракцию " + FACTIONS.get(tag) + ".");
+            g.set("pending", null);
+            return true;
+        }
+        return false;
     }
     private static boolean ownsRetaliation(RuleNode g, String actor) {
         RuleNode pending = g.get("pending");

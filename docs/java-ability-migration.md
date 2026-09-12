@@ -24,4 +24,27 @@ The corresponding JS handlers contain transport only. Creation of this response 
 
 Eleven additional legacy scenarios bring the ability fixture to 34 cases: off-turn response, wrong actor/owner/target, shielded or non-persona targets, missing attacker, invalid pending state, and allowed/rejected skips. The first 23 captured outputs remain unchanged. The existing scoring integration test also exercises persona 13 with token mirroring.
 
+## Sixth bounded increment: persona 33 faction choice
+
+`JavaAbilityRules` now owns `persona_33_on_enter_choose_faction` and the player move
+`persona33ChooseFaction`: pending creation, owner/card validation, the seven allowed
+factions, setting `chosenFactionTag`, passive recalculation, logging and clearing the
+choice. Both previous JS implementations have been replaced with transport calls.
+
+The port preserves existing behavior: the responder need not be the current player;
+an already pending choice is not rejected if the card becomes blocked; the first
+persona 33 in the coalition is used even if `sourceCardId` names another copy.
+The entry dispatcher still suppresses blocked abilities. No game-rule corrections
+or changes to REST, persisted state, the frontend or database are included.
+
+The fixture now contains 58 scenarios. The 24 added cases were captured from the
+old JS implementation before replacing it; the first 34 outputs are unchanged.
+Coverage includes entry/blocked entry, every faction, invalid and empty selections,
+wrong actor or pending state, missing player/card, off-turn choice, replacement of
+an existing faction, display-name fallbacks and duplicate cards. Complete results,
+including logs and state versions, are compared; input snapshots remain unchanged.
+
+The separate automatic faction-selection path for bots still lives in JS. Its
+decision policy and different log wording are deferred with the other bot rules.
+
 Remaining work: other ability families, their choice handlers, card-play dispatch, reactions, special victories and bot decisions. Graal remains required. These are bounded migration increments, not completion of all card mechanics.

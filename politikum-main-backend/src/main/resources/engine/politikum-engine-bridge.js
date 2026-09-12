@@ -335,7 +335,7 @@ var ABILITIES = {
     G.log.push(`${actorWithPersona(me, "persona_16")}: возьмите 3 карты, затем сбросьте 3 карты с руки.`);
   },
   persona_33_on_enter_choose_faction: ({ G, me, card }) => {
-    G.pending = { kind: "persona_33_choose_faction", playerId: String(me.id), sourceCardId: String(card.id) };
+    nativeAbility("persona_33_on_enter_choose_faction", G, me, card);
   },
   persona_34_on_enter_guess_topdeck: ({ G, me, card }) => {
     G.pending = { kind: "persona_34_guess_topdeck", playerId: String(me.id), sourceCardId: String(card.id) };
@@ -590,26 +590,6 @@ function eventTitleByBaseId2(bid) {
       return "\u041F\u043E\u043B\u0438\u0442\u0438\u0447\u0435\u0441\u043A\u0438\u0439 [\u0420\u041E\u0421\u041A\u041E\u041C\u041D\u0410\u0414\u0417\u041E\u0420]";
     default:
       return "";
-  }
-}
-function factionTitle(tag) {
-  switch (String(tag || "")) {
-    case "faction:red_nationalist":
-      return "\u041A\u0440\u0430\u0441\u043D\u044B\u0439 \u041D\u0430\u0446\u0438\u043E\u043D\u0430\u043B\u0438\u0441\u0442";
-    case "faction:liberal":
-      return "\u041B\u0438\u0431\u0435\u0440\u0430\u043B";
-    case "faction:rightwing":
-      return "\u041F\u0440\u0430\u0432\u044B\u0439";
-    case "faction:leftwing":
-      return "\u041B\u0435\u0432\u044B\u0439";
-    case "faction:fbk":
-      return "\u0424\u0411\u041A";
-    case "faction:system":
-      return "\u0421\u0438\u0441\u0442\u0435\u043C\u043D\u044B\u0439";
-    case "faction:neutral":
-      return "\u041D\u0435\u0439\u0442\u0440\u0430\u043B";
-    default:
-      return tag;
   }
 }
 function actionTitleByBaseId(bid) {
@@ -1473,22 +1453,7 @@ var PolitikumGame = {
       G.pending = null;
     },
     persona33ChooseFaction: ({ G, playerID }, factionTag) => {
-      const pend = G.pending;
-      if (!pend || pend.kind !== "persona_33_choose_faction") return INVALID_MOVE2;
-      if (String(pend.playerId) !== String(playerID)) return INVALID_MOVE2;
-      const me = (G.players || []).find((pp) => String(pp.id) === String(playerID));
-      if (!me) return INVALID_MOVE2;
-      const self = (me.coalition || []).find((c) => baseId2(String(c.id)) === "persona_33");
-      if (!self) return INVALID_MOVE2;
-      const tag = String(factionTag || "");
-      if (!tag.startsWith("faction:")) return INVALID_MOVE2;
-      const KNOWN = /* @__PURE__ */ new Set(["faction:liberal", "faction:rightwing", "faction:leftwing", "faction:fbk", "faction:red_nationalist", "faction:system", "faction:neutral"]);
-      if (!KNOWN.has(tag)) return INVALID_MOVE2;
-      self.chosenFactionTag = tag;
-      recalcPassives(G);
-      const pname = String(self?.name || self?.text || "persona_33");
-      G.log.push(`${ruYou2(me.name)} ${pname} \u0432\u044B\u0431\u0440\u0430\u043B\u0430 \u0444\u0440\u0430\u043A\u0446\u0438\u044E ${factionTitle(tag)}.`);
-      G.pending = null;
+      return nativeAbility('chooseFaction', G, null, null, null, playerID, factionTag) ? undefined : INVALID_MOVE2;
     },
     persona34GuessTopdeck: ({ G, ctx, playerID, events }, guessBaseId) => {
       const pend = G.pending;
