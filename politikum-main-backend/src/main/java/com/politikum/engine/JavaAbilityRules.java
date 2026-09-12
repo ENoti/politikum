@@ -9,12 +9,20 @@ public final class JavaAbilityRules {
         void simple(RuleNode card, double delta);
         void tokens(RuleNode g, RuleNode card, double delta);
         void recalculate(RuleNode g);
+        void personaDiscarded(RuleNode g);
     }
     private final Scoring scoring;
-    public JavaAbilityRules(Scoring scoring) { this.scoring = scoring; }
+    private final JavaTokenAbilityRules tokenAbilities;
+    public JavaAbilityRules(Scoring scoring) { this.scoring = scoring; this.tokenAbilities = new JavaTokenAbilityRules(scoring); }
 
     public boolean invoke(String operation, RuleNode g, RuleNode me, RuleNode card, RuleNode ctx, String actor, String target) {
         switch (operation) {
+            case "persona_21_on_enter_invert_tokens" -> tokenAbilities.enter(21, g, me, card);
+            case "persona_26_on_enter_purge_red_inherit_plus" -> tokenAbilities.enter(26, g, me, card);
+            case "persona_28_on_enter_steal_plus_tokens" -> tokenAbilities.enter(28, g, me, card);
+            case "invertTokens" -> { return tokenAbilities.choose(21, g, ctx, actor, target); }
+            case "purgeRed" -> { return tokenAbilities.choose(26, g, ctx, actor, target); }
+            case "stealPlus" -> { return tokenAbilities.choose(28, g, ctx, actor, target); }
             case "on_enter_adjacent_bonus" -> adjacent(g, me, card);
             case "persona_4_on_enter_twitter_penalty" -> twitter(g, me, card);
             case "persona_12_on_enter_adjacent_red_buff" -> redBuff(g, me, card);

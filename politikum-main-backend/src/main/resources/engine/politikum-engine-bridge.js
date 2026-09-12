@@ -245,8 +245,7 @@ var ABILITIES = {
   persona_35_no_ability: () => {
   },
   persona_21_on_enter_invert_tokens: ({ G, me, card }) => {
-    G.pending = { kind: "persona_21_pick_target_invert", playerId: String(me.id), sourceCardId: String(card.id) };
-    G.log.push(`${actorWithPersona(me, "persona_21")} выбрал способность: инвертировать жетоны любого персонажа.`);
+    nativeAbility('persona_21_on_enter_invert_tokens', G, me, card);
   },
   persona_22_global_enter_mods: () => {
   },
@@ -257,26 +256,10 @@ var ABILITIES = {
   persona_24_passive_dual_leftwing_scaler: () => {
   },
   persona_26_on_enter_purge_red_inherit_plus: ({ G, me, card }) => {
-    const haveTarget = (G.players || []).some((pp) => (pp.coalition || []).some((c) => c.type === "persona" && baseId(String(c.id)) !== "persona_31" && !c.shielded && Array.isArray(c.tags) && c.tags.includes("faction:red_nationalist")));
-    if (!haveTarget) {
-      G.log.push(`${actorWithPersona(me, "persona_26")}: нет красно-националистического персонажа для сброса.`);
-      return;
-    }
-    G.pending = { kind: "persona_26_pick_red_nationalist", playerId: String(me.id), sourceCardId: String(card.id) };
-    G.log.push(`${me.name} \u0440\u0430\u0437\u044B\u0433\u0440\u0430\u043B \u0441\u043F\u043E\u0441\u043E\u0431\u043D\u043E\u0441\u0442\u044C \u0414\u0435\u043C\u0443\u0448\u043A\u0438\u043D\u0430: \u0432\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043A\u0440\u0430\u0441\u043D\u043E\u0433\u043E \u043D\u0430\u0446\u0438\u043E\u043D\u0430\u043B\u0438\u0441\u0442\u0430, \u0447\u0442\u043E\u0431\u044B \u0441\u0431\u0440\u043E\u0441\u0438\u0442\u044C \u0438 \u0443\u043D\u0430\u0441\u043B\u0435\u0434\u043E\u0432\u0430\u0442\u044C \u0435\u0433\u043E +1 \u0442\u043E\u043A\u0435\u043D\u044B`);
+    nativeAbility('persona_26_on_enter_purge_red_inherit_plus', G, me, card);
   },
   persona_28_on_enter_steal_plus_tokens: ({ G, me, card }) => {
-    try {
-      const haveAnyPlus = (G.players || []).some((pp) => (pp.coalition || []).some((c) => c?.type === "persona" && !c?.shielded && baseId(String(c?.id || "")) !== "persona_31" && Number(c?.vpDelta || 0) > 0));
-      if (!haveAnyPlus) {
-        G.log.push(`${me.name} \u0440\u0430\u0437\u044B\u0433\u0440\u0430\u043B \u0441\u043F\u043E\u0441\u043E\u0431\u043D\u043E\u0441\u0442\u044C \u0412\u0435\u0434\u0443\u0442\u0430: \u0432\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043F\u0435\u0440\u0441\u043E\u043D\u0430\u0436\u0430 \u043D\u0435 \u0438\u0437 \u0424\u0411\u041A, \u0438 \u0437\u0430\u0431\u0435\u0440\u0438\u0442\u0435 \u0443 \u043D\u0435\u0433\u043E \u0434\u043E 3-\u0451\u0445 +1 \u0442\u043E\u043A\u0435\u043D\u043E\u0432`);
-        G.log.push(`${me.name} \u041D\u0438 \u0443 \u043A\u043E\u0433\u043E \u043D\u0435 \u043D\u0430\u0448\u043B\u043E\u0441\u044C \u0442\u043E\u043A\u0435\u043D\u043E\u0432. \u042D\u0442\u043E \u043A\u0430\u043A\u043E\u0439-\u0442\u043E \u043F\u0440\u043E\u0432\u0430\u043B!`);
-        return;
-      }
-    } catch {
-    }
-    G.pending = { kind: "persona_28_pick_non_fbk", playerId: String(me.id), sourceCardId: String(card.id) };
-    G.log.push(`${me.name} \u0440\u0430\u0437\u044B\u0433\u0440\u0430\u043B \u0441\u043F\u043E\u0441\u043E\u0431\u043D\u043E\u0441\u0442\u044C \u0412\u0435\u0434\u0443\u0442\u0430: \u0432\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043F\u0435\u0440\u0441\u043E\u043D\u0430\u0436\u0430 \u043D\u0435 \u0438\u0437 \u0424\u0411\u041A, \u0438 \u0437\u0430\u0431\u0435\u0440\u0438\u0442\u0435 \u0443 \u043D\u0435\u0433\u043E \u0434\u043E 3-\u0451\u0445 +1 \u0442\u043E\u043A\u0435\u043D\u043E\u0432`);
+    nativeAbility('persona_28_on_enter_steal_plus_tokens', G, me, card);
   },
   persona_32_activate_bounce: ({ G, me, card }) => {
     G.pending = { kind: "persona_32_pick_bounce_target", playerId: String(me.id), sourceCardId: String(card.id), cancellable: true };
@@ -1127,25 +1110,7 @@ var PolitikumGame = {
     },
     // Persona 45: on-enter, choose opponent then steal 1 facedown card from their hand.
     persona21InvertTokens: ({ G, playerID }, ownerId, coalitionCardId) => {
-      const pend = G.pending;
-      if (!pend || pend.kind !== "persona_21_pick_target_invert") return INVALID_MOVE2;
-      if (String(pend.playerId) !== String(playerID)) return INVALID_MOVE2;
-      const owner = (G.players || []).find((pp) => String(pp.id) === String(ownerId));
-      if (!owner) return INVALID_MOVE2;
-      const idx = (owner.coalition || []).findIndex((c) => String(c.id) === String(coalitionCardId));
-      if (idx < 0) return INVALID_MOVE2;
-      const target = owner.coalition[idx];
-      if (!target || target.type !== "persona") return INVALID_MOVE2;
-      const before = Number(target.vpDelta || 0);
-      const prevPlus = Number(target.plusTokens ?? Math.max(0, before));
-      const prevMinus = Number(target.minusTokens ?? Math.max(0, -before));
-      target.plusTokens = prevMinus;
-      target.minusTokens = prevPlus;
-      target.vpDelta = -before;
-      recalcPassives(G);
-      const me = (G.players || []).find((pp) => String(pp.id) === String(playerID));
-      G.log.push(`${ruYou2(me?.name || playerID)} \u043F\u0435\u0440\u0435\u0432\u0435\u0440\u043D\u0443\u043B \u0436\u0435\u0442\u043E\u043D\u044B \u043D\u0430 ${target.name || target.id} (${before} \u2192 ${target.vpDelta}).`);
-      G.pending = null;
+      return nativeAbility('invertTokens', G, null, null, { ownerId: String(ownerId) }, playerID, coalitionCardId) ? undefined : INVALID_MOVE2;
     },
     persona23ChooseSelfInflict: ({ G, playerID }, n) => {
       const pend = G.pending;
@@ -1192,56 +1157,10 @@ var PolitikumGame = {
       recalcPassives(G);
     },
     persona26PurgeRedNationalist: ({ G, playerID }, ownerId, coalitionCardId) => {
-      const pend = G.pending;
-      if (!pend || pend.kind !== "persona_26_pick_red_nationalist") return INVALID_MOVE2;
-      if (String(pend.playerId) !== String(playerID)) return INVALID_MOVE2;
-      const me = (G.players || []).find((pp) => String(pp.id) === String(playerID));
-      if (!me) return INVALID_MOVE2;
-      const self = (me.coalition || []).find((c) => baseId2(String(c.id)) === "persona_26");
-      if (!self) return INVALID_MOVE2;
-      const owner = (G.players || []).find((pp) => String(pp.id) === String(ownerId));
-      if (!owner) return INVALID_MOVE2;
-      const idx = (owner.coalition || []).findIndex((c) => String(c.id) === String(coalitionCardId));
-      if (idx < 0) return INVALID_MOVE2;
-      const target = owner.coalition[idx];
-      if (!target || target.type !== "persona") return INVALID_MOVE2;
-      if (!Array.isArray(target.tags) || !target.tags.includes("faction:red_nationalist")) return INVALID_MOVE2;
-      if (target.shielded) return INVALID_MOVE2;
-      const plus = Math.max(0, Number(target.vpDelta || 0));
-      owner.coalition.splice(idx, 1);
-      G.discard.push(target);
-      if (target.type === "persona") persona44OnPersonaDiscarded(G);
-      if (plus) applyTokenDelta2(G, self, plus);
-      recalcPassives(G);
-      G.log.push(`${actorWithPersona(me, "persona_26")} \u0441\u0431\u0440\u043E\u0441\u0438\u043B ${target.name || target.id} \u0438 \u0443\u043D\u0430\u0441\u043B\u0435\u0434\u043E\u0432\u0430\u043B ${plus} \xD7 +1.`);
-      G.pending = null;
+      return nativeAbility('purgeRed', G, null, null, { ownerId: String(ownerId) }, playerID, coalitionCardId) ? undefined : INVALID_MOVE2;
     },
     persona28StealPlusTokens: ({ G, playerID }, ownerId, coalitionCardId, n) => {
-      const pend = G.pending;
-      if (!pend || pend.kind !== "persona_28_pick_non_fbk") return INVALID_MOVE2;
-      if (String(pend.playerId) !== String(playerID)) return INVALID_MOVE2;
-      const me = (G.players || []).find((pp) => String(pp.id) === String(playerID));
-      if (!me) return INVALID_MOVE2;
-      const self = (me.coalition || []).find((c) => baseId2(String(c.id)) === "persona_28");
-      if (!self) return INVALID_MOVE2;
-      const owner = (G.players || []).find((pp) => String(pp.id) === String(ownerId));
-      if (!owner) return INVALID_MOVE2;
-      const idx = (owner.coalition || []).findIndex((c) => String(c.id) === String(coalitionCardId));
-      if (idx < 0) return INVALID_MOVE2;
-      const target = owner.coalition[idx];
-      if (!target || target.type !== "persona") return INVALID_MOVE2;
-      if (Array.isArray(target.tags) && target.tags.includes("faction:fbk")) return INVALID_MOVE2;
-      if (target.shielded) return INVALID_MOVE2;
-      const want = Math.max(0, Math.min(3, Number(n ?? 3)));
-      const avail = Math.max(0, Number(target.vpDelta || 0));
-      const take = Math.min(want, avail);
-      if (take) {
-        applyTokenDelta2(G, target, -take);
-        applyTokenDelta2(G, self, take);
-      }
-      recalcPassives(G);
-      G.log.push(`${actorWithPersona(me, "persona_28")} \u0443\u043A\u0440\u0430\u043B ${take} \xD7 +1 \u0443 ${target.name || target.id}.`);
-      G.pending = null;
+      return nativeAbility('stealPlus', G, null, null, { ownerId: String(ownerId), amount: Number(n ?? 3) }, playerID, coalitionCardId) ? undefined : INVALID_MOVE2;
     },
     // Persona 11 (Solovei): optional at start of turn
     persona11Skip: ({ G, ctx, playerID }) => {

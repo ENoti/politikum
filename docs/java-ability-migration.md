@@ -68,4 +68,37 @@ targets, blocked entry, actor/owner validation, missing participants/cards, inva
 pending state, off-turn resolution, source-name fallbacks, existing negative tokens
 and repeated blocking. Full state/log equivalence and input immutability are checked.
 
+## Eighth bounded increment: persona 21/26/28 token abilities
+
+`JavaTokenAbilityRules` is a separate rule family, called by the existing native
+ability dispatcher. It owns entry effects and player choices for:
+
+- Persona 21: creation of the target choice, inversion of net token balance and
+  swapping positive/negative counters, including legacy counter fallbacks.
+- Persona 26: entry target availability, target validation, discard, persona 44
+  discard bonuses and inheritance of the target's positive **net balance**.
+- Persona 28: entry availability, target validation and transferring up to three
+  tokens, bounded by requested amount and the positive net balance.
+
+All six old JS bodies are replaced by transport calls. The scoring bridge reuses
+the already native `JavaScoringRules` for token transfers, mirroring, passives and
+discard bonuses. Amount coercion is retained at the transport boundary; limits and
+game decisions are Java-owned. Bot decision/resolution paths remain in JS.
+
+Compatibility deliberately includes the existing asymmetries: persona 21 can
+invert a shielded or own card; persona 26/28 choices require their source card but
+not the current turn; entry excludes persona 31 while pending resolution does not
+repeat that exclusion. Persona 28's entry check can offer a choice when only FBK
+cards have positive balances, although that choice rejects FBK targets. Own-card
+targets, fractional amounts and zero transfers retain their previous behavior.
+
+`token-ability-legacy.json` captures 98 scenarios from the pre-migration JS code.
+`NativeTokenAbilityTest` compares complete output states, logs and versions by
+scenario, and checks input immutability through the scenario runner. Coverage
+includes valid/invalid actors and targets, missing source/owner, blocked entry,
+shielded targets, faction filters, counter fallbacks, negative/zero balances,
+numeric inputs, capped/fractional requests, own-card transfers, discarding the
+source itself and persona 44's discard bonus. The earlier 82 ability snapshots
+remain unchanged and run alongside these tests.
+
 Remaining work: other ability families, their choice handlers, card-play dispatch, reactions, special victories and bot decisions. Graal remains required. These are bounded migration increments, not completion of all card mechanics.
