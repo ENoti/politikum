@@ -179,3 +179,38 @@ The one intentional fix is persona 45 against an empty hand: reject the choice
 without state mutation instead of throwing `toDiscard is not defined`.
 The legacy fixture retains the original exception; the test explicitly checks
 this controlled difference. Other scenarios compare the full legacy state.
+
+## Reactions and response orchestration
+
+`JavaResponseRules` owns persona 8's swap, both persona 10 cancel aliases,
+reaction cards 6/8/14, creation of action/persona response windows, human/bot
+responder selection, automatic bot cancellation, and generic pending cancellation.
+Existing `JavaTurnRules` continues to own expiry, skipping, deferred resolution
+and turn completion. The JS move layer forwards the corresponding operations.
+The duplicate action 8 cancellation body and JS response-duration constants were
+removed. The 15-second windows, 900ms expiry tolerance and the existing action 8
+grace check are preserved, including the expiry call before action dispatch.
+
+`JavaMigratedBotAbilities` also migrates the remaining bot execution branches for
+5/7/11/17/45. Bot choices that occur before drawing remain before drawing; the
+other abilities execute after drawing, as in the legacy scheduler. Tests compare
+these complete tick results, including draw logs and subsequent turn scheduling.
+The generic bot scheduler and unmigrated action/event effects still use JS.
+
+Legacy quirks intentionally retained: persona 5's bot path does not reset the
+removed card's tokens; persona 8 window eligibility checks the played-card owner
+for human activity; persona 8 swapping preserves the deferred pending record.
+These are not silently changed as part of migration. Fixtures cover response
+expiry boundaries, targeting/ownership, discard bonuses, protected persona 33,
+window creation, bot cancellation and cancellation of pending choices.
+
+This batch adds 220 deterministic legacy comparisons: 51 coalition, 57 hand and
+112 response/bot/cancellation scenarios. The persona 45 empty-hand correction is
+the explicitly asserted exception to legacy equality.
+
+Validation for this batch: `mvn -o clean verify` (34 JUnit tests),
+`node --test scripts/check-http.test.mjs` (8 tests), frontend `npm run check`,
+and both Playwright scenarios passed locally with the packaged Java backend.
+The browser scenarios create/join/start/restore a game and verify that a failed
+create request keeps the welcome page usable. These are local results, not a
+claim about a production deployment or a GitHub Actions run.

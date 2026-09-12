@@ -17,6 +17,8 @@ public final class JavaAbilityRules {
         void personaDiscarded(RuleNode g);
     }
     private final Scoring scoring;
+    private final JavaMigratedBotAbilities botAbilities;
+    private final JavaResponseRules responses;
     private final JavaHandAbilityRules handAbilities;
     private final JavaCoalitionAbilityRules coalitionAbilities;
     private final JavaTokenAbilityRules tokenAbilities;
@@ -24,6 +26,8 @@ public final class JavaAbilityRules {
     private final JavaTopdeckAbilityRules topdeckAbility;
     public JavaAbilityRules(Scoring scoring, Titles titles, AbilityEffects effects) {
         this.scoring = scoring;
+        this.botAbilities = new JavaMigratedBotAbilities(scoring,effects);
+        this.responses = new JavaResponseRules(scoring,effects);
         this.handAbilities = new JavaHandAbilityRules(scoring,effects);
         this.coalitionAbilities = new JavaCoalitionAbilityRules(scoring);
         this.tokenAbilities = new JavaTokenAbilityRules(scoring);
@@ -33,6 +37,20 @@ public final class JavaAbilityRules {
 
     public boolean invoke(String operation, RuleNode g, RuleNode me, RuleNode card, RuleNode ctx, String actor, String target) {
         switch (operation) {
+            case "botEarlyChoice" -> {
+                String kind=g.get("pending").get("kind").text();
+                return (kind.equals("persona_11_offer")||kind.startsWith("persona_17_pick_"))&&botAbilities.choose(g,me,ctx,card);
+            }
+            case "botMigratedChoice" -> { return botAbilities.choose(g,me,ctx,card); }
+            case "cancelPending" -> { return responses.cancelPending(g,ctx,actor); }
+            case "swapResponse" -> { return responses.swap(g,actor); }
+            case "cancel10" -> { return responses.cancel10(g,actor); }
+            case "handlesResponse" -> { return responses.handles(g,card,ctx,actor); }
+            case "responseAction" -> { return responses.action(g,me,card,ctx,actor); }
+            case "openActionResponse" -> responses.openAction(g,me,card,actor,true);
+            case "openUntargetedResponse" -> responses.openAction(g,me,card,actor,false);
+            case "playedPersonaResponse" -> responses.playedPersona(g,me,card,actor);
+            case "botPersonaResponse" -> responses.openBotPersona(g,card,actor);
             case "persona_16_on_enter_draw3_discard3" -> handAbilities.enter(16,g,me,card);
             case "persona_17_on_enter_steal_persona" -> handAbilities.enter(17,g,me,card);
             case "persona_45_steal_from_opponent" -> handAbilities.enter(45,g,me,card);

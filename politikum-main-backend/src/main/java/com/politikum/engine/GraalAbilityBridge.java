@@ -26,6 +26,11 @@ public final class GraalAbilityBridge {
             public void run(RuleNode g,RuleNode me,RuleNode card) { context.eval("js", "(G,me,card)=>runAbility(card.abilityKey,{G,me,card})").execute(value(g),value(me),value(card)); }
             public void expire(RuleNode g) { context.getBindings("js").getMember("expireResponseAndResolveDeferred").execute(value(g)); }
             public boolean endRound(RuleNode g,RuleNode ctx) { return context.getBindings("js").getMember("maybeEndAfterRound").execute(value(g),value(ctx)).asBoolean(); }
+            public double score(RuleNode player) { return context.getBindings("js").getMember("scorePlayer").execute(value(player)).asDouble(); }
+            public long now() { return context.getBindings("js").getMember("nowMs").execute().asLong(); }
+            public boolean responseExpired(RuleNode g) { return context.getBindings("js").getMember("responseExpired").execute(value(g)).asBoolean(); }
+            public String actionTitle(RuleNode card) { return context.eval("js", "c=>actionTitleByBaseId(baseId2(String(c?.id || ''))) || actionTitle(c) || String(c?.id || '')").execute(value(card)).asString(); }
+            public void adjacent(RuleNode g,RuleNode me,RuleNode card) { context.getBindings("js").getMember("applyAdjacencyBonusesAround").execute(value(g),value(me),value(card)); }
             public double random() { return context.eval("js", "Math.random()").asDouble(); }
             public String eventTitle(RuleNode card) { return context.getBindings("js").getMember("eventTitle").execute(value(card)).asString(); }
             public String actor(RuleNode me,String persona) { return context.getBindings("js").getMember("actorWithPersona").execute(value(me),persona).asString(); }
