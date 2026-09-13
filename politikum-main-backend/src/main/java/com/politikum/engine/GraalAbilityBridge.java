@@ -24,6 +24,7 @@ public final class GraalAbilityBridge {
         }, new AbilityEffects() {
             private Value value(RuleNode n) { return ((GraalRuleNode)n).value(); }
             public void run(RuleNode g,RuleNode me,RuleNode card) { context.eval("js", "(G,me,card)=>runAbility(card.abilityKey,{G,me,card})").execute(value(g),value(me),value(card)); }
+            public void eventPlayed(RuleNode g,RuleNode card) { context.getBindings("js").getMember("persona38OnEventPlayed").execute(value(g),value(card)); }
             public void expire(RuleNode g) { context.getBindings("js").getMember("expireResponseAndResolveDeferred").execute(value(g)); }
             public boolean endRound(RuleNode g,RuleNode ctx) { return context.getBindings("js").getMember("maybeEndAfterRound").execute(value(g),value(ctx)).asBoolean(); }
             public double score(RuleNode player) { return context.getBindings("js").getMember("scorePlayer").execute(value(player)).asDouble(); }

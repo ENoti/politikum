@@ -251,3 +251,33 @@ removal of Graal from the runtime. Context-specific card checks inside actions
 Local validation: `mvn -o clean verify` passed 35 JUnit tests; the HTTP readiness
 checker passed 8 tests; frontend `npm run check` and both Playwright scenarios
 passed against the packaged backend. No production deployment is implied.
+
+## Events and multiplayer choices — second of the final four batches
+
+`JavaEventRules` owns all remaining catalog event entry effects: drawing cards,
+faction penalties, multi-player hand discard, hand shuffling/redeal and coalition
+discard followed by drawing. Token-granting events already use
+`JavaSharedPersonaRules`. The generic ability draw helper, event 12b responses,
+event 16 player/bot choices, turn-event effects and persona 16 queued-event
+callbacks now forward to native rules. Three repeated event-draw branches in the
+legacy hand-limit/bot scheduler were replaced with calls to the same Java handler.
+
+The different legacy drawing contexts deliberately retain their log text and
+hook order: generic ability draws, normal turn draws, hand-limit/bot draws and
+queued events do not all fire the same hooks. Card references remain shared
+across native callbacks, including nested draws and pending choice replacement.
+
+`event-legacy.json` contains 209 full-state comparisons captured from `18e321e`
+before migration. Coverage includes every catalog event, nested draws, empty
+decks, shielded/immovable cards, active/inactive seats, bot selection, all drawing
+contexts, pending queues, multiple human responders, duplicate/unauthorized
+responses, aliases and input immutability.
+
+No game-rule fixes are bundled here. Legacy quirks retained for separate work:
+event 12b's immediate bot discard does not enter the discard pile; event 16's bot
+discard skips persona 44's hook; event 16 clears pending after its replacement
+draw, even if that draw generated a new choice. These are represented in the
+fixtures, so a later correction must explicitly change the expected behavior.
+
+Two planned batches remain: remaining action effects/targeting, then final
+card-play dispatch/general bot scheduling and removal of Graal from production.

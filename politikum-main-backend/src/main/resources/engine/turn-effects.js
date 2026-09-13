@@ -17,21 +17,9 @@ var NATIVE_TURN_MOVES = Object.fromEntries([
   nativeTurn(name, G, ctx, String(playerID), args, events) ? undefined : INVALID_MOVE2
 ]));
 
-// Card-specific effects remain here until the ability migration.
+// Event effects now execute in Java; deferred persona dispatch remains transitional.
 function turnDrawnEvent(G, p, card) {
-  const evName = eventTitle2(card), bid = baseId2(String(card.id));
-  if (!['event_1', 'event_2', 'event_3', 'event_10', 'event_15'].includes(bid)) {
-    if (bid === 'event_12b') G.log.push(`${ruYou2(p.name)} ${ruDrewVerb(p.name)} Срач в Твиттере: Секс скандал!`);
-    else if (bid === 'event_12c') G.log.push(`${ruYou2(p.name)} ${ruDrewVerb(p.name)} "${evName}"`);
-    else G.log.push(`${ruYou2(p.name)} ${ruDrewVerb(p.name)} ${evName}`);
-  }
-  if (Array.isArray(card.tags) && card.tags.includes('event_type:twitter_squabble')) {
-    for (const owner of G.players || []) for (const c of owner.coalition || []) {
-      if (baseId2(String(c.id)) === 'persona_4') applyTokenDelta2(G, c, -2);
-    }
-  }
-  runAbility(card.abilityKey, { G, me: p, card });
-  persona38OnEventPlayed(G, card);
+  nativeAbility('turnDrawnEvent', G, p, card);
 }
 function turnDeferredPersona(G, pending) {
   const id = String(pending.personaId || '');
@@ -44,7 +32,5 @@ function turnDeferredPersona(G, pending) {
   }
 }
 function turnQueuedEvent(G, queue, card) {
-  const me = (G.players || []).find(p => String(p.id) === String(queue.playerId));
-  G.log.push(`${ruYou2(me?.name)} вытянул Событие "${eventTitle2(card)}" из способности ${queue.sourceCardId}.`);
-  runAbility(String(card.abilityKey || ''), { G, me, card });
+  nativeAbility('turnQueuedEvent', G, queue, card);
 }

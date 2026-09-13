@@ -17,6 +17,7 @@ public final class JavaAbilityRules {
         void personaDiscarded(RuleNode g);
     }
     private final Scoring scoring;
+    private final JavaEventRules eventRules;
     private final JavaSharedPersonaRules sharedPersonas;
     private final JavaRemainingPersonaRules remainingPersonas;
     private final JavaMigratedBotAbilities botAbilities;
@@ -28,6 +29,7 @@ public final class JavaAbilityRules {
     private final JavaTopdeckAbilityRules topdeckAbility;
     public JavaAbilityRules(Scoring scoring, Titles titles, AbilityEffects effects) {
         this.scoring = scoring;
+        this.eventRules = new JavaEventRules(scoring,effects);
         this.sharedPersonas = new JavaSharedPersonaRules(scoring,effects);
         this.remainingPersonas = new JavaRemainingPersonaRules(scoring,effects);
         this.botAbilities = new JavaMigratedBotAbilities(scoring,effects);
@@ -41,6 +43,13 @@ public final class JavaAbilityRules {
 
     public boolean invoke(String operation, RuleNode g, RuleNode me, RuleNode card, RuleNode ctx, String actor, String target) {
         switch (operation) {
+            case "draw_1", "event_draw_cards", "event_faction_minus1_draw1", "event_12b_discard_others_hand", "event_shuffle_all_hands_redeal", "event_16_discard_self_persona_then_draw1" -> eventRules.enter(operation,g,me,card);
+            case "eventDraw" -> eventRules.draw(g,me,ctx.get("source").text(),ctx.get("count").number());
+            case "eventDiscardHand" -> { return eventRules.discardHand(g,actor,target); }
+            case "eventDiscardCoalition" -> { return eventRules.discardCoalition(g,actor,target); }
+            case "botEventChoice" -> { return eventRules.botDiscard(g,me); }
+            case "turnDrawnEvent", "legacyDrawnEvent" -> eventRules.drawnEvent(g,me,card,operation.equals("legacyDrawnEvent"));
+            case "turnQueuedEvent" -> eventRules.queuedEvent(g,me,card);
             case "place_tokens_plus_vp" -> sharedPersonas.enterTokens(g,me,card);
             case "discard_one_persona_from_any_coalition" -> sharedPersonas.enterDiscard(g,me,card);
             case "applyPendingToken" -> { return sharedPersonas.tokens(g,actor,target); }
