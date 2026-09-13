@@ -1,6 +1,6 @@
 package com.politikum.engine;
 
-/** Card effects still awaiting migration. The lifecycle decides when to invoke them. */
+/** Card effect callbacks; the Java lifecycle decides when to invoke them. */
 public interface TurnEffects {
     void drawnEvent(RuleNode game, RuleNode player, RuleNode card);
     void deferredPersona(RuleNode game, RuleNode pending);

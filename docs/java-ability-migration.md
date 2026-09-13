@@ -313,3 +313,34 @@ Local validation: `mvn -o clean verify` passed 37 JUnit tests (including all 383
 action comparisons), the HTTP checker passed 8 tests, frontend `npm run check`
 passed, and both Playwright scenarios passed against the packaged Java backend.
 GitHub Actions and production deployment were not run as part of this batch.
+
+## Native runtime — fourth and final batch
+
+`JavaGameEngine` now owns all match-move dispatch, validation/rollback, version
+increments, bounded diagnostic traces, persona placement and hand-limit draw
+resolution. `JavaBotRules` owns scheduling, response waits, the hard turn cap,
+remaining persona choices and automated card play. `NativeRuntime` connects the
+existing Java modules directly, including deferred effects, scoring, display
+names, injected clock and randomness. `MapRuleNode` retains shared card identity
+without exposing the mutable input snapshot.
+
+`PolitikumEngine` uses this runtime for all commands. The production Graal service
+was removed; guest adapters and JS resources moved to test source/resource roots,
+and both Graal dependencies now have test scope. The release action checks the
+actual executable JAR for native-engine presence and legacy-runtime absence.
+
+`NativeRuntimeParityTest` compares 1,981 moves with the previous executor,
+including full state, traces, rejection results and input immutability. It reuses
+the earlier migration scenarios and turn fixtures and adds every catalog persona
+under placement/response/limit variants, every catalog card in bot play, pending
+choices and scheduling boundaries. The comparison clock/randomness are injected.
+
+Existing human/bot differences remain intentional compatibility behavior, as
+documented above. This migration does not claim to fix unrelated game rules.
+Typed domain models and further bot improvements can be separate changes; no
+remaining production JS executor is required for them.
+
+Final local validation after switching the service: 38 JUnit tests passed,
+including 1,981 native/legacy comparisons; 10 Node checks passed; frontend
+`npm run check` passed; both browser scenarios passed against the Java-only JAR.
+The packaged-runtime check passed. No push or production deployment was performed.

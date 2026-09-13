@@ -8,7 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import static com.politikum.engine.GameState.object;
 
-/** Card definitions are data shared by Java rules and the remaining JS abilities. */
+/** Card definitions shared by the Java engine and test-only legacy comparisons. */
 public final class CardCatalog {
     public record Definition(String id, String type, int vp, Integer count, List<String> tags,
                              String text, String timing, String abilityKey, Map<String, Object> params) {}

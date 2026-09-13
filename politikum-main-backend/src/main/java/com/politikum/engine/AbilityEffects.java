@@ -1,6 +1,6 @@
 package com.politikum.engine;
 
-/** Transitional effect dispatch and display helpers; selection rules live in Java. */
+/** Effect dispatch, clock, randomness and display services for native rules. */
 public interface AbilityEffects {
     void run(RuleNode g, RuleNode me, RuleNode card);
     void eventPlayed(RuleNode g, RuleNode card);

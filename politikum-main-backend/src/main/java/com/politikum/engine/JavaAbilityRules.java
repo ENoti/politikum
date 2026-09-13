@@ -3,7 +3,7 @@ package com.politikum.engine;
 import java.util.*;
 import static com.politikum.engine.GameState.object;
 
-/** Native adjacency, entry effects and player choices; JS only transports these calls. */
+/** Native adjacency, entry effects and player choices. */
 public final class JavaAbilityRules {
     /** Display-only compatibility callbacks; game decisions remain in native rules. */
     public interface Titles {

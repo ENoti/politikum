@@ -47,6 +47,7 @@
             <groupId>org.graalvm.polyglot</groupId>
             <artifactId>polyglot</artifactId>
             <version>${graalvm.polyglot.version}</version>
+            <scope>test</scope>
         </dependency>
 
         <dependency>
@@ -54,6 +55,7 @@
             <artifactId>js</artifactId>
             <version>${graalvm.polyglot.version}</version>
             <type>pom</type>
+            <scope>test</scope>
         </dependency>
 
         <dependency>

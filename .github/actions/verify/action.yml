@@ -16,6 +16,11 @@ runs:
     - name: HTTP readiness checker tests
       shell: bash
       run: node --test scripts/check-http.test.mjs
+    - name: Verify Java-only production runtime
+      shell: bash
+      run: |
+        node --test scripts/check-native-runtime.test.mjs
+        node scripts/check-native-runtime.mjs politikum-main-backend/target/backend.jar
     - name: Frontend dependencies, reference checks and production build
       shell: bash
       working-directory: politikum-main-frontend

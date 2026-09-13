@@ -8,6 +8,8 @@ CI и Deploy production используют одну локальную action 
    отказы 401/404 и проверку обязательного admin token.
 2. Тесты скрипта HTTP readiness: 502, HTML вместо JSON, неверный backend, ошибка
    отдельного публичного маршрута, восстановление после старта и постоянная недоступность.
+   Проверка `check-native-runtime.mjs` также проверяет готовый backend JAR:
+   JavaGameEngine присутствует, JS-файлы и Graal-исполнитель/библиотеки отсутствуют.
 3. `npm ci` и `npm run check`: `no-undef` для исходников, регрессия лишнего `г`,
    сборка Vite. Обычный `npm run lint` остаётся более широким ручным аудитом.
 4. Playwright Chromium с собранным frontend и настоящим Java JAR: создание игры,

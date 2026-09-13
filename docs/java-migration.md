@@ -1,4 +1,23 @@
-# Java migration — stage 1 of 3
+# Java migration — production runtime completed
+
+`PolitikumEngine` now delegates all match commands to `JavaGameEngine`. Lobby,
+turns, scoring, card effects, reactions, target selection and bot scheduling run
+in Java. `MapRuleNode` preserves live card references within each working copy;
+the persisted `G`/`ctx`/`_stateID` JSON and frontend API remain compatible.
+
+Graal adapters and the old JS executor live only under `src/test`. Their Maven
+dependencies have test scope. The production JAR contains neither those adapters
+nor JavaScript engine files/libraries. CI checks the packaged JAR with
+`scripts/check-native-runtime.mjs` to prevent accidental reintroduction.
+
+The React frontend remains JavaScript/JSX. The production backend has one Java
+executor; the test-only legacy executor supplies comparison results and is not a
+runtime fallback. Detailed batches and deliberately preserved legacy quirks are
+documented in [ability migration](java-ability-migration.md).
+
+The notes below describe the historical first stage, not the current runtime.
+
+## Historical stage 1
 
 This is the first bounded stage, not a claim that one third of all card mechanics has been rewritten. The React UI remains the client; this migration concerns authoritative game rules.
 
