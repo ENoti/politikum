@@ -33,6 +33,9 @@ public final class GraalAbilityBridge {
             public void adjacent(RuleNode g,RuleNode me,RuleNode card) { context.getBindings("js").getMember("applyAdjacencyBonusesAround").execute(value(g),value(me),value(card)); }
             public double random() { return context.eval("js", "Math.random()").asDouble(); }
             public String eventTitle(RuleNode card) { return context.getBindings("js").getMember("eventTitle").execute(value(card)).asString(); }
+            public String eventBaseTitle(String id) { return context.getBindings("js").getMember("eventTitleByBaseId2").execute(id).asString(); }
+            public String eventMoveTitle(RuleNode card) { return context.getBindings("js").getMember("eventTitle2").execute(value(card)).asString(); }
+            public String cardTitle(String id) { return context.getBindings("js").getMember("cardTitle").execute(id).asString(); }
             public String actor(RuleNode me,String persona) { return context.getBindings("js").getMember("actorWithPersona").execute(value(me),persona).asString(); }
         });
         context.getBindings("js").putMember("__politikumNativeAbility", (ProxyExecutable) args ->

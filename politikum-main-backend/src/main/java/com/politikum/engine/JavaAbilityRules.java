@@ -17,6 +17,8 @@ public final class JavaAbilityRules {
         void personaDiscarded(RuleNode g);
     }
     private final Scoring scoring;
+    private final JavaSharedPersonaRules sharedPersonas;
+    private final JavaRemainingPersonaRules remainingPersonas;
     private final JavaMigratedBotAbilities botAbilities;
     private final JavaResponseRules responses;
     private final JavaHandAbilityRules handAbilities;
@@ -26,6 +28,8 @@ public final class JavaAbilityRules {
     private final JavaTopdeckAbilityRules topdeckAbility;
     public JavaAbilityRules(Scoring scoring, Titles titles, AbilityEffects effects) {
         this.scoring = scoring;
+        this.sharedPersonas = new JavaSharedPersonaRules(scoring,effects);
+        this.remainingPersonas = new JavaRemainingPersonaRules(scoring,effects);
         this.botAbilities = new JavaMigratedBotAbilities(scoring,effects);
         this.responses = new JavaResponseRules(scoring,effects);
         this.handAbilities = new JavaHandAbilityRules(scoring,effects);
@@ -37,6 +41,22 @@ public final class JavaAbilityRules {
 
     public boolean invoke(String operation, RuleNode g, RuleNode me, RuleNode card, RuleNode ctx, String actor, String target) {
         switch (operation) {
+            case "place_tokens_plus_vp" -> sharedPersonas.enterTokens(g,me,card);
+            case "discard_one_persona_from_any_coalition" -> sharedPersonas.enterDiscard(g,me,card);
+            case "applyPendingToken" -> { return sharedPersonas.tokens(g,actor,target); }
+            case "discardPersonaFromCoalition" -> { return sharedPersonas.discard(g,ctx,actor,card); }
+            case "persona_3_on_enter_choice" -> remainingPersonas.enter(3,g,me,card);
+            case "persona_6_on_action8_plus1" -> remainingPersonas.enter(6,g,me,card);
+            case "persona_23_on_enter_self_inflict_draw" -> remainingPersonas.enter(23,g,me,card);
+            case "persona_30_on_enter_buff_liberals" -> remainingPersonas.enter(30,g,me,card);
+            case "persona_41_on_enter_buff_fbk" -> remainingPersonas.enter(41,g,me,card);
+            case "persona_43_on_enter_drain_rightwing" -> remainingPersonas.enter(43,g,me,card);
+            case "vacuum38" -> remainingPersonas.vacuum(g,card);
+            case "globalEnter22" -> remainingPersonas.globalEnter22(g,card);
+            case "choose23" -> { return remainingPersonas.choose23(g,actor,ctx.get("amount").number()); }
+            case "recycle39" -> { return remainingPersonas.recycle39(g,ctx,actor); }
+            case "skip3", "choose3" -> { return remainingPersonas.choose3(g,ctx,actor,card,operation.equals("skip3")); }
+            case "botRemainingPersona" -> { return remainingPersonas.bot(g,me); }
             case "botEarlyChoice" -> {
                 String kind=g.get("pending").get("kind").text();
                 return (kind.equals("persona_11_offer")||kind.startsWith("persona_17_pick_"))&&botAbilities.choose(g,me,ctx,card);

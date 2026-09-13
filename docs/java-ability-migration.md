@@ -214,3 +214,40 @@ and both Playwright scenarios passed locally with the packaged Java backend.
 The browser scenarios create/join/start/restore a game and verify that a failed
 create request keeps the welcome page usable. These are local results, not a
 claim about a production deployment or a GitHub Actions run.
+
+## Remaining persona effects — first of the final four batches
+
+`JavaRemainingPersonaRules` owns the remaining entry effects for 3/6/23/30/41/43,
+persona 23's player choice, persona 38's event-token interception, persona 39's
+recycling/shuffle/buff, and persona 22's global entry modifier. The bot branches
+for 3/23 also execute in Java at their original point in the bot scheduler.
+Persona 24 scoring and persona 22 token mirroring were already native; their
+empty entry hooks are registration stubs, not missing implementations.
+
+`JavaSharedPersonaRules` owns persona 14's shared discard selection and persona
+40's token allocation, including shield tax and deferred-effect continuation.
+The same helpers are used by token-granting events, so their comparisons cover
+events 1/2/3/10 too. Legacy token arithmetic (simple versus mirrored/counted)
+remains distinct. Display text, randomness and dispatch of unmigrated event
+effects are still adapter inputs; persona 39's shuffle algorithm is now Java.
+
+The intentional correction is persona 3: valid choices and skipping previously
+threw `toDiscard is not defined` while composing the log. They now complete the
+effect, clear the pending choice and advance the turn. Its cost is charged only
+when the chosen effect changes cards/tokens. Twelve regression scenarios cover
+both options, skip, ownership, turn restrictions, protection and input immutability.
+
+147 deterministic full-state comparisons were captured from commit `35117b8`
+before the migration, including shared event choices and bot execution. These
+preserve the existing persona 23 event/pending interruption semantics and the
+different legacy persona 3 bot costs/discard hooks. Changing these game rules
+requires separate regression cases rather than silently changing them here.
+
+Remaining batches: event resolution and multiplayer choices; remaining action
+effects and targeting; final card-play dispatch, general bot scheduling and
+removal of Graal from the runtime. Context-specific card checks inside actions
+(for example persona 36's action-7 immunity) belong to the action batch.
+
+Local validation: `mvn -o clean verify` passed 35 JUnit tests; the HTTP readiness
+checker passed 8 tests; frontend `npm run check` and both Playwright scenarios
+passed against the packaged backend. No production deployment is implied.

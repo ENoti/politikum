@@ -12,5 +12,8 @@ public interface AbilityEffects {
     String actionTitle(RuleNode card);
     void adjacent(RuleNode g,RuleNode me,RuleNode card);
     String eventTitle(RuleNode card);
+    String eventBaseTitle(String baseId);
+    String eventMoveTitle(RuleNode card);
+    String cardTitle(String id);
     String actor(RuleNode me, String persona);
 }
