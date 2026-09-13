@@ -17,6 +17,7 @@ public final class JavaAbilityRules {
         void personaDiscarded(RuleNode g);
     }
     private final Scoring scoring;
+    private final JavaActionRules actions;
     private final JavaEventRules eventRules;
     private final JavaSharedPersonaRules sharedPersonas;
     private final JavaRemainingPersonaRules remainingPersonas;
@@ -34,6 +35,7 @@ public final class JavaAbilityRules {
         this.remainingPersonas = new JavaRemainingPersonaRules(scoring,effects);
         this.botAbilities = new JavaMigratedBotAbilities(scoring,effects);
         this.responses = new JavaResponseRules(scoring,effects);
+        this.actions = new JavaActionRules(scoring,titles,effects,responses);
         this.handAbilities = new JavaHandAbilityRules(scoring,effects);
         this.coalitionAbilities = new JavaCoalitionAbilityRules(scoring);
         this.tokenAbilities = new JavaTokenAbilityRules(scoring);
@@ -43,6 +45,11 @@ public final class JavaAbilityRules {
 
     public boolean invoke(String operation, RuleNode g, RuleNode me, RuleNode card, RuleNode ctx, String actor, String target) {
         switch (operation) {
+            case "playAction" -> { return actions.play(g,ctx,me,actor,card.at(0).text(),card.at(1).text()); }
+            case "action7", "action13", "action17", "action18" -> { return actions.choose(Integer.parseInt(operation.substring(6)),g,ctx,me,actor,card.at(0).text(),target); }
+            case "actionDiscard" -> { return actions.discardChoice(g,ctx,me,actor,target); }
+            case "botActionChoice" -> { return actions.botChoice(g,me); }
+            case "botActionPlay" -> actions.botPlay(g,me,card);
             case "draw_1", "event_draw_cards", "event_faction_minus1_draw1", "event_12b_discard_others_hand", "event_shuffle_all_hands_redeal", "event_16_discard_self_persona_then_draw1" -> eventRules.enter(operation,g,me,card);
             case "eventDraw" -> eventRules.draw(g,me,ctx.get("source").text(),ctx.get("count").number());
             case "eventDiscardHand" -> { return eventRules.discardHand(g,actor,target); }

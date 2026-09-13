@@ -281,3 +281,35 @@ fixtures, so a later correction must explicitly change the expected behavior.
 
 Two planned batches remain: remaining action effects/targeting, then final
 card-play dispatch/general bot scheduling and removal of Graal from production.
+
+## Actions and targeting — third of the final four batches
+
+`JavaActionRules` owns action play validation and effects, selection for actions
+7/13/17/18, coalition discard for actions 4/9, and the corresponding bot choice
+and play effects. The `playAction` adapter now delegates to Java, including the
+already native response rules. Round-end checks and queued turn completion retain
+their existing order. Persona 36's human action-7 immunity/bonus is native too.
+
+383 deterministic full-state scenarios were captured from `d1f6bb1` before this
+transfer. They cover valid and invalid targeting, protected/immovable cards,
+special action-17 targets, response windows and cancellation, persona 13's
+retaliation, empty discard/coalitions, bot behavior, repeated selections and
+round completion. Multi-move scenarios exercise action play followed by choice
+or cancellation. Every move also checks that its input state remains unchanged.
+
+No intentional game-rule changes: legacy human/bot differences are retained.
+Immediate bot targets of actions 4/9 do not apply the human protection filters;
+bot action 7 omits persona 36's immunity/bonus and the `blockedBy` marker; bot
+pending action 13 omits `shieldedBy`. The bot scheduler's generic action-play
+path only applies special effects for 5/13. These differences are represented in
+the fixtures and should be corrected separately with explicit rule decisions.
+
+One planned batch remains: persona card-play dispatch, remaining bot scheduling
+and duplicate persona branches, shared runtime helpers, and removal of Graal
+from production. Display helpers and move transport still exist in the JS bridge;
+removing them requires completing that runtime replacement.
+
+Local validation: `mvn -o clean verify` passed 37 JUnit tests (including all 383
+action comparisons), the HTTP checker passed 8 tests, frontend `npm run check`
+passed, and both Playwright scenarios passed against the packaged Java backend.
+GitHub Actions and production deployment were not run as part of this batch.

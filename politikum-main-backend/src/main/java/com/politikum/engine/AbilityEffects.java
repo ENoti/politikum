@@ -6,6 +6,7 @@ public interface AbilityEffects {
     void eventPlayed(RuleNode g, RuleNode card);
     void expire(RuleNode g);
     boolean endRound(RuleNode g, RuleNode ctx);
+    void triggerRoundEnd(RuleNode g, RuleNode ctx);
     double random();
     long now();
     double score(RuleNode player);

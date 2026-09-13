@@ -561,104 +561,19 @@ var PolitikumGame = {
     },
     // Action 7: pick any persona (any coalition); its abilities are blocked and all vpDelta tokens are cleared.
     blockPersonaForAction7: ({ G, playerID, ctx, events }, ownerId, coalitionCardId) => {
-      if (G.response && responseExpired(G)) G.response = null;
-      const pend = G.pending;
-      if (!pend || pend.kind !== "action_7_block_persona") return INVALID_MOVE2;
-      if (String(pend.attackerId) !== String(playerID)) return INVALID_MOVE2;
-      const owner = (G.players || []).find((pp) => String(pp.id) === String(ownerId));
-      if (!owner) return INVALID_MOVE2;
-      const idx = (owner.coalition || []).findIndex((c) => String(c.id) === String(coalitionCardId));
-      if (idx < 0) return INVALID_MOVE2;
-      const target = owner.coalition[idx];
-      if (!target || target.type !== "persona") return INVALID_MOVE2;
-      if (baseId2(String(target.id)) === "persona_36") {
-        applyTokenDelta2(G, target, 4);
-        recalcPassives(G);
-        const me = (G.players || []).find((pp) => String(pp.id) === String(playerID));
-        G.log.push(`${ruYou2(me?.name || playerID)} \u0432\u044B\u0434\u0430\u043B ${target.name || target.id} \u0441\u0442\u0430\u0442\u0443\u0441 \u0418\u041D\u041E\u0410\u0413\u0415\u041D\u0422\u0410, \u043D\u043E \u0442\u043E\u0442 \u043F\u0440\u043E\u0438\u0433\u043D\u043E\u0440\u0438\u0440\u043E\u0432\u0430\u043B \u0438 \u043F\u043E\u043B\u0443\u0447\u0438\u043B +4.`);
-      } else {
-        target.vpDelta = 0;
-        target.plusTokens = 0;
-        target.minusTokens = 0;
-        target.passiveVpDelta = 0;
-        target.vp = Number(target.baseVp ?? 0);
-        recalcPassives(G);
-        target.blockedAbilities = true;
-        target.blockedBy = "action_7";
-        const me = (G.players || []).find((pp) => String(pp.id) === String(playerID));
-        G.log.push(`${ruYou2(me?.name || playerID)} \u0432\u044B\u0434\u0430\u043B ${target.name || target.id} \u0441\u0442\u0430\u0442\u0443\u0441 \u0418\u041D\u041E\u0410\u0413\u0415\u041D\u0422\u0410: \u0441\u043F\u043E\u0441\u043E\u0431\u043D\u043E\u0441\u0442\u0438 \u0437\u0430\u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u0430\u043D\u044B, \u0436\u0435\u0442\u043E\u043D\u044B \u0441\u0431\u0440\u043E\u0448\u0435\u043D\u044B.`);
-      }
-      G.pending = null;
-      maybeTriggerRoundEnd(G, ctx);
-      if (maybeEndAfterRound(G, ctx, events)) return;
-      events.endTurn?.();
+      return nativeAbility('action7', G, events?._queue || [], [String(ownerId)], ctx, playerID, coalitionCardId) ? undefined : INVALID_MOVE2;
     },
     // Action 13: shield one of YOUR personas – cannot be targeted; +1 gains reduced by 1.
     shieldPersonaForAction13: ({ G, playerID, ctx, events }, coalitionCardId) => {
-      if (G.response && responseExpired(G)) G.response = null;
-      const pend = G.pending;
-      if (!pend || pend.kind !== "action_13_shield_persona") return INVALID_MOVE2;
-      if (String(pend.attackerId) !== String(playerID)) return INVALID_MOVE2;
-      const me = (G.players || []).find((pp) => String(pp.id) === String(playerID));
-      if (!me) return INVALID_MOVE2;
-      const idx = (me.coalition || []).findIndex((c) => String(c.id) === String(coalitionCardId));
-      if (idx < 0) return INVALID_MOVE2;
-      const target = me.coalition[idx];
-      if (!target || target.type !== "persona") return INVALID_MOVE2;
-      target.shielded = true;
-      target.shieldedBy = "action_13";
-      G.log.push(`${ruYou2(me.name)} \u0440\u0430\u0437\u044B\u0433\u0440\u0430\u043B \u0411\u0435\u043B\u043E\u0435 \u043F\u0430\u043B\u044C\u0442\u043E \u043D\u0430 ${target.name || target.id}`);
-      G.pending = null;
-      maybeTriggerRoundEnd(G, ctx);
-      if (maybeEndAfterRound(G, ctx, events)) return;
-      events.endTurn?.();
+      return nativeAbility('action13', G, events?._queue || [], [], ctx, playerID, coalitionCardId) ? undefined : INVALID_MOVE2;
     },
     // Action 17: attacker chooses an opponent persona to receive -1 tokens (normally 2, or 4 for special ids).
     applyAction17ToPersona: ({ G, playerID, ctx, events }, targetPersonaId) => {
-      if (G.response && responseExpired(G)) G.response = null;
-      const pend = G.pending;
-      if (!pend || pend.kind !== "action_17_choose_opponent_persona") return INVALID_MOVE2;
-      if (String(pend.attackerId) !== String(playerID)) return INVALID_MOVE2;
-      const owner = (G.players || []).find((pp) => String(pp.id) !== String(playerID) && (pp.coalition || []).some((c) => String(c.id) === String(targetPersonaId)));
-      if (!owner) return INVALID_MOVE2;
-      const idx = (owner.coalition || []).findIndex((c) => String(c.id) === String(targetPersonaId));
-      if (idx < 0) return INVALID_MOVE2;
-      const target = owner.coalition[idx];
-      if (!target || target.type !== "persona") return INVALID_MOVE2;
-      if (target.shielded) return INVALID_MOVE2;
-      const base = baseId2(String(target.id));
-      const special = base === "persona_3" || base === "persona_38" || base === "persona_41" || base === "persona_43";
-      const tokens = special ? 4 : 2;
-      applyTokenDelta2(G, target, -tokens);
-      const me = (G.players || []).find((pp) => String(pp.id) === String(playerID));
-      const an = actionTitle(G.lastAction) || "ACTION 17";
-      G.log.push(`${ruYou2(me?.name || playerID)} \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043B ${an} \u043D\u0430 ${target.name || target.id}: ${special ? "4" : "2"} \xD7 -1.`);
-      G.pending = null;
-      recalcPassives(G);
-      maybeTriggerRoundEnd(G, ctx);
-      if (maybeEndAfterRound(G, ctx, events)) return;
-      events.endTurn?.();
+      return nativeAbility('action17', G, events?._queue || [], [], ctx, playerID, targetPersonaId) ? undefined : INVALID_MOVE2;
     },
     // Action 18: return a persona from discard to your hand.
     pickPersonaFromDiscardForAction18: ({ G, playerID, ctx, events }, cardId) => {
-      if (G.response && responseExpired(G)) G.response = null;
-      const pend = G.pending;
-      if (!pend || pend.kind !== "action_18_pick_persona_from_discard") return INVALID_MOVE2;
-      if (String(pend.attackerId) !== String(playerID)) return INVALID_MOVE2;
-      const idx = (G.discard || []).findIndex((c2) => String(c2.id) === String(cardId));
-      if (idx < 0) return INVALID_MOVE2;
-      const c = G.discard[idx];
-      if (!c || c.type !== "persona") return INVALID_MOVE2;
-      if (baseId2(String(c.id)) === "persona_31") return INVALID_MOVE2;
-      G.discard.splice(idx, 1);
-      const me = (G.players || []).find((pp) => String(pp.id) === String(playerID));
-      if (!me) return INVALID_MOVE2;
-      me.hand.push(c);
-      G.log.push(`${ruYou2(me.name)} \u0432\u0435\u0440\u043D\u0443\u043B ${c.name || c.id} \u0438\u0437 \u0441\u0431\u0440\u043E\u0441\u0430 \u0432 \u0440\u0443\u043A\u0443 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u044F "\u0432\u043E\u0441\u043A\u0440\u0435\u0441\u0438\u0442\u044C \u043F\u043E\u043B\u0438\u0442\u0438\u0447\u0435\u0441\u043A\u0438\u0439 \u0442\u0440\u0443\u043F".`);
-      G.pending = null;
-      maybeTriggerRoundEnd(G, ctx);
-      if (maybeEndAfterRound(G, ctx, events)) return;
-      events.endTurn?.();
+      return nativeAbility('action18', G, events?._queue || [], [], ctx, playerID, cardId) ? undefined : INVALID_MOVE2;
     },
     discardBeforeDrawForHandLimit: ({ G, ctx, playerID }, cardId) => {
       const pend = G.pending;
@@ -1054,85 +969,7 @@ var PolitikumGame = {
             G.botNextActAtMs = nowMs() + 250;
             return;
           }
-          if (pend.kind === "action_7_block_persona" && String(pend.attackerId) === String(p.id)) {
-            try {
-              let target = null;
-              for (const owner of G.players || []) {
-                for (const cc of owner.coalition || []) {
-                  if (!cc || cc.type !== "persona") continue;
-                  if (baseId2(String(cc.id)) === "persona_31") continue;
-                  if (cc.shielded) continue;
-                  target = cc;
-                  break;
-                }
-                if (target) break;
-              }
-              if (target) {
-                target.vpDelta = 0;
-                target.plusTokens = 0;
-                target.minusTokens = 0;
-                target.passiveVpDelta = 0;
-                target.vp = Number(target.baseVp ?? 0);
-                target.blockedAbilities = true;
-                recalcPassives(G);
-                G.log.push(`${ruYou2(p.name)} (ACTION 7): \u0437\u0430\u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u0430\u043B ${target.name || target.id}.`);
-              }
-            } catch {
-            }
-            G.pending = null;
-            recalcPassives(G);
-            G.botNextActAtMs = nowMs() + 400;
-            return;
-          }
-          if (pend.kind === "action_13_shield_persona" && String(pend.attackerId) === String(p.id)) {
-            try {
-              const target = (p.coalition || []).find((c) => c && c.type === "persona");
-              if (target) {
-                target.shielded = true;
-                G.log.push(`${ruYou2(p.name)} \u0437\u0430\u0449\u0438\u0442\u0438\u043B ${target.name || target.id} (ACTION 13).`);
-              }
-            } catch {
-            }
-            G.pending = null;
-            recalcPassives(G);
-            G.botNextActAtMs = nowMs() + 250;
-            return;
-          }
-          if (pend.kind === "action_17_choose_opponent_persona" && String(pend.attackerId) === String(p.id)) {
-            try {
-              const target = (G.players || []).filter((pp) => String(pp.id) !== String(p.id)).flatMap((pp) => pp.coalition || []).find((c) => c && c.type === "persona" && baseId2(String(c.id)) !== "persona_31" && !c.shielded);
-              if (target) {
-                const base = baseId2(String(target.id));
-                const special = base === "persona_3" || base === "persona_38" || base === "persona_41" || base === "persona_43";
-                const tokens = special ? 4 : 2;
-                applyTokenDelta2(G, target, -tokens);
-                recalcPassives(G);
-                G.log.push(`${ruYou2(p.name)} \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043B ${actionTitleByBaseId("action_17")} \u043D\u0430 ${target.name || target.id}: ${special ? "4" : "2"} \xD7 -1.`);
-              } else {
-                G.log.push(`${ruYou2(p.name)} \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043B ${actionTitleByBaseId("action_17")}, \u043D\u043E \u043D\u0435 \u043D\u0430\u0448\u0451\u043B \u0446\u0435\u043B\u0438.`);
-              }
-            } catch {
-            }
-            G.pending = null;
-            recalcPassives(G);
-            G.botNextActAtMs = nowMs() + 400;
-            return;
-          }
-          if (pend.kind === "action_18_pick_persona_from_discard" && String(pend.attackerId) === String(p.id)) {
-            try {
-              const idx = (G.discard || []).findIndex((c) => c && c.type === "persona" && baseId2(String(c.id)) !== "persona_31");
-              if (idx >= 0) {
-                const [c] = G.discard.splice(idx, 1);
-                if (c) p.hand.push(c);
-                G.log.push(`${ruYou2(p.name)} \u0432\u0435\u0440\u043D\u0443\u043B ${c?.name || c?.id} \u0438\u0437 \u0441\u0431\u0440\u043E\u0441\u0430 \u0432 \u0440\u0443\u043A\u0443 (ACTION 18).`);
-              }
-            } catch {
-            }
-            G.pending = null;
-            recalcPassives(G);
-            G.botNextActAtMs = nowMs() + 400;
-            return;
-          }
+          if (nativeAbility('botActionChoice', G, p)) return;
           if (pend.kind === "persona_26_pick_red_nationalist" && String(pend.playerId) === String(p.id)) {
             try {
               const self = (p.coalition || []).find((c) => baseId2(String(c.id)) === "persona_26");
@@ -1302,25 +1139,7 @@ var PolitikumGame = {
               G.discard.push(c);
               G.lastAction = c;
               G.hasPlayed = true;
-              const bid = baseId2(String(c.id));
-              if (bid === "action_13") {
-                const j = (p.coalition || []).findIndex((cc) => cc.type === "persona" && !cc.shielded);
-                if (j >= 0) {
-                  const target = p.coalition[j];
-                  target.shielded = true;
-                  target.shieldedBy = "action_13";
-                  G.log.push(`${p.name} \u0440\u0430\u0437\u044B\u0433\u0440\u0430\u043B \u0411\u0435\u043B\u043E\u0435 \u043F\u0430\u043B\u044C\u0442\u043E \u043D\u0430 ${target.name || target.id}`);
-                } else {
-                  G.log.push(`${p.name} \u0440\u0430\u0437\u044B\u0433\u0440\u0430\u043B \u0411\u0435\u043B\u043E\u0435 \u043F\u0430\u043B\u044C\u0442\u043E, \u043D\u043E \u0432 \u043A\u043E\u0430\u043B\u0438\u0446\u0438\u0438 \u043D\u0435\u0442 \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u0435\u0439 \u043F\u0435\u0440\u0441\u043E\u043D\u044B`);
-                }
-              } else if (bid === "action_5") {
-                G.maxPlaysThisTurn = 2;
-                G.playVpDelta = -1;
-                G.hasPlayed = false;
-                G.log.push(`${p.name} \u0440\u0430\u0437\u044B\u0433\u0440\u0430\u043B \u043A\u0443\u043B\u044C\u0442\u0443\u0440\u0443 \u043F\u043E\u043B\u0438\u0442\u0438\u043A\u0438 \u0432 \u0432\u043E\u0441\u0442\u043E\u0447\u043D\u043E\u0439 \u0435\u0432\u0440\u043E\u043F\u0435: \u0440\u0430\u0437\u044B\u0433\u0440\u0430\u0439\u0442\u0435 \u0434\u043E 2-\u0443\u0445 \u043F\u0435\u0440\u0441\u043E\u043D\u0430\u0436\u0435\u0439, \u043D\u043E \u043A\u0430\u0436\u0434\u044B\u0439 \u0432\u044B\u0445\u043E\u0434\u0438\u0442 \u0441 -1`);
-              } else {
-                G.log.push(`${p.name} played ACTION ${c.name || c.id}.`);
-              }
+              nativeAbility('botActionPlay', G, p, c);
             } else {
               const extra = drawTopCardForPlayer2(G, p);
               if (extra) G.drawsThisTurn = Number(G.drawsThisTurn || 0) + 1;
@@ -1418,211 +1237,10 @@ var PolitikumGame = {
       events.endTurn?.();
     },
     playAction: ({ G, playerID, ctx, events }, cardId, targetId) => {
-      expireResponseAndResolveDeferred(G);
-      const me = (G.players || []).find((pp) => String(pp.id) === String(playerID));
-      if (!me) return INVALID_MOVE2;
-      const idxResponse = (me.hand || []).findIndex((c3) => c3.id === cardId);
-      const responseCard = idxResponse >= 0 ? me.hand[idxResponse] : null;
-      if (nativeAbility('handlesResponse', G, me, responseCard, ctx, playerID)) {
-        return nativeAbility('responseAction', G, me, responseCard, ctx, playerID) ? undefined : INVALID_MOVE2;
-      }
-      if (G.pending) return INVALID_MOVE2;
-      if (!G.hasDrawn) return INVALID_MOVE2;
-      if (G.hasPlayed) return INVALID_MOVE2;
-      if (G.pending) return INVALID_MOVE2;
-      if (G.response && !responseExpired(G)) return INVALID_MOVE2;
-      const idx = (me.hand || []).findIndex((c2) => c2.id === cardId);
-      if (idx === -1) return INVALID_MOVE2;
-      const c = me.hand[idx];
-      if (c.type !== "action") return INVALID_MOVE2;
-      const base = baseId2(c.id);
-      if (base === "action_6" || base === "action_8" || base === "action_14") return INVALID_MOVE2;
-      if (base === "action_4") {
-        const tid = String(targetId ?? "");
-        const target = (G.players || []).find((pp) => String(pp.id) === tid);
-        if (!target || tid === String(playerID)) return INVALID_MOVE2;
-        me.hand.splice(idx, 1);
-        nativeAbility('openActionResponse', G, target, c, ctx, playerID);
-        G.lastAction = c;
-        G.hasPlayed = true;
-        G.pending = { kind: "action_4_discard", attackerId: String(playerID), targetId: tid, sourceCardId: String(c.id) };
-        let an = actionTitle(c);
-        try {
-          if (/^action_\d+/u.test(String(an))) an = actionTitleByBaseId(baseId2(String(c.id))) || an;
-        } catch {
-        }
-        const actorName = ruYou2(me.name);
-        G.log.push(`${actorName} \u0440\u0430\u0437\u044B\u0433\u0440\u0430\u043B "${an}" \u043D\u0430 ${target.name}.`);
-        if (String(target.name || "").startsWith("[B]")) {
-          const drop = (target.coalition || [])[0];
-          if (drop) {
-            target.coalition.splice(0, 1);
-            G.discard.push(drop);
-            if (drop.type === "persona") persona44OnPersonaDiscarded(G);
-            G.log.push(`${target.name} \u0441\u0431\u0440\u043E\u0441\u0438\u043B ${drop.name || drop.id} \u0438\u0437 \u043A\u043E\u0430\u043B\u0438\u0446\u0438\u0438.`);
-          } else {
-            G.log.push(`${target.name} had no Coalition cards to discard.`);
-          }
-          G.pending = null;
-          try {
-            const haveP13 = (target.coalition || []).some((cc) => baseId2(String(cc.id)) === "persona_13");
-            const attacker = (G.players || []).find((pp) => String(pp.id) === String(playerID));
-            const attackerHasPersona = !!(attacker?.coalition || []).some((cc) => cc.type === "persona");
-            if (haveP13 && attacker && attackerHasPersona) {
-              const opts = (attacker.coalition || []).filter((cc) => cc && cc.type === "persona" && baseId2(String(cc.id)) !== "persona_31" && !cc.shielded);
-              if (opts.length) {
-                applyTokenDelta2(G, opts[0], -1);
-                recalcPassives(G);
-                G.log.push(`${target.name} (\u0412\u0435\u043D\u0435\u0434\u0438\u0442\u043A\u043E\u0432): \u0434\u0430\u043B -1 \u043D\u0430 ${opts[0].name || opts[0].id}.`);
-              }
-            }
-          } catch {
-          }
-          maybeTriggerRoundEnd(G, ctx);
-          if (maybeEndAfterRound(G, ctx, events)) return;
-          events.endTurn?.();
-        }
-        return;
-      }
-      if (base === "action_9") {
-        const tid = String(targetId ?? "");
-        const target = (G.players || []).find((pp) => String(pp.id) === tid);
-        if (!target || tid === String(playerID)) return INVALID_MOVE2;
-        me.hand.splice(idx, 1);
-        nativeAbility('openActionResponse', G, target, c, ctx, playerID);
-        G.lastAction = c;
-        G.hasPlayed = true;
-        G.pending = { kind: "action_9_discard_persona", attackerId: String(playerID), targetId: tid, sourceCardId: String(c.id) };
-        G.log.push(`${ruYou2(me.name)} \u0440\u0430\u0437\u044B\u0433\u0440\u0430\u043B \u0412\u044B\u0432\u043E\u0434 \u0432\u043E \u0432\u043D\u0435\u0448\u043D\u0438\u0439 \u043A\u043E\u043D\u0442\u0443\u0440 \u043D\u0430 ${target.name}.`);
-        if (String(target.name || "").startsWith("[B]")) {
-          const j = (target.coalition || []).findIndex((cc) => cc.type === "persona");
-          if (j >= 0) {
-            const [drop] = target.coalition.splice(j, 1);
-            if (drop) {
-              G.discard.push(drop);
-              if (drop.type === "persona") persona44OnPersonaDiscarded(G);
-              G.log.push(`${target.name} \u0441\u0431\u0440\u043E\u0441\u0438\u043B ${drop.name || drop.id} \u0438\u0437 \u043A\u043E\u0430\u043B\u0438\u0446\u0438\u0438.`);
-            }
-          } else {
-            G.log.push(`${target.name} had no persona to discard.`);
-          }
-          G.pending = null;
-          try {
-            const haveP13 = (target.coalition || []).some((cc) => baseId2(String(cc.id)) === "persona_13");
-            const attacker = (G.players || []).find((pp) => String(pp.id) === String(playerID));
-            const attackerHasPersona = !!(attacker?.coalition || []).some((cc) => cc.type === "persona");
-            if (haveP13 && attacker && attackerHasPersona) {
-              const opts = (attacker.coalition || []).filter((cc) => cc && cc.type === "persona" && baseId2(String(cc.id)) !== "persona_31" && !cc.shielded);
-              if (opts.length) {
-                applyTokenDelta2(G, opts[0], -1);
-                recalcPassives(G);
-                G.log.push(`${target.name} (\u0412\u0435\u043D\u0435\u0434\u0438\u0442\u043A\u043E\u0432): \u0434\u0430\u043B -1 \u043D\u0430 ${opts[0].name || opts[0].id}.`);
-              }
-            }
-          } catch {
-          }
-          maybeTriggerRoundEnd(G, ctx);
-          if (maybeEndAfterRound(G, ctx, events)) return;
-          events.endTurn?.();
-        }
-        return;
-      }
-      if (base === "action_5") {
-        me.hand.splice(idx, 1);
-        G.discard.push(c);
-        G.lastAction = c;
-        G.log.push(`${ruYou2(me.name)} \u0440\u0430\u0437\u044B\u0433\u0440\u0430\u043B\u0438 \u043A\u0443\u043B\u044C\u0442\u0443\u0440\u0443 \u043F\u043E\u043B\u0438\u0442\u0438\u043A\u0438 \u0432 \u0432\u043E\u0441\u0442\u043E\u0447\u043D\u043E\u0439 \u0435\u0432\u0440\u043E\u043F\u0435: \u0440\u0430\u0437\u044B\u0433\u0440\u0430\u0439\u0442\u0435 \u0434\u043E 2-\u0443\u0445 \u043F\u0435\u0440\u0441\u043E\u043D\u0430\u0436\u0435\u0439, \u043D\u043E \u043A\u0430\u0436\u0434\u044B\u0439 \u0432\u044B\u0445\u043E\u0434\u0438\u0442 \u0441 -1`);
-        G.maxPlaysThisTurn = 2;
-        G.playVpDelta = -1;
-        return;
-      }
-      if (base === "action_7") {
-        me.hand.splice(idx, 1);
-        G.discard.push(c);
-        G.lastAction = c;
-        G.hasPlayed = true;
-        G.pending = { kind: "action_7_block_persona", attackerId: String(playerID) };
-        G.log.push(`${ruYou2(me.name)} \u0441\u044B\u0433\u0440\u0430\u043B \xAB\u0418\u041D\u041E\u0410\u0413\u0415\u041D\u0422\xBB: \u0432\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043F\u0435\u0440\u0441\u043E\u043D\u0443 \u0432 \u043B\u044E\u0431\u043E\u0439 \u043A\u043E\u0430\u043B\u0438\u0446\u0438\u0438.`);
-        return;
-      }
-      if (base === "action_13") {
-        me.hand.splice(idx, 1);
-        G.discard.push(c);
-        G.lastAction = c;
-        G.hasPlayed = true;
-        G.pending = { kind: "action_13_shield_persona", attackerId: String(playerID) };
-        const an = actionTitle(c) || "\u0411\u0435\u043B\u043E\u0435 \u043F\u0430\u043B\u044C\u0442\u043E";
-        G.log.push(`${ruYou2(me.name)} \u0440\u0430\u0437\u044B\u0433\u0440\u0430\u043B \xAB${an}\xBB: \u0437\u0430\u0449\u0438\u0449\u0430\u0435\u0442 \u043E\u0434\u043D\u043E\u0433\u043E \u0438\u0437 \u0432\u0430\u0448\u0438\u0445 \u043F\u0435\u0440\u0441\u043E\u043D\u0430\u0436\u0435\u0439.`);
-        return;
-      }
-      if (base === "action_17") {
-        me.hand.splice(idx, 1);
-        G.discard.push(c);
-        G.lastAction = c;
-        G.hasPlayed = true;
-        G.pending = { kind: "action_17_choose_opponent_persona", attackerId: String(playerID) };
-        nativeAbility('openUntargetedResponse', G, null, c, ctx, playerID);
-        return;
-      }
-      if (base === "action_18") {
-        me.hand.splice(idx, 1);
-        G.discard.push(c);
-        G.lastAction = c;
-        G.hasPlayed = true;
-        const hasValidPersonaInDiscard = (G.discard || []).some((x) => x && x.type === "persona" && baseId2(String(x.id)) !== "persona_31");
-        if (!hasValidPersonaInDiscard) {
-          G.pending = null;
-          G.log.push(`${ruYou2(me.name)} разыграл ${actionTitleByBaseId("action_18") || c.name || c.id}, но в сбросе нет подходящих персонажей.`);
-          maybeTriggerRoundEnd(G, ctx);
-          if (maybeEndAfterRound(G, ctx, events)) return;
-          events.endTurn?.();
-          return;
-        }
-        G.pending = { kind: "action_18_pick_persona_from_discard", attackerId: String(playerID) };
-        return;
-      }
-      me.hand.splice(idx, 1);
-      G.discard.push(c);
-      G.lastAction = c;
-      G.hasPlayed = true;
-      G.log.push(`${me.name} played ACTION ${c.name || c.id}.`);
-      maybeTriggerRoundEnd(G, ctx);
-      if (maybeEndAfterRound(G, ctx, events)) return;
-      events.endTurn?.();
+      return nativeAbility('playAction', G, events?._queue || [], [cardId, targetId ?? ''], ctx, playerID) ? undefined : INVALID_MOVE2;
     },
     discardFromCoalition: ({ G, playerID, ctx, events }, cardId) => {
-      if (G.response && responseExpired(G)) G.response = null;
-      const pending = G.pending;
-      if (!pending || pending.kind !== "action_4_discard" && pending.kind !== "action_9_discard_persona") return INVALID_MOVE2;
-      if (String(playerID) !== String(pending.targetId)) return INVALID_MOVE2;
-      const target = (G.players || []).find((pp) => String(pp.id) === String(pending.targetId));
-      if (!target) return INVALID_MOVE2;
-      const idx = (target.coalition || []).findIndex((c) => c.id === cardId);
-      if (idx === -1) return INVALID_MOVE2;
-      const drop = target.coalition[idx];
-      if (pending.kind === "action_9_discard_persona" && drop?.type !== "persona") return INVALID_MOVE2;
-      if (drop?.type === "persona" && baseId2(String(drop.id)) === "persona_31") return INVALID_MOVE2;
-      if (drop?.shielded) return INVALID_MOVE2;
-      target.coalition.splice(idx, 1);
-      if (drop) {
-        G.discard.push(drop);
-        if (drop.type === "persona") persona44OnPersonaDiscarded(G);
-        G.log.push(`${target.name} \u0441\u0431\u0440\u043E\u0441\u0438\u043B ${drop.name || drop.id} \u0438\u0437 \u043A\u043E\u0430\u043B\u0438\u0446\u0438\u0438.`);
-      }
-      G.pending = null;
-      try {
-        const haveP13 = (target.coalition || []).some((c) => baseId2(String(c.id)) === "persona_13");
-        const attacker = (G.players || []).find((pp) => String(pp.id) === String(pending.attackerId));
-        const attackerHasPersona = !!(attacker?.coalition || []).some((c) => c.type === "persona");
-        if (haveP13 && attacker && attackerHasPersona) {
-          G.pending = { kind: "persona_13_pick_target", playerId: String(target.id), attackerId: String(attacker.id), sourceCardId: String(pending.sourceCardId || "") };
-          return;
-        }
-      } catch {
-      }
-      maybeTriggerRoundEnd(G, ctx);
-      if (maybeEndAfterRound(G, ctx, events)) return;
-      events.endTurn?.();
+      return nativeAbility('actionDiscard', G, events?._queue || [], null, ctx, playerID, cardId) ? undefined : INVALID_MOVE2;
     },
     // Persona 13: pick attacker persona to receive -1
     persona13PickTarget: ({ G, playerID }, ownerId, coalitionCardId) => {
