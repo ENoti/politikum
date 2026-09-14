@@ -1,3 +1,4 @@
+import { playFirstResponse } from '../responseActions.js';
 import GameOverOverlay from './GameOverOverlay.jsx';
 import { TokenPips, TokenPipsInline } from './TokenPips.jsx';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -199,11 +200,10 @@ function ActionBoard({ G, ctx, moves, playerID, matchID, ratingsMap = {}, setSho
   const responseSecondsLeft = Math.max(0, Math.ceil((responseExpiresAt - Date.now()) / 1000));
   // Choice / response windows stay visible until the server clears them.
   const responseActive = !!responseKind;
-  const haveAction6 = (me?.hand || []).some((c) => c.type === 'action' && String(c.id).split('#')[0] === 'action_6');
-  const haveAction8 = (me?.hand || []).some((c) => c.type === 'action' && String(c.id).split('#')[0] === 'action_8');
-  const haveAction14 = (me?.hand || []).some((c) => c.type === 'action' && String(c.id).split('#')[0] === 'action_14');
-  const responseTargetsMe = !!pending && (pending.kind === 'action_4_discard' || pending.kind === 'action_9_discard_persona') && String(pending.targetId) === String(playerID);
-  const canPersona10Cancel = responseKind === 'cancel_action' && String(response?.allowPersona10By || '') === String(playerID) && responseTargetsMe;
+  const reactions = G.choices?.reactions || {};
+  const haveAction14 = !!reactions.cancelEffectCardId;
+  const responseTargetsMe = !!reactions.targetsMe;
+
 
   useEffect(() => {
     try {
@@ -244,8 +244,7 @@ function ActionBoard({ G, ctx, moves, playerID, matchID, ratingsMap = {}, setSho
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [responseActive, responseKey]);
 
-  const p8SwapSpec = responseKind === 'cancel_persona' ? (response?.persona8Swap || null) : null;
-  const canPersona8Swap = !!p8SwapSpec && String(p8SwapSpec.playerId || '') === String(playerID);
+  const canPersona8Swap = !!reactions.persona8Swap;
   const [showEventSplash, setShowEventSplash] = useState(false);
   const [showActionSplash, setShowActionSplash] = useState(false);
   const ENABLE_EVENT_SPLASH = true;
@@ -435,7 +434,7 @@ useEffect(() => {
   const pendingP33Source = pendingP33 ? String(pending?.sourceCardId || '') : '';
   const pendingP34 = pending?.kind === 'persona_34_guess_topdeck' && String(pending?.playerId) === String(playerID);
   const pendingP34Source = pendingP34 ? String(pending?.sourceCardId || '') : '';
-  const canUseP39 = isMyTurn && !G.pending && !G.response && (me?.coalition || []).some((c) => String(c.id).split('#')[0] === 'persona_39');
+  const canUseP39 = !!G.choices?.actions?.persona39RecycleSelf;
 
   const p34Remaining = G.choices?.guessIds || [];
 
@@ -605,7 +604,7 @@ useEffect(() => {
       }
       if (responseKind && key === '3') {
         // p8 swap during cancel_persona window
-        if (responseActive && responseKind === 'cancel_persona' && canPersona8Swap && String(response?.playedBy) !== String(playerID)) {
+        if (canPersona8Swap) {
           try { moves.persona8SwapWithPlayedPersona(); } catch {}
         }
         return;
@@ -613,21 +612,7 @@ useEffect(() => {
 
       // Fast cancels during response windows
       if (responseKind && key === '1') {
-        // action_6 cancels actions (anyone)
-        if (responseKind === 'cancel_action' && String(response?.playedBy) !== String(playerID)) {
-          const c6 = (me?.hand || []).find((c) => c.type === 'action' && String(c.id).split('#')[0] === 'action_6');
-          if (c6) moves.playAction(c6.id);
-        }
-        // action_8 cancels persona plays (anyone)
-        if (responseKind === 'cancel_persona' && String(response?.playedBy) !== String(playerID)) {
-          const c8 = (me?.hand || []).find((c) => c.type === 'action' && String(c.id).split('#')[0] === 'action_8');
-          if (c8) moves.playAction(c8.id);
-        }
-        // action_14 cancels the effect of an action that is targeting YOU
-        if (responseKind === 'cancel_action' && responseTargetsMe) {
-          const c14 = (me?.hand || []).find((c) => c.type === 'action' && String(c.id).split('#')[0] === 'action_14');
-          if (c14) moves.playAction(c14.id);
-        }
+        playFirstResponse(reactions, moves);
         return;
       }
 
@@ -746,7 +731,7 @@ useEffect(() => {
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [isMyTurn, G.hasDrawn, G.hasPlayed, moves, responseKind, responseSecondsLeft, response?.playedBy, playerID, me?.hand, pending, pendingP16, pendingP16RequiredDiscard, p16DiscardPick]);
+  }, [isMyTurn, G.hasDrawn, G.hasPlayed, G.choices, moves, responseKind, responseSecondsLeft, response?.playedBy, playerID, me?.hand, pending, pendingP16, pendingP16RequiredDiscard, p16DiscardPick]);
 
   // Event splash: show when lastEvent changes, but do not replay an old event on first render.
   const lastEventSeenRef = useRef(null);
@@ -1149,7 +1134,7 @@ useEffect(() => {
                   const oppPlaceActive = !!placementModeOpp && String(placementModeOpp.targetId) === String(p.id);
                   const canClickFaceForOppPlace = oppPlaceActive && it.kind === 'face' && it.card?.type === 'persona';
 
-                  const canClickFaceForP8Swap = canPersona8Swap && it.kind === 'face' && String(it.card?.id) === String(p8SwapSpec?.playedPersonaId) && String(p.id) === String(p8SwapSpec?.ownerId);
+                  const canClickFaceForP8Swap = it.kind === 'face' && canTarget('persona8SwapWithPlayedPersona', p.id, it.card);
 
                   // persona picks (no modal)
                   const canClickFaceForP21 = it.kind === 'face' && canTarget('persona21InvertTokens', p.id, it.card);
@@ -1583,20 +1568,13 @@ Click their hand. (Esc to cancel)`}</div>
 
       {/* Response window UI */}
       <ResponsePanel
-        canPersona10Cancel={canPersona10Cancel}
-        canPersona8Swap={canPersona8Swap}
-        haveAction14={haveAction14}
-        haveAction6={haveAction6}
-        haveAction8={haveAction8}
-        me={me}
+        reactions={reactions}
+        hand={me?.hand || []}
         moves={moves}
-        playerID={playerID}
-        response={response}
         responseActive={responseActive}
         responseKey={responseKey}
         responseKind={responseKind}
         responseSecondsLeft={responseSecondsLeft}
-        responseTargetsMe={responseTargetsMe}
         setSkippedResponseKey={setSkippedResponseKey}
         skippedResponseKey={skippedResponseKey}
       />
@@ -1943,22 +1921,6 @@ Click their hand. (Esc to cancel)`}</div>
         <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9500] pointer-events-none select-none">
           <div className="pointer-events-auto bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
             {pendingPersona45Source}: выберите оппонента, чтобы украсть 1 случайную карту
-          </div>
-        </div>
-      )}
-
-      {canPersona8Swap && (
-        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9500] pointer-events-none select-none">
-          <div className="pointer-events-auto bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
-            persona_8: выберите только что сыгранного персонажа, чтобы ПОМЕНЯТЬСЯ с ним местами
-          </div>
-        </div>
-      )}
-
-      {canPersona10Cancel && (
-        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9500] pointer-events-none select-none">
-          <div className="pointer-events-auto bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
-            Вы можете позвать маму Наки чтобы отменить действие
           </div>
         </div>
       )}

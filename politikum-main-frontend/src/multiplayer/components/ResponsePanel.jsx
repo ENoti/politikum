@@ -1,16 +1,21 @@
 import React from "react";
 
-export default function ResponsePanel({ canPersona10Cancel, canPersona8Swap, haveAction14, haveAction6, haveAction8, me, moves, playerID, response, responseActive, responseKey, responseKind, responseSecondsLeft, responseTargetsMe, setSkippedResponseKey, skippedResponseKey }) {
-  const canShowResponse = responseActive && responseKey !== skippedResponseKey && String(response?.playedBy) !== String(playerID) && ((responseKind === 'cancel_action' && (haveAction6 || canPersona10Cancel || (haveAction14 && responseTargetsMe))) || (responseKind === 'cancel_persona' && haveAction8));
-  const c8 = (me?.hand || []).find((c) => c?.type === 'action' && String(c.id).split('#')[0] === 'action_8') || null;
-  const c6 = (me?.hand || []).find((c) => c?.type === 'action' && String(c.id).split('#')[0] === 'action_6') || null;
+export default function ResponsePanel({ reactions = {}, hand = [], moves, responseActive, responseKey, responseKind, responseSecondsLeft, setSkippedResponseKey, skippedResponseKey }) {
+  const { persona10Cancel: canPersona10Cancel, persona8Swap: canPersona8Swap } = reactions;
+  const c6 = hand.find(c => String(c.id) === reactions.cancelActionCardId);
+  const c8 = hand.find(c => String(c.id) === reactions.cancelPersonaCardId);
+  const c14 = hand.find(c => String(c.id) === reactions.cancelEffectCardId);
+  const haveAction6 = !!c6;
+  const haveAction14 = !!c14;
+  const canShowResponse = responseActive && responseKey !== skippedResponseKey && !!(c6 || c8 || c14 || canPersona10Cancel || canPersona8Swap);
   return canShowResponse ? (
     <div className="fixed inset-0 z-[6000] pointer-events-none select-none">
       {responseKind === 'cancel_action' && (
         <div className="absolute left-1/2 top-[48%] -translate-x-1/2 -translate-y-1/2 bg-black/70 border border-amber-900/30 rounded-full px-5 py-3 text-amber-100/90 font-mono text-[12px] shadow-2xl flex items-center gap-4 pointer-events-auto">
           <div className="flex items-center gap-3">
-            <div>{haveAction6 && 'Сыграно действие — ответьте картой 6, чтобы отменить'}{!haveAction6 && haveAction14 && responseTargetsMe && 'Вы стали целью — ответьте картой 14, чтобы отменить эффект'}{!haveAction6 && canPersona10Cancel && 'Вы можете позвать маму Наки, чтобы отменить действие'}<span className="ml-3 text-amber-200/70">{responseSecondsLeft}s</span></div>
+            <div>{haveAction6 && 'Сыграно действие — ответьте картой 6, чтобы отменить'}{!haveAction6 && haveAction14 && 'Вы стали целью — ответьте картой 14, чтобы отменить эффект'}{!haveAction6 && !haveAction14 && canPersona10Cancel && 'Вы можете позвать маму Наки, чтобы отменить действие'}<span className="ml-3 text-amber-200/70">{responseSecondsLeft}s</span></div>
             {haveAction6 && c6 && <button type="button" onClick={() => { try { moves.playAction(c6.id); } catch {} }} className="px-3 py-1 rounded-full bg-emerald-700/60 hover:bg-emerald-600/70 border border-emerald-200/20 text-emerald-50 font-black text-[11px]">Сыграть карту 6</button>}
+            {c14 && <button type="button" onClick={() => moves.playAction(c14.id)} className="px-3 py-1 rounded-full bg-emerald-700/60 hover:bg-emerald-600/70 border border-emerald-200/20 text-emerald-50 font-black text-[11px]">Сыграть карту 14</button>}
             {canPersona10Cancel && <button type="button" onClick={() => { try { moves.persona10CancelFromCoalition(); } catch {} }} className="px-3 py-1 rounded-full bg-fuchsia-700/50 hover:bg-fuchsia-600/60 border border-fuchsia-200/20 text-fuchsia-50 font-black text-[11px]">Отмена p10</button>}
           </div>
         </div>

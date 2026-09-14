@@ -15,3 +15,11 @@ Configuration defaults:
 `GameOverOverlay` and `TokenPips` are separate presentation components. The result overlay uses the server's winner. ActionBoard no longer elects a browser to drive the game. It still contains substantial UI state, placement selectors, keyboard handling and some eligibility checks; this change does not claim that every UI predicate has been eliminated.
 
 Regression coverage includes automatic bot turns, response expiry, idle polling, stopped games, stale snapshot rejection, viewer privacy and action hints. Existing HTTP and browser smoke tests remain in CI.
+
+## Reaction presentation
+
+`G.choices.reactions` selects eligible response card IDs and advertises persona 8/10 reactions. The panel, hand and shortcuts consume the same server decisions, including the persona 33 cancellation restriction. Persona 8 targets require both coalition cards to exist. `G.choices.actions.persona39RecycleSelf` controls its shortcut.
+
+Shortcut `1` submits one response: card 6, card 8, card 14, then persona 10, in that order of availability. It no longer submits two moves when both cards 6 and 14 are held. The panel offers explicit card 14 and persona 8 buttons; a persona 8 response no longer requires holding card 8. Duplicate central hints were removed so they cannot cover the response controls.
+
+UI hints stay visible until the server closes the response, rather than trusting the browser's clock. Actual move validation and expiry remain in the Java engine. Projection and shortcut regression tests run in the existing CI checks.

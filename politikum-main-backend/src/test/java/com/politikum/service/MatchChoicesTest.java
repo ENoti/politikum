@@ -49,4 +49,36 @@ class MatchChoicesTest {
         g.put("gameOver",object("winnerPlayerId","1"));
         assertTrue(map(choices(state,"0").get("hand")).isEmpty());
     }
+    @Test void persona33CannotBeCancelledAndHiddenResponseCardsAreNotExposed() {
+        var state=state();var g=map(state.get("G"));
+        map(list(g.get("players")).get(0)).put("hand",List.of(card("action_8#2",false)));
+        g.put("response",object("kind","cancel_persona","playedBy","1","personaCard",card("persona_33",false)));
+        assertFalse(map(choices(state,"0").get("reactions")).containsKey("cancelPersonaCardId"));
+        map(g.get("response")).put("personaCard",card("persona_2",false));
+        assertEquals("action_8#2",map(choices(state,"0").get("reactions")).get("cancelPersonaCardId"));
+        assertFalse(map(choices(state,"1").get("reactions")).containsKey("cancelPersonaCardId"));
+        assertTrue(map(choices(state,null).get("reactions")).isEmpty());
+    }
+    @Test void coalitionReactionsRequireTheActualCardsAndSwapTarget() {
+        var state=state();var g=map(state.get("G"));var me=map(list(g.get("players")).get(0));
+        g.put("pending",object("kind","action_4_discard","targetId","0"));
+        g.put("response",object("kind","cancel_action","playedBy","1","allowPersona10By","0"));
+        assertEquals(false,map(choices(state,"0").get("reactions")).get("persona10Cancel"));
+        me.put("coalition",List.of(card("persona_10",false)));
+        assertEquals(true,map(choices(state,"0").get("reactions")).get("persona10Cancel"));
+        me.put("coalition",List.of(card("persona_8",false)));
+        g.put("response",object("kind","cancel_persona","playedBy","1","persona8Swap",object("playerId","0","ownerId","1","playedPersonaId","persona_5")));
+        assertEquals(true,map(choices(state,"0").get("reactions")).get("persona8Swap"));
+        assertEquals(List.of(object("ownerId","1","cardId","persona_5")),map(choices(state,"0").get("targets")).get("persona8SwapWithPlayedPersona"));
+        map(list(g.get("players")).get(1)).put("coalition",List.of());
+        assertEquals(false,map(choices(state,"0").get("reactions")).get("persona8Swap"));
+    }
+    @Test void persona39ShortcutIsLimitedToAnUnblockedOwnTurn() {
+        var state=state();var g=map(state.get("G"));
+        map(list(g.get("players")).get(0)).put("coalition",List.of(card("persona_39",false)));
+        assertEquals(true,map(choices(state,"0").get("actions")).get("persona39RecycleSelf"));
+        assertEquals(false,map(choices(state,"1").get("actions")).get("persona39RecycleSelf"));
+        g.put("response",object("kind","cancel_action"));
+        assertEquals(false,map(choices(state,"0").get("actions")).get("persona39RecycleSelf"));
+    }
 }

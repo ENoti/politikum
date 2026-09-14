@@ -12,7 +12,8 @@ public final class MatchChoices {
     public static Map<String,Object> forView(Map<String,Object> state,String viewer) {
         Map<String,Object> g=map(state.get("G")),ctx=map(state.get("ctx")),pending=map(g.get("pending")),response=map(g.get("response"));
         Map<String,Object> targets=new LinkedHashMap<>(),hands=new LinkedHashMap<>();List<String> guesses=new ArrayList<>();
-        var out=object("targets",targets,"hand",hands,"requiredDiscards",0,"guessIds",guesses);
+        Map<String,Object> reactions=new LinkedHashMap<>(),actions=new LinkedHashMap<>();
+        var out=object("targets",targets,"hand",hands,"requiredDiscards",0,"guessIds",guesses,"reactions",reactions,"actions",actions);
         if(viewer==null||truthy(g.get("gameOver"))||truthy(ctx.get("gameover")))return out;
         List<Map<String,Object>> players=list(g.get("players"));Map<String,Object> me=players.stream().filter(p->viewer.equals(text(p.get("id")))).findFirst().orElse(Map.of());
         if(me.isEmpty())return out;
@@ -48,6 +49,17 @@ public final class MatchChoices {
             if(move!=null){@SuppressWarnings("unchecked") List<Object> values=(List<Object>)targets.computeIfAbsent(move,k->new ArrayList<>());values.add(object("ownerId",owner,"cardId",id));}
         }
         boolean targeted=Set.of("action_4_discard","action_9_discard_persona").contains(kind)&&viewer.equals(text(pending.get("targetId")));
+        reactions.put("targetsMe",targeted);
+        reactions.put("persona10Cancel",rk.equals("cancel_action")&&targeted&&viewer.equals(text(response.get("allowPersona10By")))
+            &&MatchChoices.<Map<String,Object>>cards(me,"coalition").stream().anyMatch(c->persona(c)&&base(c).equals("persona_10")));
+        Map<String,Object> swap=map(response.get("persona8Swap"));
+        boolean canSwap=rk.equals("cancel_persona")&&viewer.equals(text(swap.get("playerId")))
+            &&MatchChoices.<Map<String,Object>>cards(me,"coalition").stream().anyMatch(c->persona(c)&&base(c).equals("persona_8"))
+            &&players.stream().filter(p->text(p.get("id")).equals(text(swap.get("ownerId"))))
+                .anyMatch(p->MatchChoices.<Map<String,Object>>cards(p,"coalition").stream().anyMatch(c->persona(c)&&text(c.get("id")).equals(text(swap.get("playedPersonaId")))));
+        reactions.put("persona8Swap",canSwap);
+        if(canSwap)targets.put("persona8SwapWithPlayedPersona",List.of(object("ownerId",text(swap.get("ownerId")),"cardId",text(swap.get("playedPersonaId")))));
+        actions.put("persona39RecycleSelf",turn&&"action".equals(ctx.get("phase"))&&pending.isEmpty()&&response.isEmpty()&&ownBases.contains("persona_39"));
         boolean ready=turn&&"action".equals(ctx.get("phase"))&&pending.isEmpty()&&response.isEmpty()&&truthy(g.get("hasDrawn"));
         for(Map<String,Object> c:MatchChoices.<Map<String,Object>>cards(me,"hand")) {
             String id=text(c.get("id")),base=base(c);boolean action="action".equals(c.get("type"));
@@ -59,6 +71,12 @@ public final class MatchChoices {
                 "cancelEffectOnMe",rk.equals("cancel_action")&&targeted&&base.equals("action_14")&&!turn,
                 "discardDownTo7",owns&&turn&&Set.of("discard_down_to_7","hand_limit_discard_before_draw").contains(kind),
                 "discardEvent12b",kind.equals("event_12b_discard_from_hand")&&list(pending.get("targetIds")).contains(viewer),"discard16",owns&&kind.equals("persona_16_discard3_from_hand")));
+        }
+        for(var entry:hands.entrySet()) {
+            Map<String,Object> flags=map(entry.getValue());
+            if(truthy(flags.get("cancelAction")))reactions.putIfAbsent("cancelActionCardId",entry.getKey());
+            if(truthy(flags.get("cancelPersona")))reactions.putIfAbsent("cancelPersonaCardId",entry.getKey());
+            if(truthy(flags.get("cancelEffectOnMe")))reactions.putIfAbsent("cancelEffectCardId",entry.getKey());
         }
         return out;
     }
