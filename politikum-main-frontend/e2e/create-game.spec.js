@@ -35,6 +35,9 @@ test('create, join, start and restore the game board without runtime errors', as
   await expect(page.getByRole('button', { name: 'Закончить ход', exact: true })).toBeVisible();
   await page.reload();
   await expect(page.getByRole('button', { name: 'Закончить ход', exact: true })).toBeVisible();
+  const drawResponse = page.waitForResponse(response => response.url().endsWith('/move/beginTurnDraw'));
+  await page.keyboard.press('c');
+  expect((await (await drawResponse).json()).ok).toBe(true);
   expect(errors).toEqual([]);
 });
 

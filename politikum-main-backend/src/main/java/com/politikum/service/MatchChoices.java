@@ -60,12 +60,32 @@ public final class MatchChoices {
         reactions.put("persona8Swap",canSwap);
         if(canSwap)targets.put("persona8SwapWithPlayedPersona",List.of(object("ownerId",text(swap.get("ownerId")),"cardId",text(swap.get("playedPersonaId")))));
         actions.put("persona39RecycleSelf",turn&&"action".equals(ctx.get("phase"))&&pending.isEmpty()&&response.isEmpty()&&ownBases.contains("persona_39"));
+        boolean unblocked=turn&&"action".equals(ctx.get("phase"))&&pending.isEmpty()&&response.isEmpty();
+        actions.put("beginTurnDraw",unblocked&&!truthy(g.get("hasDrawn"))&&!list(g.get("deck")).isEmpty());
+        actions.put("drawCard",unblocked&&truthy(g.get("hasDrawn"))&&!truthy(g.get("hasPlayed"))&&number(g.get("drawsThisTurn"))<2&&!list(g.get("deck")).isEmpty());
+        actions.put("endTurn",unblocked&&truthy(g.get("hasDrawn"))&&truthy(g.get("hasPlayed")));
+        String pendingOwner=truthy(pending.get("playerId"))?text(pending.get("playerId")):truthy(pending.get("attackerId"))?text(pending.get("attackerId")):text(pending.get("targetId"));
+        actions.put("cancelPending",turn&&viewer.equals(pendingOwner)&&com.politikum.engine.JavaResponseRules.CANCELLABLE_PENDING.contains(kind));
+        Map<String,Object> cardChoices=new LinkedHashMap<>();out.put("cards",cardChoices);
+        Map<String,Object> playerChoices=new LinkedHashMap<>();out.put("players",playerChoices);
+        if(owns&&turn&&kind.equals("persona_17_pick_opponent"))playerChoices.put("persona17PickOpponent",players.stream().filter(p->!viewer.equals(text(p.get("id")))).map(p->text(p.get("id"))).toList());
+        if(owns&&kind.equals("persona_45_steal_from_opponent"))playerChoices.put("persona45StealFromOpponent",players.stream().filter(p->!viewer.equals(text(p.get("id")))&&!list(p.get("hand")).isEmpty()).map(p->text(p.get("id"))).toList());
+        if(attacker&&kind.equals("action_18_pick_persona_from_discard"))cardChoices.put("pickPersonaFromDiscardForAction18",MatchChoices.<Map<String,Object>>cards(g,"discard").stream().filter(c->persona(c)&&!base(c).equals("persona_31")).map(c->text(c.get("id"))).toList());
+        // Preserve the existing action-only UI for persona 20; changing its legacy rules is separate work.
+        if(owns&&kind.equals("persona_20_pick_from_discard"))cardChoices.put("persona20PickFromDiscard",MatchChoices.<Map<String,Object>>cards(g,"discard").stream().filter(c->"action".equals(c.get("type"))).map(c->text(c.get("id"))).toList());
+        if(owns&&turn&&kind.equals("persona_17_pick_persona_from_hand")) {
+            var target=players.stream().filter(p->text(p.get("id")).equals(text(pending.get("targetId")))).findFirst().orElse(Map.of());
+            cardChoices.put("persona17StealPersonaFromHand",MatchChoices.<Map<String,Object>>cards(target,"hand").stream().filter(MatchChoices::persona).map(c->text(c.get("id"))).toList());
+        }
         boolean ready=turn&&"action".equals(ctx.get("phase"))&&pending.isEmpty()&&response.isEmpty()&&truthy(g.get("hasDrawn"));
         for(Map<String,Object> c:MatchChoices.<Map<String,Object>>cards(me,"hand")) {
             String id=text(c.get("id")),base=base(c);boolean action="action".equals(c.get("type"));
             boolean plays=number(g.get("playsThisTurn"))<(truthy(g.get("maxPlaysThisTurn"))?number(g.get("maxPlaysThisTurn")):1);
             boolean room=base.equals("persona_9")?players.stream().anyMatch(p->!viewer.equals(text(p.get("id")))&&list(p.get("coalition")).size()<7):list(me.get("coalition")).size()<7;
-            hands.put(id,object("playPersona",ready&&persona(c)&&plays&&room,"playAction",ready&&!truthy(g.get("hasPlayed"))&&action&&!Set.of("action_6","action_8","action_14").contains(base),
+            boolean placementAvailable=MatchChoices.<Map<String,Object>>cards(me,"coalition").stream().anyMatch(coal->persona(coal)&&!base(coal).equals("persona_31"));
+            var receivers=players.stream().filter(p->!viewer.equals(text(p.get("id")))&&(!base.equals("persona_9")||list(p.get("coalition")).size()<7)).map(p->text(p.get("id"))).toList();
+            hands.put(id,object("targetPlayerIds",ready&&Set.of("persona_9","action_4","action_9").contains(base)?receivers:List.of(),"placementAvailable",placementAvailable,"choosePlacement",Set.of("persona_1","persona_12","persona_18","persona_19","persona_25","persona_42").contains(base)&&placementAvailable,
+                "playPersona",ready&&persona(c)&&plays&&room,"playAction",ready&&!truthy(g.get("hasPlayed"))&&action&&!Set.of("action_6","action_8","action_14").contains(base),
                 "cancelAction",rk.equals("cancel_action")&&action&&base.equals("action_6")&&!turn&&!viewer.equals(text(response.get("playedBy"))),
                 "cancelPersona",rk.equals("cancel_persona")&&action&&base.equals("action_8")&&!viewer.equals(text(response.get("playedBy")))&&!base(map(response.get("personaCard"))).equals("persona_33"),
                 "cancelEffectOnMe",rk.equals("cancel_action")&&targeted&&base.equals("action_14")&&!turn,

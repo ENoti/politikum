@@ -23,3 +23,11 @@ Regression coverage includes automatic bot turns, response expiry, idle polling,
 Shortcut `1` submits one response: card 6, card 8, card 14, then persona 10, in that order of availability. It no longer submits two moves when both cards 6 and 14 are held. The panel offers explicit card 14 and persona 8 buttons; a persona 8 response no longer requires holding card 8. Duplicate central hints were removed so they cannot cover the response controls.
 
 UI hints stay visible until the server closes the response, rather than trusting the browser's clock. Actual move validation and expiry remain in the Java engine. Projection and shortcut regression tests run in the existing CI checks.
+
+## Turn controls and card pickers
+
+Java now supplies begin-draw, extra-draw, end-turn and cancel-pending hints, card IDs for action 18/personas 17 and 20, opponent IDs, and placement hints. Buttons and shortcuts consume these fields. The cancellable-kind catalog is shared with the engine. The `C` shortcut uses `beginTurnDraw` before the mandatory draw and `drawCard` for an eligible extra draw, and ignores input while a move is in flight.
+
+Persona 20 retains the existing action-only UI: the older engine accepts other non-event cards in that pending state, but changing that inconsistency is outside this cleanup. End-turn hints retain the UI's conservative blocking while a response or pending choice exists. Card effects and stored game rules are unchanged.
+
+Removed unreachable persona 40 token-confirmation UI whose condition required the source to be both event 1 and persona 40. Token clicks still submit `applyPendingToken`; Java applies the pending amount. Remaining presentation work includes splitting card fans/pickers out of ActionBoard and testing more interactive ability scenarios.

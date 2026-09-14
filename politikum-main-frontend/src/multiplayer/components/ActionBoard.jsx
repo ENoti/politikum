@@ -70,7 +70,6 @@ function ActionBoard({ G, ctx, moves, playerID, matchID, ratingsMap = {}, setSho
   const [targetP26, setTargetP26] = useState(null); // { playerId, cardId }
   const [targetP28, setTargetP28] = useState(null); // { playerId, cardId }
   const [targetP37, setTargetP37] = useState(null); // { playerId, cardId }
-  const [targetP40, setTargetP40] = useState(null); // { cardId }
   const logRef = React.useRef(null);
   const briefLogRef = React.useRef(null);
   const partyChatRef = React.useRef(null);
@@ -277,16 +276,12 @@ function ActionBoard({ G, ctx, moves, playerID, matchID, ratingsMap = {}, setSho
     if (/^event_\d+[a-z]*$/i.test(bid)) return 'событие';
     return fallback || '';
   };
-  const canSkipCurrentPending = !!(pending && [
-    'persona_3_choice','persona_5_pick_liberal','persona_7_swap_two_in_coalition','persona_11_offer','persona_11_pick_opponent_persona',
-    'persona_13_pick_target','persona_16_discard3_from_hand','persona_17_pick_opponent','persona_17_pick_persona_from_hand',
-    'persona_20_pick_from_discard','persona_21_pick_target_invert','persona_23_choose_self_inflict_draw','persona_26_pick_red_nationalist',
-    'persona_28_pick_non_fbk','persona_32_pick_bounce_target','persona_33_choose_faction','persona_34_guess_topdeck',
-    'persona_37_pick_opponent_persona','persona_45_steal_from_opponent','action_7_block_persona','action_13_shield_persona',
-    'action_17_choose_opponent_persona','action_18_pick_persona_from_discard'
-  ].includes(String(pending?.kind || '')) && String(pending?.playerId || pending?.attackerId || pending?.targetId || '') === String(playerID));
+  const canSkipCurrentPending = !!G.choices?.actions?.cancelPending;
+  const canPickPlayer = (move, id) => (G.choices?.players?.[move] || []).includes(String(id));
+  const canPlayToPlayer = (selection, id) => (G.choices?.hand?.[String(selection?.cardId)]?.targetPlayerIds || []).includes(String(id));
+  const choiceCards = (move, cards) => (cards || []).filter(c => (G.choices?.cards?.[move] || []).includes(String(c.id)));
   const yourTurnPromptKey = `${String(playerID)}:${String(ctx?.turn || 0)}`;
-  const yourTurnPromptActive = !!isMyTurn && !G?.gameOver && !G?.hasDrawn && !G?.pending && !G?.response && !showEventSplash && !targetedPush && acknowledgedTurnPromptKey !== yourTurnPromptKey;
+  const yourTurnPromptActive = !!G.choices?.actions?.beginTurnDraw && !showEventSplash && !targetedPush && acknowledgedTurnPromptKey !== yourTurnPromptKey;
 
   const myDisplayName = String(me?.name || '').trim();
   const playerNameById = useMemo(() => {
@@ -366,7 +361,7 @@ useEffect(() => {
   const safeEndTurn = () => {
     const now = Date.now();
     if ((now - Number(endTurnAtRef.current || 0)) < 700) return;
-    if (!isMyTurn || G?.pending || G?.response || !G?.hasDrawn || !G?.hasPlayed) return;
+    if (!G.choices?.actions?.endTurn || moveInFlight) return;
     endTurnAtRef.current = now;
     try { playSfx('ui'); } catch {}
     try { moves.endTurn(); } catch {}
@@ -376,31 +371,6 @@ useEffect(() => {
   const myVpTokens = (me?.coalition || []).reduce((s, c) => s + Number(c.vpDelta || 0), 0);
   const myVpPassives = (me?.coalition || []).reduce((s, c) => s + Number(c.passiveVpDelta || 0), 0);
   const myCoalitionPoints = (me?.coalition || []).reduce((s, c) => s + Number(c.vp ?? (Number(c.baseVp ?? 0) + Number(c.vpDelta || 0) + Number(c.passiveVpDelta || 0))), 0);
-
-  const pendingTokens = pending?.kind === 'place_tokens_plus_vp' && String(pending?.playerId) === String(playerID);
-  const pendingTokensRemaining = pendingTokens ? Number(pending?.remaining || 0) : 0;
-  const pendingTokensSource = pendingTokens ? String(pending?.sourceCardId || '') : '';
-
-  const pendingTokensBase = String(pendingTokensSource || '').split('#')[0];
-  const pendingTokensSingleTarget = pendingTokensBase === 'event_1';
-  const [pendingTokensTargetId, setPendingTokensTargetId] = useState(null);
-  const [pendingTokensLastSource, setPendingTokensLastSource] = useState('');
-  useEffect(() => {
-    if (!pendingTokens) {
-      if (pendingTokensTargetId) setPendingTokensTargetId(null);
-      if (pendingTokensLastSource) setPendingTokensLastSource('');
-      return;
-    }
-    if (pendingTokensSource !== pendingTokensLastSource) {
-      setPendingTokensLastSource(pendingTokensSource);
-      setPendingTokensTargetId(null);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingTokens, pendingTokensSource]);
-
-  useEffect(() => {
-    if (pendingTokensBase !== 'persona_40') setTargetP40(null);
-  }, [pendingTokensBase]);
 
   const pendingPersona45 = pending?.kind === 'persona_45_steal_from_opponent' && String(pending?.playerId) === String(playerID);
   const pendingPersona45Source = pendingPersona45 ? String(pending?.sourceCardId || '') : '';
@@ -490,7 +460,6 @@ useEffect(() => {
       setTargetP26(null);
       setTargetP28(null);
       setTargetP37(null);
-      setTargetP40(null);
       return;
     }
     if (kind !== 'action_7_block_persona') setTargetA7(null);
@@ -504,11 +473,10 @@ useEffect(() => {
     if (kind !== 'persona_26_pick_red_nationalist') setTargetP26(null);
     if (kind !== 'persona_28_pick_non_fbk') setTargetP28(null);
     if (kind !== 'persona_37_pick_opponent_persona') setTargetP37(null);
-    if (kind !== 'place_tokens_plus_vp') setTargetP40(null);
   }, [pending?.kind]);
 
 
-  const isImmovablePersona = (card) => card?.type === 'persona' && String(card.id).split('#')[0] === 'persona_31';
+
 
   // Hand fan geometry (ported from Citadel MP)
   const cards = hand;
@@ -554,9 +522,9 @@ useEffect(() => {
         setPlacementMode(null);
         setP16DiscardPick([]);
         setP7FirstPick(null);
-        if (pendingP32) { try { moves.persona32CancelBounce(); } catch {} }
+
         // generic pending cancel (stability)
-        if (G.pending && String(G.pending.playerId || G.pending.attackerId || G.pending.targetId || '') === String(playerID)) {
+        if (canSkipCurrentPending) {
           try { moves.cancelPending(); } catch {}
         }
         return;
@@ -579,13 +547,13 @@ useEffect(() => {
         return;
       }
       if (key === 'c') {
-        if (!isMyTurn || G.pending || G.hasDrawn) return;
-        playSfx('draw');
-        moves.drawCard();
+        if (moveInFlight) return;
+        if (G.choices?.actions?.beginTurnDraw) { playSfx('draw'); moves.beginTurnDraw(); }
+        else if (G.choices?.actions?.drawCard) { playSfx('draw'); moves.drawCard(); }
         return;
       }
       if (key === 'e') {
-        if (!isMyTurn || !G.hasDrawn || !G.hasPlayed) return;
+        if (!G.choices?.actions?.endTurn) return;
         safeEndTurn();
         return;
       }
@@ -731,7 +699,7 @@ useEffect(() => {
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [isMyTurn, G.hasDrawn, G.hasPlayed, G.choices, moves, responseKind, responseSecondsLeft, response?.playedBy, playerID, me?.hand, pending, pendingP16, pendingP16RequiredDiscard, p16DiscardPick]);
+  }, [isMyTurn, G.hasDrawn, G.hasPlayed, G.choices, moveInFlight, moves, responseKind, responseSecondsLeft, response?.playedBy, playerID, me?.hand, pending, pendingP16, pendingP16RequiredDiscard, p16DiscardPick]);
 
   // Event splash: show when lastEvent changes, but do not replay an old event on first render.
   const lastEventSeenRef = useRef(null);
@@ -1056,30 +1024,30 @@ useEffect(() => {
                 className={
                   `relative ${opponentFanHeightClass} pointer-events-auto transition-colors rounded-2xl ` +
                   
-                  ((pickTargetForAction4 || pickTargetForAction9 || pendingPersona45 || pickTargetForPersona9 || pendingP17PickOpp || (placementModeOpp && String(placementModeOpp.targetId) === String(p.id))) ? "cursor-pointer ring-2 ring-emerald-500/30 hover:ring-emerald-300/50" : "") +
+                  ((canPlayToPlayer(pickTargetForAction4, p.id) || canPlayToPlayer(pickTargetForAction9, p.id) || canPickPlayer('persona45StealFromOpponent', p.id) || canPlayToPlayer(pickTargetForPersona9, p.id) || canPickPlayer('persona17PickOpponent', p.id) || (placementModeOpp && String(placementModeOpp.targetId) === String(p.id))) ? "cursor-pointer ring-2 ring-emerald-500/30 hover:ring-emerald-300/50" : "") +
                   ((targetAction9Id && String(targetAction9Id) === String(p.id)) ? " ring-4 ring-amber-300/80" : "")
                 }
                 style={{ width: Math.max(width, opponentMinFanWidth) }}
                 onClick={() => {
-                  if (pendingP17PickOpp) {
+                  if (pendingP17PickOpp && canPickPlayer('persona17PickOpponent', p.id)) {
                     try { moves.persona17PickOpponent(String(p.id)); } catch {}
                     return;
                   }
-                  if (pendingPersona45) {
+                  if (pendingPersona45 && canPickPlayer('persona45StealFromOpponent', p.id)) {
                     try { moves.persona45StealFromOpponent(String(p.id)); } catch {}
                     return;
                   }
-                  if (pickTargetForPersona9) {
+                  if (pickTargetForPersona9 && canPlayToPlayer(pickTargetForPersona9, p.id)) {
                     try { playSfx('play'); moves.playPersona(pickTargetForPersona9.cardId, undefined, 'right', String(p.id)); } catch {}
                     setPickTargetForPersona9(null);
                     return;
                   }
-                  if (pickTargetForAction4) {
+                  if (pickTargetForAction4 && canPlayToPlayer(pickTargetForAction4, p.id)) {
                     try { moves.playAction(pickTargetForAction4.cardId, String(p.id)); } catch {}
                     setPickTargetForAction4(null);
                     return;
                   }
-                  if (pickTargetForAction9) {
+                  if (pickTargetForAction9 && canPlayToPlayer(pickTargetForAction9, p.id)) {
                     setTargetAction9Id(String(p.id));
                     return;
                   }
@@ -1748,18 +1716,6 @@ Click their hand. (Esc to cancel)`}</div>
         </div>
       )}
 
-      {(pendingTokens && pendingTokensBase === 'persona_40' && targetP40) && (
-        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9600] pointer-events-auto select-none">
-          <div className="flex items-center gap-3 bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
-            <span>p40: confirm token</span>
-            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-emerald-400/40 bg-emerald-700/60 hover:bg-emerald-600/70" onClick={() => {
-              try { playSfx('ui', 0.35); moves.applyPendingToken(String(targetP40.cardId)); } catch {}
-              setTargetP40(null);
-            }}>Confirm</button>
-            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-amber-900/20 bg-slate-800/60 hover:bg-slate-700/60" onClick={() => setTargetP40(null)}>Отмена</button>
-          </div>
-        </div>
-      )}
 
       {/* Tutorial: simple center-board text (toggle T) */}
       {showTutorial && (
@@ -1890,7 +1846,7 @@ Click their hand. (Esc to cancel)`}</div>
       {/* Persona_17 pick persona from revealed hand */}
       {pendingP17PickCard && (() => {
         const target = (G.players || []).find((pp) => String(pp.id) === String(pendingP17TargetId));
-        const cards = (target?.hand || []).filter((c) => c?.type === 'persona');
+        const cards = choiceCards('persona17StealPersonaFromHand', target?.hand);
         return (
           <div className="fixed inset-x-0 top-14 z-[9600] flex items-start justify-center pointer-events-none select-none">
             <div className="pointer-events-auto bg-black/75 border border-amber-900/30 rounded-3xl shadow-2xl p-4 max-w-[96vw]">
@@ -1968,7 +1924,7 @@ Click their hand. (Esc to cancel)`}</div>
             <div className="text-amber-200/80 text-[10px] uppercase tracking-[0.3em] font-black">Экшен 18 — Возврат из сброса</div>
             <div className="mt-2 text-amber-100/80 text-sm">Выберите персонажа из сброса, чтобы вернуть его в руку.</div>
             <div className="mt-4 flex flex-wrap gap-3 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2">
-              {(G.discard || []).filter((c) => c.type === 'persona' && !isImmovablePersona(c)).map((c) => (
+              {choiceCards('pickPersonaFromDiscardForAction18', G.discard).map((c) => (
                 <button
                   key={c.id}
                   className="w-40 aspect-[2/3] rounded-2xl overflow-hidden border border-black/40 shadow-2xl hover:scale-[1.02] transition-transform"
@@ -1978,7 +1934,7 @@ Click their hand. (Esc to cancel)`}</div>
                   <img src={c.img} alt={displayCardTitle(c)} className="w-full h-full object-cover" draggable={false} />
                 </button>
               ))}
-              {!(G.discard || []).some((c) => c.type === 'persona' && !isImmovablePersona(c)) && (
+              {!choiceCards('pickPersonaFromDiscardForAction18', G.discard).length && (
                 <div className="text-amber-200/70 text-sm">В сбросе нет персонажей.</div>
               )}
             </div>
@@ -1993,7 +1949,7 @@ Click their hand. (Esc to cancel)`}</div>
             <div className="text-amber-200/80 text-[10px] uppercase tracking-[0.3em] font-black">Быков (p20) — Взять из сброса</div>
             <div className="mt-2 text-amber-100/80 text-sm">Выберите 1 карту действия из сброса, чтобы взять её в руку.</div>
             <div className="mt-4 flex flex-wrap gap-3 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2">
-              {(G.discard || []).filter((c) => c.type === 'action').map((c) => (
+              {choiceCards('persona20PickFromDiscard', G.discard).map((c) => (
                 <button
                   key={c.id}
                   className="w-40 aspect-[2/3] rounded-2xl overflow-hidden border border-black/40 shadow-2xl hover:scale-[1.02] transition-transform"
@@ -2229,10 +2185,6 @@ Click their hand. (Esc to cancel)`}</div>
                 title={displayCardTitle(card)}
                 onClick={() => {
                   if (canClickForPendingTokens) {
-                    if (pendingTokensSingleTarget && pendingTokensBase === 'persona_40') {
-                      setTargetP40({ cardId: String(card.id) });
-                      return;
-                    }
                     try { moves.applyPendingToken(String(card.id)); } catch {}
                     return;
                   }
@@ -2362,7 +2314,7 @@ Click their hand. (Esc to cancel)`}</div>
                     return;
                   }
                   if (canPlayPersona) {
-                    const haveCoal = (me?.coalition || []).filter((c) => c.type === 'persona' && !isImmovablePersona(c)).length >= 1;
+
 
                     // persona_9: must choose opponent receiver
                     if (baseId === 'persona_9') {
@@ -2377,17 +2329,17 @@ Click their hand. (Esc to cancel)`}</div>
                       return;
                     }
 
-                    const POSITION_SENSITIVE = new Set(['persona_1','persona_12','persona_18','persona_19','persona_25','persona_42']);
+
 
                     // Ghost placement mode for position-sensitive personas.
-                    if (haveCoal && POSITION_SENSITIVE.has(baseId)) {
+                    if (handChoice(card).choosePlacement) {
                       playSfx('ui', 0.35);
                       setPlacementMode({ cardId: card.id, neighborId: null, side: 'right' });
                       return;
                     }
 
                     // Placement mode for any persona (legacy): Shift+click.
-                    if (haveCoal && e?.shiftKey) {
+                    if (handChoice(card).placementAvailable && e?.shiftKey) {
                       playSfx('ui', 0.35);
                       setPlacementMode({ cardId: card.id, neighborId: null, side: 'right' });
                       return;

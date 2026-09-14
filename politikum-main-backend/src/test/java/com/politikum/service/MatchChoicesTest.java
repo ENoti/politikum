@@ -6,6 +6,51 @@ import static com.politikum.engine.GameState.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 class MatchChoicesTest {
+    @Test void opponentChoicesUsePublicCapacityAndHandCountOnly() {
+        var state=state();var g=map(state.get("G"));var me=map(list(g.get("players")).get(0));var opponent=map(list(g.get("players")).get(1));
+        me.put("hand",List.of(card("persona_9",false)));
+        assertEquals(List.of("1"),map(map(choices(state,"0").get("hand")).get("persona_9")).get("targetPlayerIds"));
+        opponent.put("coalition",Collections.nCopies(7,card("persona_2",false)));
+        assertEquals(List.of(),map(map(choices(state,"0").get("hand")).get("persona_9")).get("targetPlayerIds"));
+        g.put("pending",object("kind","persona_45_steal_from_opponent","playerId","0"));
+        assertEquals(List.of("1"),map(choices(state,"0").get("players")).get("persona45StealFromOpponent"));
+        opponent.put("hand",List.of());
+        assertEquals(List.of(),map(choices(state,"0").get("players")).get("persona45StealFromOpponent"));
+    }
+    @Test void turnControlsUseDeckDrawCountAndPendingOwner() {
+        var state=state();var g=map(state.get("G"));
+        g.put("hasDrawn",false);
+        assertEquals(true,map(choices(state,"0").get("actions")).get("beginTurnDraw"));
+        assertEquals(false,map(choices(state,"0").get("actions")).get("drawCard"));
+        g.put("hasDrawn",true);g.put("drawsThisTurn",1);
+        assertEquals(true,map(choices(state,"0").get("actions")).get("drawCard"));
+        g.put("drawsThisTurn",2);
+        assertEquals(false,map(choices(state,"0").get("actions")).get("drawCard"));
+        g.put("hasPlayed",true);
+        assertEquals(true,map(choices(state,"0").get("actions")).get("endTurn"));
+        g.put("pending",object("kind","action_18_pick_persona_from_discard","attackerId","0"));
+        assertEquals(false,map(choices(state,"0").get("actions")).get("endTurn"));
+        assertEquals(true,map(choices(state,"0").get("actions")).get("cancelPending"));
+        assertEquals(false,map(choices(state,"1").get("actions")).get("cancelPending"));
+        g.put("pending",null);g.put("hasDrawn",false);g.put("deck",List.of());
+        assertEquals(false,map(choices(state,"0").get("actions")).get("beginTurnDraw"));
+    }
+    @Test void discardOptionsPreserveCardRestrictions() {
+        var state=state();var g=map(state.get("G"));
+        g.put("discard",List.of(card("persona_31",false),card("persona_2",false),card("action_4",false)));
+        g.put("pending",object("kind","action_18_pick_persona_from_discard","attackerId","0"));
+        assertEquals(List.of("persona_2"),map(choices(state,"0").get("cards")).get("pickPersonaFromDiscardForAction18"));
+        assertTrue(map(choices(state,"1").get("cards")).isEmpty());
+        g.put("pending",object("kind","persona_20_pick_from_discard","playerId","0"));
+        assertEquals(List.of("action_4"),map(choices(state,"0").get("cards")).get("persona20PickFromDiscard"));
+    }
+    @Test void revealedHandChoicesOnlyReachTheActingPlayer() {
+        var state=state();var g=map(state.get("G"));
+        g.put("pending",object("kind","persona_17_pick_persona_from_hand","playerId","0","targetId","1"));
+        assertEquals(List.of("persona_9"),map(choices(state,"0").get("cards")).get("persona17StealPersonaFromHand"));
+        assertTrue(map(choices(state,"1").get("cards")).isEmpty());
+        assertTrue(map(choices(state,null).get("cards")).isEmpty());
+    }
     private Map<String,Object> card(String id, boolean shielded) {
         return object("id",id,"type",id.startsWith("action_")?"action":"persona","shielded",shielded);
     }

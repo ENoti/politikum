@@ -4,6 +4,7 @@ import static com.politikum.engine.GameState.object;
 
 /** Native response windows, cancellation cards and persona 8/10 reactions. */
 public final class JavaResponseRules {
+    public static final java.util.Set<String> CANCELLABLE_PENDING = java.util.Set.of("persona_3_choice","persona_5_pick_liberal","persona_7_swap_two_in_coalition","persona_11_offer","persona_11_pick_opponent_persona","persona_13_pick_target","persona_16_discard3_from_hand","persona_17_pick_opponent","persona_17_pick_persona_from_hand","persona_20_pick_from_discard","persona_21_pick_target_invert","persona_23_choose_self_inflict_draw","persona_26_pick_red_nationalist","persona_28_pick_non_fbk","persona_32_pick_bounce_target","persona_33_choose_faction","persona_34_guess_topdeck","persona_37_pick_opponent_persona","persona_45_steal_from_opponent","action_7_block_persona","action_13_shield_persona","action_17_choose_opponent_persona","action_18_pick_persona_from_discard");
     private static final long WINDOW_MS=15000;
     private final JavaAbilityRules.Scoring scoring;
     private final AbilityEffects effects;
@@ -28,7 +29,7 @@ public final class JavaResponseRules {
         String owner=pending.get("playerId").truthy()?pending.get("playerId").text():pending.get("attackerId").truthy()?pending.get("attackerId").text():pending.get("targetId").text();
         if((!owner.isEmpty()&&!owner.equals(actor))||!ctx.get("currentPlayer").text().equals(actor))return false;
         String kind=pending.get("kind").text();
-        if(!java.util.Set.of("persona_3_choice","persona_5_pick_liberal","persona_7_swap_two_in_coalition","persona_11_offer","persona_11_pick_opponent_persona","persona_13_pick_target","persona_16_discard3_from_hand","persona_17_pick_opponent","persona_17_pick_persona_from_hand","persona_20_pick_from_discard","persona_21_pick_target_invert","persona_23_choose_self_inflict_draw","persona_26_pick_red_nationalist","persona_28_pick_non_fbk","persona_32_pick_bounce_target","persona_33_choose_faction","persona_34_guess_topdeck","persona_37_pick_opponent_persona","persona_45_steal_from_opponent","action_7_block_persona","action_13_shield_persona","action_17_choose_opponent_persona","action_18_pick_persona_from_discard").contains(kind))return false;
+        if(!CANCELLABLE_PENDING.contains(kind))return false;
         if(kind.equals("action_7_block_persona")) {
             RuleNode me=player(g,actor),last=g.get("lastAction");
             if(!me.missing()&&last.truthy()&&base(last).equals("action_7")) {
