@@ -29,10 +29,15 @@ test('create, join, start and restore the game board without runtime errors', as
   const botResponse = page.waitForResponse(response => response.url().endsWith('/move/addBot'));
   await page.getByRole('button', { name: 'Добавить бота', exact: true }).click();
   expect((await (await botResponse).json()).ok).toBe(true);
+  const stateResponse = page.waitForResponse(response => response.url().includes('/games/politikum/') && response.url().endsWith('/state'));
   const startResponse = page.waitForResponse(response => response.url().endsWith('/move/startGame'));
   await page.getByRole('button', { name: 'Старт', exact: true }).click();
   expect((await (await startResponse).json()).ok).toBe(true);
   await expect(page.getByRole('button', { name: 'Закончить ход', exact: true })).toBeVisible();
+  const stateJson = await (await stateResponse).json();
+  expect(stateJson.state.G.choices).toBeTruthy();
+  expect(stateJson.state.G.choices.actions).toBeTruthy();
+  expect(stateJson.state.G.choices.hand).toBeTruthy();
   await page.reload();
   await expect(page.getByRole('button', { name: 'Закончить ход', exact: true })).toBeVisible();
   const drawResponse = page.waitForResponse(response => response.url().endsWith('/move/beginTurnDraw'));
