@@ -1606,68 +1606,23 @@ Click their hand. (Esc to cancel)`}</div>
       )}
 
       {targetP14 && (
-        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9600] pointer-events-auto select-none">
-          <div className="flex items-center gap-3 bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
-            <span>p14: confirm discard</span>
-            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-emerald-400/40 bg-emerald-700/60 hover:bg-emerald-600/70" onClick={() => {
-              try { playSfx('ui', 0.35); moves.discardPersonaFromCoalition(String(targetP14.playerId), String(targetP14.cardId)); } catch {}
-              setTargetP14(null);
-            }}>Confirm</button>
-            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-amber-900/20 bg-slate-800/60 hover:bg-slate-700/60" onClick={() => setTargetP14(null)}>Отмена</button>
-          </div>
-        </div>
+        <TargetConfirm title="p14: confirm discard" onConfirm={() => { try { playSfx('ui', 0.35); moves.discardPersonaFromCoalition(String(targetP14.playerId), String(targetP14.cardId)); } catch {} setTargetP14(null); }} onCancel={() => setTargetP14(null)} />
       )}
 
       {targetP21 && (
-        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9600] pointer-events-auto select-none">
-          <div className="flex items-center gap-3 bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
-            <span>p21: confirm invert</span>
-            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-emerald-400/40 bg-emerald-700/60 hover:bg-emerald-600/70" onClick={() => {
-              try { playSfx('ui', 0.35); moves.persona21InvertTokens(String(targetP21.playerId), String(targetP21.cardId)); } catch {}
-              setTargetP21(null);
-            }}>Confirm</button>
-            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-amber-900/20 bg-slate-800/60 hover:bg-slate-700/60" onClick={() => setTargetP21(null)}>Отмена</button>
-          </div>
-        </div>
+        <TargetConfirm title="p21: confirm invert" onConfirm={() => { try { playSfx('ui', 0.35); moves.persona21InvertTokens(String(targetP21.playerId), String(targetP21.cardId)); } catch {} setTargetP21(null); }} onCancel={() => setTargetP21(null)} />
       )}
 
       {targetP26 && (
-        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9600] pointer-events-auto select-none">
-          <div className="flex items-center gap-3 bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
-            <span>p26: confirm purge</span>
-            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-emerald-400/40 bg-emerald-700/60 hover:bg-emerald-600/70" onClick={() => {
-              try { playSfx('ui', 0.35); moves.persona26PurgeRedNationalist(String(targetP26.playerId), String(targetP26.cardId)); } catch {}
-              setTargetP26(null);
-            }}>Confirm</button>
-            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-amber-900/20 bg-slate-800/60 hover:bg-slate-700/60" onClick={() => setTargetP26(null)}>Отмена</button>
-          </div>
-        </div>
+        <TargetConfirm title="p26: confirm purge" onConfirm={() => { try { playSfx('ui', 0.35); moves.persona26PurgeRedNationalist(String(targetP26.playerId), String(targetP26.cardId)); } catch {} setTargetP26(null); }} onCancel={() => setTargetP26(null)} />
       )}
 
       {targetP28 && (
-        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9600] pointer-events-auto select-none">
-          <div className="flex items-center gap-3 bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
-            <span>p28: confirm steal</span>
-            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-emerald-400/40 bg-emerald-700/60 hover:bg-emerald-600/70" onClick={() => {
-              try { playSfx('ui', 0.35); moves.persona28StealPlusTokens(String(targetP28.playerId), String(targetP28.cardId), 3); } catch {}
-              setTargetP28(null);
-            }}>Confirm</button>
-            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-amber-900/20 bg-slate-800/60 hover:bg-slate-700/60" onClick={() => setTargetP28(null)}>Отмена</button>
-          </div>
-        </div>
+        <TargetConfirm title="p28: confirm steal" onConfirm={() => { try { playSfx('ui', 0.35); moves.persona28StealPlusTokens(String(targetP28.playerId), String(targetP28.cardId), 3); } catch {} setTargetP28(null); }} onCancel={() => setTargetP28(null)} />
       )}
 
       {targetP37 && (
-        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9600] pointer-events-auto select-none">
-          <div className="flex items-center gap-3 bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
-            <span>p37: confirm bribe</span>
-            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-emerald-400/40 bg-emerald-700/60 hover:bg-emerald-600/70" onClick={() => {
-              try { playSfx('ui', 0.35); moves.persona37BribeAndSilence(String(targetP37.playerId), String(targetP37.cardId)); } catch {}
-              setTargetP37(null);
-            }}>Confirm</button>
-            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-amber-900/20 bg-slate-800/60 hover:bg-slate-700/60" onClick={() => setTargetP37(null)}>Отмена</button>
-          </div>
-        </div>
+        <TargetConfirm title="p37: confirm bribe" onConfirm={() => { try { playSfx('ui', 0.35); moves.persona37BribeAndSilence(String(targetP37.playerId), String(targetP37.cardId)); } catch {} setTargetP37(null); }} onCancel={() => setTargetP37(null)} />
       )}
 
 
