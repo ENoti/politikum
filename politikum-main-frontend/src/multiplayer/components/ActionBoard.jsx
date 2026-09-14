@@ -1594,42 +1594,15 @@ Click their hand. (Esc to cancel)`}</div>
       )}
 
       {targetP5 && (
-        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9600] pointer-events-auto select-none">
-          <div className="flex items-center gap-3 bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
-            <span>П5: подтвердить либеральную цель</span>
-            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-emerald-400/40 bg-emerald-700/60 hover:bg-emerald-600/70" onClick={() => {
-              try { playSfx('ui', 0.35); moves.persona5PickLiberal(String(targetP5.playerId), String(targetP5.cardId)); } catch {}
-              setTargetP5(null);
-            }}>Confirm</button>
-            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-amber-900/20 bg-slate-800/60 hover:bg-slate-700/60" onClick={() => setTargetP5(null)}>Отмена</button>
-          </div>
-        </div>
+        <TargetConfirm title="П5: подтвердить либеральную цель" onConfirm={() => { try { playSfx('ui', 0.35); moves.persona5PickLiberal(String(targetP5.playerId), String(targetP5.cardId)); } catch {} setTargetP5(null); }} onCancel={() => setTargetP5(null)} />
       )}
 
       {targetP11 && (
-        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9600] pointer-events-auto select-none">
-          <div className="flex items-center gap-3 bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
-            <span>p11: confirm persona discard</span>
-            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-emerald-400/40 bg-emerald-700/60 hover:bg-emerald-600/70" onClick={() => {
-              try { playSfx('ui', 0.35); moves.persona11DiscardOpponentPersona(String(targetP11.playerId), String(targetP11.cardId)); } catch {}
-              setTargetP11(null);
-            }}>Confirm</button>
-            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-amber-900/20 bg-slate-800/60 hover:bg-slate-700/60" onClick={() => setTargetP11(null)}>Отмена</button>
-          </div>
-        </div>
+        <TargetConfirm title="p11: confirm persona discard" onConfirm={() => { try { playSfx('ui', 0.35); moves.persona11DiscardOpponentPersona(String(targetP11.playerId), String(targetP11.cardId)); } catch {} setTargetP11(null); }} onCancel={() => setTargetP11(null)} />
       )}
 
       {targetP13 && (
-        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9600] pointer-events-auto select-none">
-          <div className="flex items-center gap-3 bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
-            <span>p13: confirm target</span>
-            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-emerald-400/40 bg-emerald-700/60 hover:bg-emerald-600/70" onClick={() => {
-              try { playSfx('ui', 0.35); moves.persona13PickTarget(String(targetP13.playerId), String(targetP13.cardId)); } catch {}
-              setTargetP13(null);
-            }}>Confirm</button>
-            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-amber-900/20 bg-slate-800/60 hover:bg-slate-700/60" onClick={() => setTargetP13(null)}>Отмена</button>
-          </div>
-        </div>
+        <TargetConfirm title="p13: confirm target" onConfirm={() => { try { playSfx('ui', 0.35); moves.persona13PickTarget(String(targetP13.playerId), String(targetP13.cardId)); } catch {} setTargetP13(null); }} onCancel={() => setTargetP13(null)} />
       )}
 
       {targetP14 && (
