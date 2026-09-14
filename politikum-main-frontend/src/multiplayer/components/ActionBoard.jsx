@@ -8,6 +8,8 @@ import ResponsePanel from './ResponsePanel.jsx';
 import DiscardPicker from './DiscardPicker.jsx';
 import PersonaHandPicker from './PersonaHandPicker.jsx';
 import TargetConfirm from './TargetConfirm.jsx';
+import HandPanel from './HandPanel.jsx';
+import OpponentBoard from './OpponentBoard.jsx';
 import { personaName } from '../spineShared.js';
 import { useMatchChoices } from '../hooks/useMatchChoices.js';
 
@@ -960,7 +962,7 @@ useEffect(() => {
       {/* (admin link removed from in-game UI) */}
 
       {/* Opponents */}
-      <div className={"fixed top-20 z-[700] pointer-events-auto " + (crowdedTable ? 'grid' : 'flex justify-start gap-6')} style={opponents.length === 1 ? { left: '50%', transform: 'translateX(-50%)' } : opponentsWrapStyle}>
+      <OpponentBoard opponents={opponents} crowdedTable={crowdedTable} opponentsWrapStyle={opponentsWrapStyle}>
         {opponents.map((p) => {
           const hand0 = p.hand || [];
           const coal = (p.coalition || []);
@@ -1261,7 +1263,7 @@ useEffect(() => {
             </div>
           );
         })}
-      </div>
+      </OpponentBoard>
 
       {/* Controls (Citadel-style touchables) */}
       <TurnControls
@@ -2090,21 +2092,12 @@ Click their hand. (Esc to cancel)`}</div>
       </div>
       
       {/* Hand fan */}
-      <div
-        className="fixed z-[999] pointer-events-auto bottom-2 left-1/2 -translate-x-1/2"
+      <HandPanel
+        handWidth={handWidth}
+        cards={cards}
+        handStep={handStep}
+        setHoverHandIndex={setHoverHandIndex}
       >
-        <div
-          className="relative h-56 overflow-visible"
-          style={{ width: `${handWidth}px`, marginLeft: 'auto' }}
-          onMouseMove={(e) => {
-            if (!cards.length) return;
-            const rect = e.currentTarget.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const idx = Math.max(0, Math.min(cards.length - 1, Math.round(x / handStep)));
-            setHoverHandIndex(idx);
-          }}
-          onMouseLeave={() => setHoverHandIndex(null)}
-        >
           {cards.map((card, idx) => {
             const t = fanN <= 1 ? 0.5 : idx / (fanN - 1);
             const rot = (t - 0.5) * 18;
@@ -2261,8 +2254,7 @@ Click their hand. (Esc to cancel)`}</div>
               </button>
             );
           })}
-        </div>
-      </div>
+      </HandPanel>
 
     </div>
   );
