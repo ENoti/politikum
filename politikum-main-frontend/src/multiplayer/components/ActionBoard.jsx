@@ -5,6 +5,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { SERVER } from '../api.js';
 import TurnControls from './TurnControls.jsx';
 import ResponsePanel from './ResponsePanel.jsx';
+import DiscardPicker from './DiscardPicker.jsx';
 import { personaName } from '../spineShared.js';
 import { useMatchChoices } from '../hooks/useMatchChoices.js';
 
@@ -1915,52 +1916,12 @@ Click their hand. (Esc to cancel)`}</div>
 
       {/* Action_18: return persona from discard to hand */}
       {G.pending?.kind === 'action_18_pick_persona_from_discard' && String(playerID) === String(G.pending.attackerId) && (
-        <div className="fixed inset-0 z-[3200] flex items-center justify-center bg-transparent backdrop-filter pointer-events-auto">
-          <div className="bg-black/70 border border-amber-900/30 rounded-3xl shadow-2xl p-5 w-[860px] max-w-[96vw]">
-            <div className="text-amber-200/80 text-[10px] uppercase tracking-[0.3em] font-black">Экшен 18 — Возврат из сброса</div>
-            <div className="mt-2 text-amber-100/80 text-sm">Выберите персонажа из сброса, чтобы вернуть его в руку.</div>
-            <div className="mt-4 flex flex-wrap gap-3 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2">
-              {choiceCards('pickPersonaFromDiscardForAction18', G.discard).map((c) => (
-                <button
-                  key={c.id}
-                  className="w-40 aspect-[2/3] rounded-2xl overflow-hidden border border-black/40 shadow-2xl hover:scale-[1.02] transition-transform"
-                  onClick={() => moves.pickPersonaFromDiscardForAction18(c.id)}
-                  title={displayCardTitle(c)}
-                >
-                  <img src={c.img} alt={displayCardTitle(c)} className="w-full h-full object-cover" draggable={false} />
-                </button>
-              ))}
-              {!choiceCards('pickPersonaFromDiscardForAction18', G.discard).length && (
-                <div className="text-amber-200/70 text-sm">В сбросе нет персонажей.</div>
-              )}
-            </div>
-          </div>
-        </div>
+        <DiscardPicker kind="action18" title="Экшен 18 — Возврат из сброса" description="Выберите персонажа из сброса, чтобы вернуть его в руку." cards={choiceCards('pickPersonaFromDiscardForAction18', G.discard)} onPick={(id) => moves.pickPersonaFromDiscardForAction18(id)} displayCardTitle={displayCardTitle} />
       )}
 
       {/* Persona_20: take any card from discard to hand */}
       {G.pending?.kind === 'persona_20_pick_from_discard' && String(playerID) === String(G.pending.playerId) && (
-        <div className="fixed inset-0 z-[3200] flex items-center justify-center bg-transparent backdrop-filter pointer-events-auto">
-          <div className="bg-black/70 border border-amber-900/30 rounded-3xl shadow-2xl p-5 w-[860px] max-w-[96vw]">
-            <div className="text-amber-200/80 text-[10px] uppercase tracking-[0.3em] font-black">Быков (p20) — Взять из сброса</div>
-            <div className="mt-2 text-amber-100/80 text-sm">Выберите 1 карту действия из сброса, чтобы взять её в руку.</div>
-            <div className="mt-4 flex flex-wrap gap-3 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2">
-              {choiceCards('persona20PickFromDiscard', G.discard).map((c) => (
-                <button
-                  key={c.id}
-                  className="w-40 aspect-[2/3] rounded-2xl overflow-hidden border border-black/40 shadow-2xl hover:scale-[1.02] transition-transform"
-                  onClick={() => moves.persona20PickFromDiscard(c.id)}
-                  title={displayCardTitle(c)}
-                >
-                  <img src={c.img} alt={displayCardTitle(c)} className="w-full h-full object-cover" draggable={false} />
-                </button>
-              ))}
-              {!(G.discard || []).length && (
-                <div className="text-amber-200/70 text-sm">В сбросе нет карт.</div>
-              )}
-            </div>
-          </div>
-        </div>
+        <DiscardPicker title="Быков (p20) — Взять из сброса" description="Выберите 1 карту действия из сброса, чтобы взять её в руку." cards={choiceCards('persona20PickFromDiscard', G.discard)} onPick={(id) => moves.persona20PickFromDiscard(id)} displayCardTitle={displayCardTitle} />
       )}
 
       <GameOverOverlay G={G} matchID={matchID} displayCardTitle={displayCardTitle} />
