@@ -1,6 +1,7 @@
 package com.politikum.service;
 
 import java.util.*;
+import com.politikum.engine.JavaAbilityRules;
 import static com.politikum.engine.GameState.*;
 
 /** UI choices derived only from the already redacted, viewer-specific state. */
@@ -69,6 +70,7 @@ public final class MatchChoices {
         Map<String,Object> cardChoices=new LinkedHashMap<>();out.put("cards",cardChoices);
         Map<String,Object> playerChoices=new LinkedHashMap<>();out.put("players",playerChoices);
         if(owns&&turn&&kind.equals("persona_17_pick_opponent"))playerChoices.put("persona17PickOpponent",players.stream().filter(p->!viewer.equals(text(p.get("id")))).map(p->text(p.get("id"))).toList());
+        if(owns&&kind.equals("persona_33_choose_faction"))playerChoices.put("persona33ChooseFaction",JavaAbilityRules.factionTags());
         if(owns&&kind.equals("persona_45_steal_from_opponent"))playerChoices.put("persona45StealFromOpponent",players.stream().filter(p->!viewer.equals(text(p.get("id")))&&!list(p.get("hand")).isEmpty()).map(p->text(p.get("id"))).toList());
         if(attacker&&kind.equals("action_18_pick_persona_from_discard"))cardChoices.put("pickPersonaFromDiscardForAction18",MatchChoices.<Map<String,Object>>cards(g,"discard").stream().filter(c->persona(c)&&!base(c).equals("persona_31")).map(c->text(c.get("id"))).toList());
         // Preserve the existing action-only UI for persona 20; changing its legacy rules is separate work.

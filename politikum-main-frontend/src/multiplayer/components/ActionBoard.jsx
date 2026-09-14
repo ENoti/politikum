@@ -167,9 +167,10 @@ function ActionBoard({ G, ctx, moves, playerID, matchID, ratingsMap = {}, setSho
   };
   const isMyTurn = String(ctx.currentPlayer) === String(playerID) && !G.gameOver;
   const current = (G.players || []).find((p) => String(p.id) === String(ctx.currentPlayer));
-  const { reactions, handChoice, canTarget, canPickPlayer, canPlayToPlayer, choiceCards } = useMatchChoices(G);
+  const { reactions, handChoice, canTarget, canPickPlayer, canPlayToPlayer, choicePlayers, choiceCards } = useMatchChoices(G);
   const response = G.response || null;
   const pending = G.pending || null;
+  const persona33Factions = choicePlayers('persona33ChooseFaction');
 
   useEffect(() => {
     // Drop stale local targeting state whenever turn ownership / phase changes.
@@ -593,23 +594,14 @@ useEffect(() => {
 
       // p33 choice: faction
       if (pendingP33) {
-        const map = {
-          '1': 'faction:liberal',
-          '2': 'faction:rightwing',
-          '3': 'faction:leftwing',
-          '4': 'faction:fbk',
-          '5': 'faction:red_nationalist',
-          '6': 'faction:system',
-          '7': 'faction:neutral',
-        };
-
         // Support both normal digits and numpad.
         const code = String(e.code || '');
         const codeDigit = code.startsWith('Digit') ? code.slice(5) : (code.startsWith('Numpad') ? code.slice(6) : '');
         const k = (key >= '1' && key <= '7') ? key : (codeDigit >= '1' && codeDigit <= '7' ? codeDigit : '');
 
-        if (k) {
-          try { moves.persona33ChooseFaction(map[k]); } catch {}
+        const tag = persona33Factions[Number(k) - 1];
+        if (tag) {
+          try { moves.persona33ChooseFaction(tag); } catch {}
           return;
         }
       }
@@ -1443,25 +1435,29 @@ useEffect(() => {
               </div>
             </div>
             <div className="mt-3 flex flex-wrap gap-2 justify-center">
-              {[
-                ['1', 'либералы', 'faction:liberal'],
-                ['2', 'правые', 'faction:rightwing'],
-                ['3', 'левые', 'faction:leftwing'],
-                ['4', 'ФБК', 'faction:fbk'],
-                ['5', 'красные нац.', 'faction:red_nationalist'],
-                ['6', 'система', 'faction:system'],
-                ['7', 'нейтралы', 'faction:neutral'],
-              ].map(([k, label, tag]) => (
-                <button
-                  key={k}
-                  type="button"
-                  className="px-3 py-1 rounded-full bg-amber-600/80 hover:bg-amber-500/80 border border-amber-200/20 text-amber-950 font-black text-[11px] pointer-events-auto"
-                  onClick={() => { try { moves.persona33ChooseFaction(tag); } catch {} }}
-                  title={`(${k})`}
-                >
-                  {k} · {label}
-                </button>
-              ))}
+              {persona33Factions.map((tag, index) => {
+                const label = {
+                  'faction:liberal': 'либералы',
+                  'faction:rightwing': 'правые',
+                  'faction:leftwing': 'левые',
+                  'faction:fbk': 'ФБК',
+                  'faction:red_nationalist': 'красные нац.',
+                  'faction:system': 'система',
+                  'faction:neutral': 'нейтралы',
+                }[tag] || tag;
+                const k = String(index + 1);
+                return (
+                  <button
+                    key={k}
+                    type="button"
+                    className="px-3 py-1 rounded-full bg-amber-600/80 hover:bg-amber-500/80 border border-amber-200/20 text-amber-950 font-black text-[11px] pointer-events-auto"
+                    onClick={() => { try { moves.persona33ChooseFaction(tag); } catch {} }}
+                    title={`(${k})`}
+                  >
+                    {k} · {label}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>

@@ -22,6 +22,7 @@ export function useMatchChoices(game = {}) {
       canPickPlayer: (move, playerId) => (players[move] || []).some((id) => String(id) === String(playerId)),
       canPlayToPlayer: (selection, playerId) => (hand[String(selection?.cardId)]?.targetPlayerIds || [])
         .some((id) => String(id) === String(playerId)),
+      choicePlayers: (move) => players[move] || [],
       choiceCards: (move, list) => (list || []).filter((card) => (cards[move] || [])
         .some((id) => String(id) === String(card?.id))),
     };

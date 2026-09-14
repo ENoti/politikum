@@ -147,6 +147,12 @@ public final class JavaAbilityRules {
         "faction:leftwing", "Левый", "faction:fbk", "ФБК",
         "faction:red_nationalist", "Красный Националист",
         "faction:system", "Системный", "faction:neutral", "Нейтрал");
+    private static final List<String> FACTION_TAGS = List.of(
+        "faction:liberal", "faction:rightwing", "faction:leftwing", "faction:fbk",
+        "faction:red_nationalist", "faction:system", "faction:neutral");
+
+    /** Authoritative choices for persona 33, shared with the client projection. */
+    public static List<String> factionTags() { return FACTION_TAGS; }
 
     private boolean chooseFaction(RuleNode g, String actor, String tag) {
         RuleNode pending = g.get("pending");

@@ -17,6 +17,13 @@ class MatchChoicesTest {
         opponent.put("hand",List.of());
         assertEquals(List.of(),map(choices(state,"0").get("players")).get("persona45StealFromOpponent"));
     }
+    @Test void persona33FactionsComeFromTheJavaChoiceProjection() {
+        var state=state();var g=map(state.get("G"));
+        g.put("pending",object("kind","persona_33_choose_faction","playerId","0"));
+        assertEquals(List.of("faction:liberal","faction:rightwing","faction:leftwing","faction:fbk","faction:red_nationalist","faction:system","faction:neutral"),
+            map(choices(state,"0").get("players")).get("persona33ChooseFaction"));
+        assertTrue(map(choices(state,"1").get("players")).isEmpty());
+    }
     @Test void turnControlsUseDeckDrawCountAndPendingOwner() {
         var state=state();var g=map(state.get("G"));
         g.put("hasDrawn",false);
