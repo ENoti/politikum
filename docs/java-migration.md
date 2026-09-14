@@ -42,7 +42,7 @@ Initial scoring history deliberately preserves the legacy duplicate turn-zero sn
 
 ## Still in JavaScript
 
-After the later increments, shared scoring and turn lifecycle are also native; see [scoring](java-scoring-migration.md) and [turn lifecycle](java-turn-migration.md). The migrated ability groups, persona 34 victory, reaction windows/cancellations, and bot choices for personas 5/7/11/17/45 are now native; see [ability migration](java-ability-migration.md). Card-play dispatch, remaining action/event abilities and choices, and the general bot scheduler still run behind `GraalPolitikumEngine`. Graal dependencies must remain until those paths are ported.
+The production backend has no JavaScript game runtime. Remaining JavaScript is the React client: presentation, local selection state, keyboard handling, animations, sounds and HTTP transport. Legacy JS engines, Graal adapters and scenario scripts remain under `src/test` only for parity verification.
 
 ## Evidence and tests
 

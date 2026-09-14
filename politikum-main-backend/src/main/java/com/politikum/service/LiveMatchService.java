@@ -604,7 +604,7 @@ public class LiveMatchService {
             ps.setLong(3, finishedAt);
             ps.setLong(4, Math.max(0, finishedAt - createdAt));
             ps.setString(5, null);
-            ps.setString(6, "graaljs");
+            ps.setString(6, "java-native");
             ps.setInt(7, numPlayers);
             ps.setInt(8, numBots);
             ps.setString(9, finalWinnerPlayerId);
