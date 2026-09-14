@@ -37,6 +37,7 @@ public final class MatchClientView {
         }
         g.put("players", players);
         out.put("G", g);
+        g.put("choices", MatchChoices.forView(out,viewerId));
         return out;
     }
 

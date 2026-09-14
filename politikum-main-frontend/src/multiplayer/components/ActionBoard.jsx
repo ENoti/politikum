@@ -1,3 +1,5 @@
+import GameOverOverlay from './GameOverOverlay.jsx';
+import { TokenPips, TokenPipsInline } from './TokenPips.jsx';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { SERVER } from '../api.js';
 import TurnControls from './TurnControls.jsx';
@@ -8,75 +10,6 @@ function ActionBoard({ G, ctx, moves, playerID, matchID, ratingsMap = {}, setSho
   const isHost = String(playerID) === '0';
   // H toggles on-screen hotkey hints (badges like (c)/(e)/(1..n)).
 
-  const TokenPips = ({ delta, compact, right, dim }) => {
-    const d = Number(delta || 0);
-    if (!d) return null;
-    const isNeg = d < 0;
-    const n = Math.min(10, Math.abs(d));
-    const more = Math.max(0, Math.abs(d) - 10);
-    return (
-      <div
-        className={
-          "absolute bottom-2 z-20 flex items-center gap-1 " +
-          (right ? "right-2" : "left-2") +
-          (compact ? " scale-[1.0]" : "") +
-          (dim ? " opacity-80" : "")
-        }
-        style={{ pointerEvents: 'none' }}
-      >
-        {Array.from({ length: n }).map((_, i) => (
-          <div
-            key={i}
-            className={
-              "w-3.5 h-3.5 rounded-full border shadow-[0_2px_6px_rgba(0,0,0,0.6)] " +
-              (isNeg ? "bg-red-700/95 border-red-200/50" : "bg-emerald-700/95 border-emerald-200/50")
-            }
-          />
-        ))}
-        {more > 0 && (
-          <div
-            className={
-              "ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-black border " +
-              (isNeg ? "bg-red-900/70 border-red-200/30 text-red-50" : "bg-emerald-900/70 border-emerald-200/30 text-emerald-50")
-            }
-          >
-            ×{more + 10}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const TokenPipsInline = ({ count, neg }) => {
-    const d = Math.abs(Number(count || 0));
-    if (!d) return null;
-    const n = Math.min(10, d);
-    const more = Math.max(0, d - 10);
-    return (
-      <div className="flex items-center gap-1" style={{ pointerEvents: 'none' }}>
-        {Array.from({ length: n }).map((_, i) => (
-          <div
-            key={i}
-            className={
-              "w-3 h-3 rounded-full border shadow-[0_2px_6px_rgba(0,0,0,0.6)] " +
-              (neg ? "bg-red-700/95 border-red-200/50" : "bg-emerald-700/95 border-emerald-200/50")
-            }
-          />
-        ))}
-        {more > 0 && (
-          <div
-            className={
-              "ml-1 px-1.5 py-0.5 rounded-full text-[9px] font-black border " +
-              (neg ? "bg-red-900/70 border-red-200/30 text-red-50" : "bg-emerald-900/70 border-emerald-200/30 text-emerald-50")
-            }
-          >
-            ×{more + 10}
-          </div>
-        )}
-      </div>
-    );
-  };
-  const [goShowAllDetails, setGoShowAllDetails] = useState(false);
 
   const [showHotkeys, setShowHotkeys] = useState(false);
   const [soundOn, setSoundOn] = useState(() => {
@@ -228,74 +161,8 @@ function ActionBoard({ G, ctx, moves, playerID, matchID, ratingsMap = {}, setSho
   };
   const isMyTurn = String(ctx.currentPlayer) === String(playerID) && !G.gameOver;
   const current = (G.players || []).find((p) => String(p.id) === String(ctx.currentPlayer));
-  const currentIsBot = String(current?.name || '').startsWith('[B]') || !!current?.isBot;
-
-  // Bot driver election (lock-based): any human tab can drive bot ticks.
-  // We use a localStorage lease so if the previous driver tab sleeps, another tab takes over.
-  const BOT_LOCK_KEY = useMemo(() => {
-    const mid = String(matchID || '');
-    return mid ? `politikum.botDriverLock:${mid}` : 'politikum.botDriverLock';
-  }, [matchID]);
-
-  const isHumanSeat = !(String(me?.name || '').startsWith('[B]') || !!me?.isBot);
-  const activeHumans = useMemo(() => (Array.isArray(G?.players) ? G.players.filter((p) => p?.active && !p?.isBot).length : 0), [G?.players]);
-  const singleHumanVsBot = activeHumans === 1;
-
-  const shouldDriveBots = useMemo(() => {
-    try {
-      if (!currentIsBot) return false;
-      if (!isHumanSeat) return false;
-      const now = Date.now();
-      const raw = window.localStorage.getItem(BOT_LOCK_KEY);
-      let lock = null;
-      try { lock = raw ? JSON.parse(raw) : null; } catch { lock = null; }
-      const holder = String(lock?.playerID || '');
-      const ts = Number(lock?.ts || 0);
-      const alive = ts && (now - ts) < 2500; // 2.5s lease
-      if (!alive || holder === String(playerID)) return true;
-      return false;
-    } catch {
-      return false;
-    }
-  }, [BOT_LOCK_KEY, currentIsBot, isHumanSeat, playerID]);
-
-  // Tick driver election: needed for human-vs-human too (expires response windows + resolves deferred on-enter abilities).
-  const TICK_LOCK_KEY = useMemo(() => {
-    const mid = String(matchID || '');
-    return mid ? `politikum.tickDriverLock:${mid}` : 'politikum.tickDriverLock';
-  }, [matchID]);
-
-  const shouldDriveTick = useMemo(() => {
-    try {
-      if (!isHumanSeat) return false;
-      const now = Date.now();
-      const raw = window.localStorage.getItem(TICK_LOCK_KEY);
-      let lock = null;
-      try { lock = raw ? JSON.parse(raw) : null; } catch { lock = null; }
-      const holder = String(lock?.playerID || '');
-      const ts = Number(lock?.ts || 0);
-      const alive = ts && (now - ts) < 2500;
-      if (!alive || holder === String(playerID)) return true;
-      return false;
-    } catch {
-      return true;
-    }
-  }, [TICK_LOCK_KEY, isHumanSeat, playerID]);
-
-  const refreshTickLease = () => {
-    try {
-      const now = Date.now();
-      window.localStorage.setItem(TICK_LOCK_KEY, JSON.stringify({ playerID: String(playerID), ts: now }));
-    } catch {}
-  };
-
-  const refreshBotLease = () => {
-    try {
-      const now = Date.now();
-      window.localStorage.setItem(BOT_LOCK_KEY, JSON.stringify({ playerID: String(playerID), ts: now }));
-    } catch {}
-  };
-
+  const canTarget = (move, owner, card) => (G.choices?.targets?.[move] || []).some(t => t.ownerId === String(owner) && t.cardId === String(card?.id));
+  const handChoice = card => G.choices?.hand?.[String(card?.id)] || {};
   const response = G.response || null;
   const pending = G.pending || null;
 
@@ -506,38 +373,6 @@ useEffect(() => {
     try { moves.endTurn(); } catch {}
   };
 
-  // Auto-pick sole opponent for flows that start with “choose opponent”.
-  useEffect(() => {
-    const only = opponents?.length === 1 ? opponents[0] : null;
-    if (!only) return;
-
-    // action_4/action_9: target player
-    if (pickTargetForAction4) {
-      try { moves.playAction(pickTargetForAction4.cardId, String(only.id)); } catch {}
-      setPickTargetForAction4(null);
-      return;
-    }
-    // action_9 can target yourself too → no auto-pick.
-
-    // persona_9: must be played into opponent coalition
-    if (pickTargetForPersona9) {
-      try { moves.playPersona(pickTargetForPersona9.cardId, undefined, 'right', String(only.id)); } catch {}
-      setPickTargetForPersona9(null);
-      return;
-    }
-
-    // persona_17/p45: target player
-    if (pending?.kind === 'persona_17_pick_opponent' && String(pending?.playerId) === String(playerID)) {
-      try { moves.persona17PickOpponent(String(only.id)); } catch {}
-      return;
-    }
-    if (pending?.kind === 'persona_45_steal_from_opponent' && String(pending?.playerId) === String(playerID)) {
-      try { moves.persona45StealFromOpponent(String(only.id)); } catch {}
-      return;
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [opponents, pickTargetForAction4, pickTargetForAction9, pickTargetForPersona9, pending?.kind]);
-
   const myVpBase = (me?.coalition || []).reduce((s, c) => s + Number(c.baseVp ?? c.vp ?? 0), 0);
   const myVpTokens = (me?.coalition || []).reduce((s, c) => s + Number(c.vpDelta || 0), 0);
   const myVpPassives = (me?.coalition || []).reduce((s, c) => s + Number(c.passiveVpDelta || 0), 0);
@@ -571,18 +406,6 @@ useEffect(() => {
   const pendingPersona45 = pending?.kind === 'persona_45_steal_from_opponent' && String(pending?.playerId) === String(playerID);
   const pendingPersona45Source = pendingPersona45 ? String(pending?.sourceCardId || '') : '';
 
-  // Auto-pick opponent when only one choice.
-  useEffect(() => {
-    if (!pendingPersona45) return;
-    try {
-      const opps = (G.players || []).filter((pp) => String(pp?.id) !== String(playerID) && pp?.active);
-      if (opps.length === 1) {
-        moves.persona45StealFromOpponent(String(opps[0].id));
-      }
-    } catch {}
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingPersona45]);
-
   const pendingP21 = pending?.kind === 'persona_21_pick_target_invert' && String(pending?.playerId) === String(playerID);
   const pendingP21Source = pendingP21 ? String(pending?.sourceCardId || '') : '';
   const pendingP23 = pending?.kind === 'persona_23_choose_self_inflict_draw' && String(pending?.playerId) === String(playerID);
@@ -614,21 +437,7 @@ useEffect(() => {
   const pendingP34Source = pendingP34 ? String(pending?.sourceCardId || '') : '';
   const canUseP39 = isMyTurn && !G.pending && !G.response && (me?.coalition || []).some((c) => String(c.id).split('#')[0] === 'persona_39');
 
-  const p34Remaining = useMemo(() => {
-    if (!pendingP34) return [];
-    const ALL = Array.from({ length: 45 }, (_, i) => `persona_${i + 1}`);
-    const playedOrDiscarded = new Set();
-    const myHand = new Set();
-    try {
-      for (const pp of (G.players || [])) {
-        for (const c of (pp.coalition || [])) playedOrDiscarded.add(String(c.id).split('#')[0]);
-      }
-      for (const c of (G.discard || [])) playedOrDiscarded.add(String(c.id).split('#')[0]);
-      const me2 = (G.players || []).find((pp) => String(pp.id) === String(playerID));
-      for (const c of (me2?.hand || [])) myHand.add(String(c.id).split('#')[0]);
-    } catch {}
-    return ALL.filter((id) => !playedOrDiscarded.has(id) && !myHand.has(id));
-  }, [G, playerID, pendingP34]);
+  const p34Remaining = G.choices?.guessIds || [];
 
   useEffect(() => {
     if (!pendingP34) return;
@@ -636,7 +445,7 @@ useEffect(() => {
   }, [pendingP34, p34Remaining.length]);
 
   const pendingP16 = pending?.kind === 'persona_16_discard3_from_hand' && String(pending?.playerId) === String(playerID);
-  const pendingP16RequiredDiscard = pendingP16 ? Math.max(0, (Array.isArray(me?.hand) ? me.hand.length : 0) - 6) : 0;
+  const pendingP16RequiredDiscard = Number(G.choices?.requiredDiscards || 0);
   const pendingHandLimit = pending?.kind === 'hand_limit_discard_before_draw' && String(pending?.playerId) === String(playerID);
   const discardDownTo7Remaining = Math.max(0, (Array.isArray(me?.hand) ? me.hand.length : 0) - 7);
   const pendingP16Source = pendingP16 ? String(pending?.sourceCardId || '') : '';
@@ -853,16 +662,7 @@ useEffect(() => {
 
       // p34 guess (1..N from remaining unseen personas)
       if (pendingP34) {
-        const ALL = Array.from({ length: 45 }, (_, i) => `persona_${i + 1}`);
-        const seen = new Set();
-        try {
-          for (const pp of (G.players || [])) {
-            for (const c of (pp.hand || [])) seen.add(String(c.id).split('#')[0]);
-            for (const c of (pp.coalition || [])) seen.add(String(c.id).split('#')[0]);
-          }
-          for (const c of (G.discard || [])) seen.add(String(c.id).split('#')[0]);
-        } catch {}
-        const remaining = ALL.filter((id) => !seen.has(id));
+        const remaining = p34Remaining;
         const code = String(e.code || '');
         const codeDigit = code.startsWith('Digit') ? code.slice(5) : (code.startsWith('Numpad') ? code.slice(6) : '');
         const k = (key >= '1' && key <= '9') ? key : (codeDigit >= '1' && codeDigit <= '9' ? codeDigit : '');
@@ -933,8 +733,8 @@ useEffect(() => {
         if (!card) return;
 
         const baseId = String(card.id).split('#')[0];
-        const canPlayPersona = isMyTurn && G.hasDrawn && card.type === 'persona';
-        const canPlayAction = isMyTurn && G.hasDrawn && !G.hasPlayed && card.type === 'action';
+        const canPlayPersona = !!handChoice(card).playPersona;
+        const canPlayAction = !!handChoice(card).playAction;
         if (canPlayPersona) moves.playPersona(card.id);
         else if (canPlayAction) {
           if (baseId === 'action_4') setPickTargetForAction4({ cardId: card.id });
@@ -947,73 +747,6 @@ useEffect(() => {
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [isMyTurn, G.hasDrawn, G.hasPlayed, moves, responseKind, responseSecondsLeft, response?.playedBy, playerID, me?.hand, pending, pendingP16, pendingP16RequiredDiscard, p16DiscardPick]);
-
-  // Drive bot turns.
-  // In single-human-vs-bot games, avoid lease logic entirely: the only human client should always tick the bot.
-  // In other game shapes, fall back to the lease-based single-driver election.
-  useEffect(() => {
-    if (G?.gameOver) return;
-    if (!currentIsBot) return;
-    if (!isHumanSeat) return;
-    if (!singleHumanVsBot && !shouldDriveBots) return;
-
-    let cancelled = false;
-    let inFlight = false;
-
-    const fire = async () => {
-      if (cancelled || inFlight) return;
-      inFlight = true;
-      try {
-        if (!singleHumanVsBot) refreshBotLease();
-
-        const res = await moves.tickBot();
-        console.log('[bot-driver] tickBot result:', res);
-
-        if (res?.ok === false) {
-          console.warn('[bot-driver] tickBot rejected:', res);
-        }
-      } catch (e) {
-        console.error('[bot-driver] tickBot failed:', e);
-      } finally {
-        inFlight = false;
-      }
-    };
-
-    fire(); // immediately kick the bot when entering a bot turn
-
-    const t = setInterval(fire, 900);
-    return () => {
-      cancelled = true;
-      clearInterval(t);
-    };
-  }, [moves, currentIsBot, G?.gameOver, shouldDriveBots, isHumanSeat, singleHumanVsBot]);
-
-  useEffect(() => {
-    console.log('[turn-debug]', {
-      playerID,
-      currentPlayer: ctx?.currentPlayer,
-      currentName: current?.name,
-      currentIsBot,
-      isHumanSeat,
-      singleHumanVsBot,
-      shouldDriveBots,
-      gameOver: G?.gameOver,
-    });
-  }, [playerID, ctx?.currentPlayer, current?.name, currentIsBot, isHumanSeat, singleHumanVsBot, shouldDriveBots, G?.gameOver]);
-
-  // Human-side tick: clears expired response windows + auto-ends stuck turns once response closes.
-  useEffect(() => {
-    if (G?.gameOver) return;
-    if (!shouldDriveTick) return; // single driver
-    const needTick = !!G.response || String(G.pending?.kind || '') === 'resolve_persona_after_response';
-    if (!needTick) return;
-
-    const t = setInterval(() => {
-      refreshTickLease();
-      try { moves.tick(); } catch {}
-    }, 500);
-    return () => clearInterval(t);
-  }, [moves, G?.response, G?.pending?.kind, G?.gameOver, shouldDriveTick]);
 
   // Event splash: show when lastEvent changes, but do not replay an old event on first render.
   const lastEventSeenRef = useRef(null);
@@ -1419,21 +1152,21 @@ useEffect(() => {
                   const canClickFaceForP8Swap = canPersona8Swap && it.kind === 'face' && String(it.card?.id) === String(p8SwapSpec?.playedPersonaId) && String(p.id) === String(p8SwapSpec?.ownerId);
 
                   // persona picks (no modal)
-                  const canClickFaceForP21 = pendingP21 && it.kind === 'face' && it.card?.type === 'persona' && !isImmovablePersona(it.card);
-                  const canClickFaceForP26 = pendingP26 && it.kind === 'face' && it.card?.type === 'persona' && Array.isArray(it.card?.tags) && it.card.tags.includes('faction:red_nationalist') && !it.card?.shielded && !isImmovablePersona(it.card);
-                  const canClickFaceForP28 = pendingP28 && it.kind === 'face' && it.card?.type === 'persona' && !(Array.isArray(it.card?.tags) && it.card.tags.includes('faction:fbk')) && !it.card?.shielded && !isImmovablePersona(it.card);
-                  const canClickFaceForP37 = pendingP37 && it.kind === 'face' && it.card?.type === 'persona' && !it.card?.shielded && !isImmovablePersona(it.card);
+                  const canClickFaceForP21 = it.kind === 'face' && canTarget('persona21InvertTokens', p.id, it.card);
+                  const canClickFaceForP26 = it.kind === 'face' && canTarget('persona26PurgeRedNationalist', p.id, it.card);
+                  const canClickFaceForP28 = it.kind === 'face' && canTarget('persona28StealPlusTokens', p.id, it.card);
+                  const canClickFaceForP37 = it.kind === 'face' && canTarget('persona37BribeAndSilence', p.id, it.card);
 
-                  const canClickFaceForP3A = pendingP3Choice && it.kind === 'face' && it.card?.type === 'persona' && Array.isArray(it.card?.tags) && it.card.tags.includes('faction:leftwing') && !it.card?.shielded && !isImmovablePersona(it.card);
-                  const canClickFaceForA7 = pendingA7 && it.kind === 'face' && it.card?.type === 'persona' && !isImmovablePersona(it.card);
-                  const canClickFaceForA13 = pendingA13 && String(p.id) === String(playerID) && it.kind === 'face' && it.card?.type === 'persona' && !isImmovablePersona(it.card);
-                  const canClickFaceForA17 = pendingA17 && String(p.id) !== String(playerID) && it.kind === 'face' && it.card?.type === 'persona' && !it.card?.shielded && !isImmovablePersona(it.card);
+                  const canClickFaceForP3A = it.kind === 'face' && canTarget('persona3ChooseOption', p.id, it.card);
+                  const canClickFaceForA7 = it.kind === 'face' && canTarget('blockPersonaForAction7', p.id, it.card);
+                  const canClickFaceForA13 = it.kind === 'face' && canTarget('shieldPersonaForAction13', p.id, it.card);
+                  const canClickFaceForA17 = it.kind === 'face' && canTarget('applyAction17ToPersona', p.id, it.card);
 
-                  const canClickFaceForP7 = pendingP7 && it.kind === 'face' && it.card?.type === 'persona' && !isImmovablePersona(it.card);
-                  const canClickFaceForP14 = pending?.kind === 'discard_one_persona_from_any_coalition' && String(pending?.playerId) === String(playerID) && it.kind === 'face' && it.card?.type === 'persona' && !it.card?.shielded && !isImmovablePersona(it.card);
-                  const canClickFaceForP11 = pendingP11Pick && it.kind === 'face' && it.card?.type === 'persona' && !it.card?.shielded && !isImmovablePersona(it.card);
-                  const canClickFaceForP13 = pendingP13 && String(p.id) === String(pendingP13AttackerId) && it.kind === 'face' && it.card?.type === 'persona' && !it.card?.shielded && !isImmovablePersona(it.card);
-                  const canClickFaceForP5 = G.pending?.kind === 'persona_5_pick_liberal' && String(playerID) === String(G.pending.playerId) && String(p.id) !== String(playerID) && it.kind === 'face' && it.card?.type === 'persona' && !it.card?.shielded && !isImmovablePersona(it.card) && Array.isArray(it.card?.tags) && it.card.tags.includes('faction:liberal');
+                  const canClickFaceForP7 = it.kind === 'face' && canTarget('persona7SwapTwoInCoalition', p.id, it.card);
+                  const canClickFaceForP14 = it.kind === 'face' && canTarget('discardPersonaFromCoalition', p.id, it.card);
+                  const canClickFaceForP11 = it.kind === 'face' && canTarget('persona11DiscardOpponentPersona', p.id, it.card);
+                  const canClickFaceForP13 = it.kind === 'face' && canTarget('persona13PickTarget', p.id, it.card);
+                  const canClickFaceForP5 = it.kind === 'face' && canTarget('persona5PickLiberal', p.id, it.card);
 
                   const selectedA7 = targetA7 && String(targetA7.playerId) === String(p.id) && String(targetA7.cardId) === String(it.card?.id);
                   const selectedA17 = targetA17 && String(targetA17.playerId) === String(p.id) && String(targetA17.cardId) === String(it.card?.id);
@@ -2316,274 +2049,7 @@ Click their hand. (Esc to cancel)`}</div>
         </div>
       )}
 
-      {/* Game over overlay */}
-      {G.gameOver && (
-        <div
-          className="fixed inset-0 z-[3000] flex items-start justify-center bg-black/65 backdrop-blur-sm pointer-events-auto overflow-y-auto py-12"
-        >
-          <div className="fixed top-3 left-1/2 -translate-x-1/2 z-[3100] pointer-events-auto">
-            <button
-              type="button"
-              onClick={async () => {
-                const m = String(matchID || '').match(/^t_([^_]+)_(\d+)_/);
-                const tid = m ? m[1] : null;
-                const tableId = m ? m[2] : null;
-                if (tid && tableId) {
-                  try {
-                    await fetch(`${SERVER}/public/tournament/${tid}/table/${tableId}/sync_result`, { method: 'POST' });
-                  } catch {}
-                  try { window.location.hash = `#/tournament/${tid}`; } catch {}
-                } else {
-                  // Leave match state (client-side). Also clear persisted last match so reload doesn't re-open gameover.
-                  try {
-                    window.localStorage.removeItem('politikum.lastMatchID');
-                    window.localStorage.removeItem('politikum.lastPlayerID');
-                    window.localStorage.removeItem('politikum.lastCredentials');
-                  } catch {}
-                  try { window.location.hash = ''; } catch {}
-                  try { window.location.reload(); } catch {}
-                }
-              }}
-              className="px-4 py-2 rounded-full bg-black/60 border border-amber-900/30 text-amber-100/90 font-mono font-black text-[12px] hover:bg-black/70"
-              title={String(matchID || '').startsWith('t_') ? 'Назад в турнир' : 'Назад в лобби'}
-            >
-              {String(matchID || '').startsWith('t_') ? 'Назад в турнир' : 'Назад в лобби'}
-            </button>
-          </div>
-          <div className="bg-black/70 border border-amber-900/30 rounded-3xl shadow-2xl p-6 w-[1100px] max-w-[96vw] relative max-h-[90vh] overflow-y-auto">
-            {/* hitbox debug removed */}
-            <button
-              type="button"
-              onClick={() => setGoShowAllDetails((v) => !v)}
-              className="absolute top-4 right-4 z-[3200] px-3 py-2 rounded-xl bg-black/50 hover:bg-black/65 border border-amber-900/25 text-amber-100 font-mono font-black text-[11px]"
-              title="Показать детали расчёта"
-            >
-              Детали
-            </button>
-            <div className="text-amber-200/80 text-[10px] uppercase tracking-[0.3em] font-black text-center">КОНЕЦ ИГРЫ</div>
-            {(() => {
-              const active = (G.players || [])
-                .filter((p) => !!p?.active)
-                .filter((p) => {
-                  const n = String(p?.name || '').trim();
-                  if (!n) return false;
-                  if (n.startsWith('[H] Seat')) return false;
-                  return true;
-                });
-              const scoreNow = (p) => (p?.coalition || []).reduce((s, c) => s + Number(c.vp || 0), 0);
-              const scores = active.map((p) => ({ id: String(p.id), name: String(p.name || p.id), score: scoreNow(p) }));
-              const best = Math.max(...scores.map((x) => x.score), -Infinity);
-              const winners = scores.filter((x) => x.score === best);
-              const isTie = winners.length >= 2;
-              const label = isTie ? 'Победила ДРУЖБА!' : 'Победитель';
-              const names = winners.map((x) => x.name).join(' · ');
-              return (
-                <div className="mt-2 text-amber-100 font-serif text-2xl font-bold text-center">
-                  {label} {names}
-                </div>
-              );
-            })()}
-            {Array.isArray(G.history) && G.history.length >= 2 && (() => {
-              const hist = G.history;
-              // Use the same ordering for legend + chart: sort by final score DESC.
-              const colors = ['#f59e0b', '#22c55e', '#60a5fa', '#f472b6', '#a78bfa'];
-              const scoreNow = (pid) => {
-                const p = (G.players || []).find((pp) => String(pp.id) === String(pid));
-                return (p?.coalition || []).reduce((s, c) => s + Number(c.vp || 0), 0);
-              };
-              const playerIds = (G.players || [])
-                .filter((p) => !!p?.active)
-                .filter((p) => {
-                  const n = String(p?.name || '').trim();
-                  if (!n) return false;
-                  if (n.startsWith('[H] Seat')) return false;
-                  return true;
-                })
-                .map((p) => String(p.id))
-                .sort((a, b) => scoreNow(b) - scoreNow(a));
-
-              const leftIds = playerIds.slice(0, Math.ceil(playerIds.length / 2));
-              const rightIds = playerIds.slice(Math.ceil(playerIds.length / 2));
-
-              const Fan = ({ pid, color }) => {
-                const p = (G.players || []).find((pp) => String(pp.id) === String(pid));
-                const coal = (p?.coalition || []).filter((c) => c.type === 'persona');
-                const show = Math.min(12, coal.length);
-                const stepFace = 40;
-                const width = 140 + Math.max(0, (show - 1)) * stepFace;
-                const hoverIdx = hoverOppCoalition?.[`go-${pid}`] ?? null;
-
-                const scaleByDist2 = (_dist) => 1; // no zoom on win screen
-
-                return (
-                  <div className="flex flex-col items-center gap-2 relative pt-10 pointer-events-auto">
-                    <div className="absolute -top-10 left-0 flex items-center gap-2 bg-black/55 border border-amber-900/20 rounded-full px-4 py-1 text-[11px] font-mono font-black tracking-widest z-[2000] whitespace-nowrap justify-center" style={{ color }}>
-                      <span>{p?.name || pid}</span>
-                      <span className="opacity-50">•</span>
-                      <span>{scoreNow(pid)} очк</span>
-                    </div>
-                    <div
-                      className="relative h-52 pointer-events-none select-none"
-                      style={{ width: Math.max(width, 260) }}
-                      // no hover-zoom on win screen
-                    >
-                      {coal.slice(0, show).map((c, i) => {
-                        const t = show <= 1 ? 0.5 : i / (show - 1);
-                        const rot = (t - 0.5) * 12;
-                        const left = i * stepFace;
-                        const dist = (hoverIdx == null) ? 99 : Math.abs(i - hoverIdx);
-                        const scale = (hoverIdx == null) ? 1 : scaleByDist2(dist);
-                        const z = (hoverIdx == null) ? i : (1000 - dist);
-                        return (
-                          <div
-                            key={c.id}
-                            className="absolute bottom-0 w-40 aspect-[2/3] rounded-2xl overflow-hidden border border-black/40 shadow-2xl pointer-events-none"
-                            style={{ left, zIndex: z, transform: `rotate(${rot}deg) scale(${scale})`, transformOrigin: 'center center' }}
-                          >
-                            <img src={c.img} alt={displayCardTitle(c)} className="w-full h-full object-cover pointer-events-none" draggable={false} />
-                            {(Number(c.vpDelta || 0) !== 0) && (
-                              <div className={
-                                "absolute left-2 bottom-2 w-8 h-8 rounded-full border flex items-center justify-center text-white font-black text-[14px] " +
-                                (Number(c.vpDelta || 0) < 0 ? "bg-red-700/90 border-red-200/30" : "bg-emerald-700/90 border-emerald-200/30")
-                              }>
-                                {c.vpDelta}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Per-player details section (toggled by top-right button) */}
-                    {goShowAllDetails && (
-                      <div className="w-full max-w-[520px] px-1">
-                        <div className="mt-1 space-y-0.5 text-[10px] font-mono text-amber-100/70">
-                          {coal.map((c) => {
-                            const base = Number(c.baseVp ?? 0);
-                            const tok = Number(c.vpDelta || 0);
-                            const pas = Number(c.passiveVpDelta || 0);
-                            const total = Number(c.vp ?? (base + tok + pas));
-                            return (
-                              <div key={c.id} className="flex items-baseline justify-between gap-3">
-                                <span className="truncate">{String(c.name || c.id)}</span>
-                                <span className="shrink-0 tabular-nums">
-                                  {base}{tok ? ` ${tok > 0 ? '+' : ''}${tok}` : ''}{pas ? ` ${pas > 0 ? '+' : ''}${pas}` : ''} = {total}
-                                </span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* per-player details button removed */}
-                  </div>
-                );
-              };
-
-              return (
-                <>
-                  {/* Score history chart (turn vs VP) */}
-                  {(() => {
-                    const turns = hist.map((h) => Number(h.turn || 0));
-                    const minT = Math.min(...turns);
-                    const maxT = Math.max(...turns);
-
-                    const allScores = hist.flatMap((h) => playerIds.map((pid) => Number(h.scores?.[pid] ?? 0)));
-                    const minY = Math.min(0, ...allScores);
-                    const maxY = Math.max(1, ...allScores);
-
-                    const W = 460, H = 160, pad = 18;
-                    const sx = (t) => pad + ((t - minT) / Math.max(1, (maxT - minT))) * (W - pad * 2);
-                    const sy = (v) => (H - pad) - ((v - minY) / Math.max(1, (maxY - minY))) * (H - pad * 2);
-
-                    const pathFor = (pid) => {
-                      const pts = hist.map((h) => ({ x: sx(Number(h.turn || 0)), y: sy(Number(h.scores?.[pid] ?? 0)) }));
-                      return pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
-                    };
-
-                    return (
-                      <div className="mt-4">
-                        <div className="text-amber-200/60 text-[10px] uppercase tracking-[0.3em] font-black text-center">История успеха</div>
-                        <svg width={W} height={H} className="mt-2 mx-auto block rounded-xl bg-black/25 border border-amber-900/20">
-                          {/* axes */}
-                          <line x1={pad} y1={H - pad} x2={W - pad} y2={H - pad} stroke="rgba(251,191,36,0.25)" />
-                          <line x1={pad} y1={pad} x2={pad} y2={H - pad} stroke="rgba(251,191,36,0.25)" />
-
-                          {/* axis labels */}
-                          <text x={W / 2} y={H - 2} textAnchor="middle" fontSize={9} fill="rgba(251,191,36,0.55)" fontFamily="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace">ход</text>
-                          <text x={6} y={H / 2} textAnchor="middle" fontSize={9} fill="rgba(251,191,36,0.55)" fontFamily="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace" transform={`rotate(-90 6 ${H / 2})`}>очки</text>
-
-                          {/* ticks */}
-                          {(() => {
-                            const ticksY = 4;
-                            const out = [];
-                            for (let i = 0; i <= ticksY; i++) {
-                              const v = minY + ((maxY - minY) * i) / ticksY;
-                              const y = sy(v);
-                              out.push(
-                                <g key={`y-${i}`}>
-                                  <line x1={pad - 4} y1={y} x2={pad} y2={y} stroke="rgba(251,191,36,0.25)" />
-                                  <text x={pad - 7} y={y + 3} textAnchor="end" fontSize={9} fill="rgba(251,191,36,0.55)" fontFamily="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace">{Math.round(v)}</text>
-                                </g>
-                              );
-                            }
-                            const ticksX = Math.min(6, Math.max(1, maxT - minT));
-                            for (let i = 0; i <= ticksX; i++) {
-                              const t = minT + Math.round(((maxT - minT) * i) / ticksX);
-                              const x = sx(t);
-                              out.push(
-                                <g key={`x-${i}`}>
-                                  <line x1={x} y1={H - pad} x2={x} y2={H - pad + 4} stroke="rgba(251,191,36,0.25)" />
-                                  <text x={x} y={H - pad + 14} textAnchor="middle" fontSize={9} fill="rgba(251,191,36,0.55)" fontFamily="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace">{t}</text>
-                                </g>
-                              );
-                            }
-                            return out;
-                          })()}
-
-                          {playerIds.map((pid, i) => (
-                            <path key={pid} d={pathFor(pid)} fill="none" stroke={colors[i % colors.length]} strokeWidth={2.5} opacity={0.95} />
-                          ))}
-                        </svg>
-                      </div>
-                    );
-                  })()}
-
-                  {/* Final coalitions: single bottom row */}
-                  <div className="mt-6 flex justify-evenly gap-6 items-end flex-wrap">
-                    {playerIds.map((pid, i) => (
-                      <Fan key={pid} pid={pid} color={colors[i % colors.length]} />
-                    ))}
-                  </div>
-
-                  {/* Global details removed: now rendered under each player */}
-                </>
-              );
-            })()}
-
-            {/* fallback if no history */}
-            {(!Array.isArray(G.history) || G.history.length < 2) && (
-              <div className="mt-4 text-amber-100/80 text-sm font-mono whitespace-pre">
-                {(G.players || [])
-                  .filter((p) => !!p?.active)
-                  .filter((p) => {
-                    const n = String(p?.name || '').trim();
-                    if (!n) return false;
-                    if (n.startsWith('[H] Seat')) return false;
-                    return true;
-                  })
-                  .map((p) => {
-                    const pts = (p.coalition || []).reduce((s, c) => s + Number(c.vp || 0), 0);
-                    return `${p.name}: ${pts} очк (коалиция ${(p.coalition || []).length})`;
-                  }).join('\n')}
-              </div>
-            )}
-
-            {/* (removed) */}
-          </div>
-        </div>
-      )}
+      <GameOverOverlay G={G} matchID={matchID} displayCardTitle={displayCardTitle} />
 
       {/* Your turn splash */}
       {yourTurnSplashVisible && yourTurnPromptActive && (
@@ -2778,14 +2244,14 @@ Click their hand. (Esc to cancel)`}</div>
             const dist = hoverMyCoalition == null ? 99 : Math.abs(idx - hoverMyCoalition);
             const scale = hoverMyCoalition == null ? 1 : dist === 0 ? 1.18 : dist === 1 ? 1.06 : 1;
             const z = hoverMyCoalition == null ? idx : 1000 - dist;
-            const canClickForPendingTokens = pendingTokens && card?.type === 'persona';
-            const canClickForP23 = pendingP23 && String(card?.id || '').split('#')[0] === 'persona_23';
-            const canClickForP21 = pendingP21 && card?.type === 'persona' && !isImmovablePersona(card);
-            const canClickForP26 = pendingP26 && card?.type === 'persona' && Array.isArray(card?.tags) && card.tags.includes('faction:red_nationalist') && !card?.shielded && !isImmovablePersona(card);
-            const canClickForP28 = pendingP28 && card?.type === 'persona' && !(Array.isArray(card?.tags) && card.tags.includes('faction:fbk')) && !card?.shielded && !isImmovablePersona(card);
-            const canClickForP7 = pendingP7 && card?.type === 'persona' && !isImmovablePersona(card);
-            const canClickForP32 = pendingP32 && card?.type === 'persona';
-            const canClickForA13 = pendingA13 && card?.type === 'persona' && !isImmovablePersona(card);
+            const canClickForPendingTokens = canTarget('applyPendingToken', playerID, card);
+            const canClickForP23 = canTarget('persona23ChooseSelfInflict', playerID, card);
+            const canClickForP21 = canTarget('persona21InvertTokens', playerID, card);
+            const canClickForP26 = canTarget('persona26PurgeRedNationalist', playerID, card);
+            const canClickForP28 = canTarget('persona28StealPlusTokens', playerID, card);
+            const canClickForP7 = canTarget('persona7SwapTwoInCoalition', playerID, card);
+            const canClickForP32 = canTarget('persona32BounceToHand', playerID, card);
+            const canClickForA13 = canTarget('shieldPersonaForAction13', playerID, card);
             const clickable = canClickForPendingTokens || canClickForP23 || canClickForP21 || canClickForP26 || canClickForP28 || canClickForP7 || canClickForP32 || canClickForA13;
 
             return (
@@ -2889,24 +2355,23 @@ Click their hand. (Esc to cancel)`}</div>
 
             const baseId = String(card.id).split('#')[0];
 
-            const canPlayPersona = isMyTurn && !responseActive && !pending && !pendingHandLimit && G.hasDrawn && card.type === 'persona';
-            const canPlayAction = isMyTurn && !responseActive && !pending && !pendingHandLimit && G.hasDrawn && !G.hasPlayed && card.type === 'action';
+            const canPlayPersona = !!handChoice(card).playPersona;
+            const canPlayAction = !!handChoice(card).playAction;
 
             // out-of-turn cancels
             // Allow clicking cancels as long as server is advertising a response window.
             // Server enforces actual expiry; UI shouldn't block.
-            const canCancelAction = responseKind === 'cancel_action' && card.type === 'action' && baseId === 'action_6' && String(response.playedBy) !== String(playerID);
-            const canCancelPersona = responseKind === 'cancel_persona' && card.type === 'action' && baseId === 'action_8' && String(response.playedBy) !== String(playerID) && String(response?.personaCard?.id || '').split('#')[0] !== 'persona_33';
+            const canCancelAction = !!handChoice(card).cancelAction;
+            const canCancelPersona = !!handChoice(card).cancelPersona;
             const canCancelWithPersona10 = false; // persona_10 cancel is from coalition (not hand)
 
-            const baseIs14 = baseId === 'action_14';
-            const canCancelEffectOnMe = responseKind === 'cancel_action' && responseTargetsMe && baseIs14;
+            const canCancelEffectOnMe = !!handChoice(card).cancelEffectOnMe;
 
-            const canDiscardDownTo7 = (G.pending?.kind === 'discard_down_to_7' && String(playerID) === String(G.pending.playerId)) || pendingHandLimit;
+            const canDiscardDownTo7 = !!handChoice(card).discardDownTo7;
             const canDiscardDownTo7Mobile = false;
-            const canDiscardEvent12b = G.pending?.kind === 'event_12b_discard_from_hand' && Array.isArray(G.pending?.targetIds) && G.pending.targetIds.includes(String(playerID));
+            const canDiscardEvent12b = !!handChoice(card).discardEvent12b;
 
-            const canClickP16 = pendingP16; // select cards to discard
+            const canClickP16 = !!handChoice(card).discard16; // select cards to discard
             const canClick = canDiscardDownTo7 || canDiscardDownTo7Mobile || canDiscardEvent12b || canClickP16 || canPlayPersona || canPlayAction || canCancelAction || canCancelPersona || canCancelEffectOnMe || canCancelWithPersona10;
 
             return (

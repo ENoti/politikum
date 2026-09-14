@@ -15,6 +15,10 @@ executor; the test-only legacy executor supplies comparison results and is not a
 runtime fallback. Detailed batches and deliberately preserved legacy quirks are
 documented in [ability migration](java-ability-migration.md).
 
+Automatic turns now run without a browser. Viewer-specific UI choices are
+projected by Java; see [server automation](server-automation.md) for rollout,
+configuration, regression coverage and remaining presentation cleanup.
+
 The notes below describe the historical first stage, not the current runtime.
 
 ## Historical stage 1

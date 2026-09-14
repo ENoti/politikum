@@ -40,6 +40,38 @@ public class LiveMatchService {
         jdbc.update("DELETE FROM live_matches WHERE status = 'lobby' AND tournament_id IS NULL AND created_at < ?", cutoff);
     }
 
+    public List<String> automaticMatchIds() {
+        return jdbc.queryForList("SELECT match_id FROM live_matches WHERE status = 'in_progress' ORDER BY updated_at", String.class);
+    }
+
+    /** Separate transaction per match; CAS prevents stale automatic work replacing a newer move. */
+    @Transactional
+    public boolean advanceAutomatic(String matchId) {
+        Map<String,Object> row=loadRow(matchId);
+        if(row==null||!"in_progress".equals(string(row.get("status"))))return false;
+        Map<String,Object> state=ensureState(parseMap(row.get("state_json"))),g=map(state.get("G")),ctx=map(state.get("ctx"));
+        if(!"action".equals(string(ctx.get("phase")))||com.politikum.engine.GameState.truthy(g.get("gameOver"))||com.politikum.engine.GameState.truthy(ctx.get("gameover")))return false;
+        String actor=string(ctx.get("currentPlayer"));
+        Map<String,Object> current=listMap(g.get("players")).stream().filter(p->actor.equals(string(p.get("id")))).findFirst().orElse(Map.of());
+        boolean bot=bool(current.get("isBot"))||string(current.get("name")).startsWith("[B]");
+        boolean waiting=g.get("response")!=null||"resolve_persona_after_response".equals(string(map(g.get("pending")).get("kind")))||g.get("persona16AfterEvents")!=null;
+        if(!bot&&!waiting)return false;
+        Map<String,Object> result=engine.applyMove(state,actor,bot?"tickBot":"tick",List.of());
+        if(!bool(result.get("ok")))return false;
+        Map<String,Object> next=ensureState(map(result.get("state")));
+        // Tick polling itself must not write a new version/trace every 500 ms.
+        Map<String,Object> beforeGame=new LinkedHashMap<>(g),afterGame=new LinkedHashMap<>(map(next.get("G")));
+        beforeGame.remove("trace");afterGame.remove("trace");
+        if(JsonUtils.stringify(beforeGame).equals(JsonUtils.stringify(afterGame))&&JsonUtils.stringify(ctx).equals(JsonUtils.stringify(next.get("ctx"))))return false;
+        Map<String,Object> metadata=parseMap(row.get("metadata_json"));syncMetadataFromState(next,metadata);
+        String status=statusOf(next);long now=repository.nowMs();metadata.put("updatedAt",now);
+        int changed=jdbc.update("UPDATE live_matches SET state_json=?, metadata_json=?, status=?, updated_at=? WHERE match_id=? AND status='in_progress' AND state_json=? AND metadata_json=?",
+            JsonUtils.stringify(next),JsonUtils.stringify(metadata),status,now,matchId,row.get("state_json"),row.get("metadata_json"));
+        if(changed==0)return false;
+        if("finished".equals(status))maybeFinalizeMatch(matchId,next,metadata,loadRow(matchId));
+        return true;
+    }
+
     public Map<String, Object> createMatch(int numPlayers, String ownerPlayerId, String hostName, String lobbyTitle) {
         int seats = Math.max(2, Math.min(5, numPlayers));
         String matchId = "m_" + Long.toString(repository.nowMs(), 36) + "_" + UUID.randomUUID().toString().replace("-", "").substring(0, 8);
@@ -167,6 +199,7 @@ public class LiveMatchService {
         if (!validCredential(players, seatId, credentials)) return error("bad_credentials");
         // Identity can only be established by the authenticated join endpoint.
         if ("setPlayerIdentity".equals(move)) return error("forbidden_move");
+        if ("tick".equals(move) || "tickBot".equals(move)) return error("server_driven_move");
 
         Map<String, Object> state = ensureState(parseMap(row.get("state_json")));
         Map<String, Object> engineRes = engine.applyMove(state, seatId, move, args == null ? List.of() : args);

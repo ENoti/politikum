@@ -83,7 +83,10 @@ class MatchPrivacyTest {
         }
         assertEquals("forbidden_move", service.applyMove(matchId, "0", hostCredential,
             "setPlayerIdentity", List.of(Map.of("playerId", "victim"))).get("error"));
-        Map<String, Object> result = service.applyMove(matchId, "0", hostCredential, "tick", List.of());
+        for (String move : List.of("tick", "tickBot")) {
+            assertEquals("server_driven_move", service.applyMove(matchId, "0", hostCredential, move, List.of()).get("error"));
+        }
+        Map<String, Object> result = service.getState(matchId, "0", hostCredential);
         assertEquals(true, result.get("ok"));
         assertNotNull(map(list(map(list(g(result).get("players")).get(0)).get("hand")).get(0)).get("id"));
         assertHidden(map(list(g(result).get("players")).get(1)).get("hand"));

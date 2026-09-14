@@ -3,6 +3,9 @@ import { test, expect } from '@playwright/test';
 test('create, join, start and restore the game board without runtime errors', async ({ page }) => {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
+  page.on('request', request => {
+    if (/\/move\/tick(Bot)?(?:\?|$)/.test(request.url())) errors.push('Browser attempted to drive the server clock');
+  });
   page.on('response', response => {
     if (response.status() >= 500) errors.push(`HTTP ${response.status()}: ${response.url()}`);
   });
