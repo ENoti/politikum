@@ -7,6 +7,7 @@ import TurnControls from './TurnControls.jsx';
 import ResponsePanel from './ResponsePanel.jsx';
 import DiscardPicker from './DiscardPicker.jsx';
 import PersonaHandPicker from './PersonaHandPicker.jsx';
+import TargetConfirm from './TargetConfirm.jsx';
 import { personaName } from '../spineShared.js';
 import { useMatchChoices } from '../hooks/useMatchChoices.js';
 
@@ -1572,29 +1573,11 @@ Click their hand. (Esc to cancel)`}</div>
       )}
 
       {(pendingA7 && targetA7) && (
-        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9600] pointer-events-auto select-none">
-          <div className="flex items-center gap-3 bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
-            <span>Action 7: confirm persona</span>
-            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-emerald-400/40 bg-emerald-700/60 hover:bg-emerald-600/70" onClick={() => {
-              try { playSfx('ui', 0.35); moves.blockPersonaForAction7(String(targetA7.playerId), String(targetA7.cardId)); } catch {}
-              setTargetA7(null);
-            }}>Confirm</button>
-            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-amber-900/20 bg-slate-800/60 hover:bg-slate-700/60" onClick={() => setTargetA7(null)}>Отмена</button>
-          </div>
-        </div>
+        <TargetConfirm title="Action 7: confirm persona" onConfirm={() => { try { playSfx('ui', 0.35); moves.blockPersonaForAction7(String(targetA7.playerId), String(targetA7.cardId)); } catch {} setTargetA7(null); }} onCancel={() => setTargetA7(null)} />
       )}
 
       {(pendingA13 && targetA13) && (
-        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9600] pointer-events-auto select-none">
-          <div className="flex items-center gap-3 bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
-            <span>Action 13: confirm shield</span>
-            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-emerald-400/40 bg-emerald-700/60 hover:bg-emerald-600/70" onClick={() => {
-              try { playSfx('ui', 0.35); moves.shieldPersonaForAction13(String(targetA13.cardId)); } catch {}
-              setTargetA13(null);
-            }}>Confirm</button>
-            <button type="button" className="px-3 py-1 rounded-full text-[11px] font-black border border-amber-900/20 bg-slate-800/60 hover:bg-slate-700/60" onClick={() => setTargetA13(null)}>Отмена</button>
-          </div>
-        </div>
+        <TargetConfirm title="Action 13: confirm shield" onConfirm={() => { try { playSfx('ui', 0.35); moves.shieldPersonaForAction13(String(targetA13.cardId)); } catch {} setTargetA13(null); }} onCancel={() => setTargetA13(null)} />
       )}
 
       {(pendingA17 && targetA17) && (
