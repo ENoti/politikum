@@ -6,6 +6,7 @@ import { SERVER } from '../api.js';
 import TurnControls from './TurnControls.jsx';
 import ResponsePanel from './ResponsePanel.jsx';
 import { personaName } from '../spineShared.js';
+import { useMatchChoices } from '../hooks/useMatchChoices.js';
 
 function ActionBoard({ G, ctx, moves, playerID, matchID, ratingsMap = {}, setShowWhereAmI = () => {}, forgetMatch = () => {}, moveInFlight = false, surrender = async () => ({ ok: false }) }) {
   const isHost = String(playerID) === '0';
@@ -161,8 +162,7 @@ function ActionBoard({ G, ctx, moves, playerID, matchID, ratingsMap = {}, setSho
   };
   const isMyTurn = String(ctx.currentPlayer) === String(playerID) && !G.gameOver;
   const current = (G.players || []).find((p) => String(p.id) === String(ctx.currentPlayer));
-  const canTarget = (move, owner, card) => (G.choices?.targets?.[move] || []).some(t => t.ownerId === String(owner) && t.cardId === String(card?.id));
-  const handChoice = card => G.choices?.hand?.[String(card?.id)] || {};
+  const { reactions, handChoice, canTarget, canPickPlayer, canPlayToPlayer, choiceCards } = useMatchChoices(G);
   const response = G.response || null;
   const pending = G.pending || null;
 
@@ -199,7 +199,6 @@ function ActionBoard({ G, ctx, moves, playerID, matchID, ratingsMap = {}, setSho
   const responseSecondsLeft = Math.max(0, Math.ceil((responseExpiresAt - Date.now()) / 1000));
   // Choice / response windows stay visible until the server clears them.
   const responseActive = !!responseKind;
-  const reactions = G.choices?.reactions || {};
   const haveAction14 = !!reactions.cancelEffectCardId;
   const responseTargetsMe = !!reactions.targetsMe;
 
@@ -277,9 +276,6 @@ function ActionBoard({ G, ctx, moves, playerID, matchID, ratingsMap = {}, setSho
     return fallback || '';
   };
   const canSkipCurrentPending = !!G.choices?.actions?.cancelPending;
-  const canPickPlayer = (move, id) => (G.choices?.players?.[move] || []).includes(String(id));
-  const canPlayToPlayer = (selection, id) => (G.choices?.hand?.[String(selection?.cardId)]?.targetPlayerIds || []).includes(String(id));
-  const choiceCards = (move, cards) => (cards || []).filter(c => (G.choices?.cards?.[move] || []).includes(String(c.id)));
   const yourTurnPromptKey = `${String(playerID)}:${String(ctx?.turn || 0)}`;
   const yourTurnPromptActive = !!G.choices?.actions?.beginTurnDraw && !showEventSplash && !targetedPush && acknowledgedTurnPromptKey !== yourTurnPromptKey;
 
