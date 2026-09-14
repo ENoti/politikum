@@ -12,13 +12,15 @@ public final class MatchChoices {
     private static boolean persona(Map<String,Object> c) { return "persona".equals(c.get("type")); }
     public static Map<String,Object> forView(Map<String,Object> state,String viewer) {
         Map<String,Object> g=map(state.get("G")),ctx=map(state.get("ctx")),pending=map(g.get("pending")),response=map(g.get("response"));
-        Map<String,Object> targets=new LinkedHashMap<>(),hands=new LinkedHashMap<>();List<String> guesses=new ArrayList<>();
+        Map<String,Object> targets=new LinkedHashMap<>(),hands=new LinkedHashMap<>(),pendingChoices=new LinkedHashMap<>();List<String> guesses=new ArrayList<>();
         Map<String,Object> reactions=new LinkedHashMap<>(),actions=new LinkedHashMap<>();
-        var out=object("targets",targets,"hand",hands,"requiredDiscards",0,"guessIds",guesses,"reactions",reactions,"actions",actions);
+        var out=object("targets",targets,"hand",hands,"pending",pendingChoices,"requiredDiscards",0,"guessIds",guesses,"reactions",reactions,"actions",actions);
         if(viewer==null||truthy(g.get("gameOver"))||truthy(ctx.get("gameover")))return out;
         List<Map<String,Object>> players=list(g.get("players"));Map<String,Object> me=players.stream().filter(p->viewer.equals(text(p.get("id")))).findFirst().orElse(Map.of());
         if(me.isEmpty())return out;
         String kind=text(pending.get("kind")),rk=text(response.get("kind"));boolean turn=viewer.equals(text(ctx.get("currentPlayer"))),owns=viewer.equals(text(pending.get("playerId"))),attacker=viewer.equals(text(pending.get("attackerId")));
+        boolean viewerIsTarget=viewer.equals(text(pending.get("targetId"))) || list(pending.get("targetIds")).contains(viewer);
+        if(!kind.isEmpty() && (owns || attacker || viewerIsTarget)) pendingChoices.put(kind,true);
         if(owns&&kind.equals("persona_16_discard3_from_hand"))out.put("requiredDiscards",Math.max(0,list(me.get("hand")).size()-6));
         Set<String> ownBases=new HashSet<>(); Set<String> ownIds=new HashSet<>();
         for(Map<String,Object> c:MatchChoices.<Map<String,Object>>cards(me,"coalition")) { ownBases.add(base(c)); ownIds.add(text(c.get("id"))); }
@@ -62,6 +64,7 @@ public final class MatchChoices {
         if(canSwap)targets.put("persona8SwapWithPlayedPersona",List.of(object("ownerId",text(swap.get("ownerId")),"cardId",text(swap.get("playedPersonaId")))));
         actions.put("persona39RecycleSelf",turn&&"action".equals(ctx.get("phase"))&&pending.isEmpty()&&response.isEmpty()&&ownBases.contains("persona_39"));
         boolean unblocked=turn&&"action".equals(ctx.get("phase"))&&pending.isEmpty()&&response.isEmpty();
+        actions.put("persona3ChooseOptionB",owns&&turn&&kind.equals("persona_3_choice"));
         actions.put("beginTurnDraw",unblocked&&!truthy(g.get("hasDrawn"))&&!list(g.get("deck")).isEmpty());
         actions.put("drawCard",unblocked&&truthy(g.get("hasDrawn"))&&!truthy(g.get("hasPlayed"))&&number(g.get("drawsThisTurn"))<2&&!list(g.get("deck")).isEmpty());
         actions.put("endTurn",unblocked&&truthy(g.get("hasDrawn"))&&truthy(g.get("hasPlayed")));

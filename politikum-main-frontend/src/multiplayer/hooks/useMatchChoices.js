@@ -13,9 +13,11 @@ export function useMatchChoices(game = {}) {
     const players = choices.players || {};
     const cards = choices.cards || {};
     const targets = choices.targets || {};
+    const pending = choices.pending || {};
     return {
       raw: choices,
       reactions: choices.reactions || {},
+      pendingChoice: (kind) => pending[String(kind)] === true,
       handChoice: (card) => hand[String(card?.id)] || {},
       canTarget: (move, ownerId, card) => (targets[move] || []).some((target) =>
         String(target.ownerId) === String(ownerId) && String(target.cardId) === String(card?.id)),

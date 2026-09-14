@@ -24,6 +24,22 @@ class MatchChoicesTest {
             map(choices(state,"0").get("players")).get("persona33ChooseFaction"));
         assertTrue(map(choices(state,"1").get("players")).isEmpty());
     }
+    @Test void pendingWindowsAreProjectedOnlyToTheirAllowedViewer() {
+        var state=state();var g=map(state.get("G"));
+        g.put("pending",object("kind","action_4_discard","targetId","1"));
+        assertEquals(true,map(choices(state,"1").get("pending")).get("action_4_discard"));
+        assertTrue(map(choices(state,"0").get("pending")).isEmpty());
+
+        g.put("pending",object("kind","action_7_block_persona","attackerId","0"));
+        assertEquals(true,map(choices(state,"0").get("pending")).get("action_7_block_persona"));
+        assertTrue(map(choices(state,"1").get("pending")).isEmpty());
+
+        g.put("pending",object("kind","persona_3_choice","playerId","0"));
+        assertEquals(true,map(choices(state,"0").get("pending")).get("persona_3_choice"));
+        assertEquals(true,map(choices(state,"0").get("actions")).get("persona3ChooseOptionB"));
+        assertTrue(map(choices(state,"1").get("pending")).isEmpty());
+        assertEquals(false,map(choices(state,"1").get("actions")).get("persona3ChooseOptionB"));
+    }
     @Test void turnControlsUseDeckDrawCountAndPendingOwner() {
         var state=state();var g=map(state.get("G"));
         g.put("hasDrawn",false);

@@ -167,7 +167,7 @@ function ActionBoard({ G, ctx, moves, playerID, matchID, ratingsMap = {}, setSho
   };
   const isMyTurn = String(ctx.currentPlayer) === String(playerID) && !G.gameOver;
   const current = (G.players || []).find((p) => String(p.id) === String(ctx.currentPlayer));
-  const { reactions, handChoice, canTarget, canPickPlayer, canPlayToPlayer, choicePlayers, choiceCards } = useMatchChoices(G);
+  const { reactions, handChoice, canTarget, canPickPlayer, canPlayToPlayer, choicePlayers, choiceCards, pendingChoice } = useMatchChoices(G);
   const response = G.response || null;
   const pending = G.pending || null;
   const persona33Factions = choicePlayers('persona33ChooseFaction');
@@ -374,37 +374,39 @@ useEffect(() => {
   const myVpPassives = (me?.coalition || []).reduce((s, c) => s + Number(c.passiveVpDelta || 0), 0);
   const myCoalitionPoints = (me?.coalition || []).reduce((s, c) => s + Number(c.vp ?? (Number(c.baseVp ?? 0) + Number(c.vpDelta || 0) + Number(c.passiveVpDelta || 0))), 0);
 
-  const pendingPersona45 = pending?.kind === 'persona_45_steal_from_opponent' && String(pending?.playerId) === String(playerID);
+  const pendingPersona45 = pending?.kind === 'persona_45_steal_from_opponent' && pendingChoice('persona_45_steal_from_opponent');
   const pendingPersona45Source = pendingPersona45 ? String(pending?.sourceCardId || '') : '';
 
-  const pendingP21 = pending?.kind === 'persona_21_pick_target_invert' && String(pending?.playerId) === String(playerID);
+  const pendingP21 = pending?.kind === 'persona_21_pick_target_invert' && pendingChoice('persona_21_pick_target_invert');
   const pendingP21Source = pendingP21 ? String(pending?.sourceCardId || '') : '';
-  const pendingP23 = pending?.kind === 'persona_23_choose_self_inflict_draw' && String(pending?.playerId) === String(playerID);
+  const pendingP23 = pending?.kind === 'persona_23_choose_self_inflict_draw' && pendingChoice('persona_23_choose_self_inflict_draw');
   const pendingP23Source = pendingP23 ? String(pending?.sourceCardId || '') : '';
-  const pendingP26 = pending?.kind === 'persona_26_pick_red_nationalist' && String(pending?.playerId) === String(playerID);
+  const pendingP26 = pending?.kind === 'persona_26_pick_red_nationalist' && pendingChoice('persona_26_pick_red_nationalist');
   const pendingP26Source = pendingP26 ? String(pending?.sourceCardId || '') : '';
-  const pendingP28 = pending?.kind === 'persona_28_pick_non_fbk' && String(pending?.playerId) === String(playerID);
+  const pendingP28 = pending?.kind === 'persona_28_pick_non_fbk' && pendingChoice('persona_28_pick_non_fbk');
   const pendingP28Source = pendingP28 ? String(pending?.sourceCardId || '') : '';
 
-  const pendingP3Choice = pending?.kind === 'persona_3_choice' && String(pending?.playerId) === String(playerID);
+  const pendingP3Choice = pending?.kind === 'persona_3_choice' && pendingChoice('persona_3_choice');
+  const pendingP5 = pending?.kind === 'persona_5_pick_liberal' && pendingChoice('persona_5_pick_liberal');
+  const pendingP14 = pending?.kind === 'discard_one_persona_from_any_coalition' && pendingChoice('discard_one_persona_from_any_coalition');
 
-  const pendingA7 = pending?.kind === 'action_7_block_persona' && String(pending?.attackerId) === String(playerID);
-  const pendingA13 = pending?.kind === 'action_13_shield_persona' && String(pending?.attackerId) === String(playerID);
-  const pendingA17 = pending?.kind === 'action_17_choose_opponent_persona' && String(pending?.attackerId) === String(playerID);
+  const pendingA7 = pending?.kind === 'action_7_block_persona' && pendingChoice('action_7_block_persona');
+  const pendingA13 = pending?.kind === 'action_13_shield_persona' && pendingChoice('action_13_shield_persona');
+  const pendingA17 = pending?.kind === 'action_17_choose_opponent_persona' && pendingChoice('action_17_choose_opponent_persona');
 
-  const pendingP32 = pending?.kind === 'persona_32_pick_bounce_target' && String(pending?.playerId) === String(playerID);
+  const pendingP32 = pending?.kind === 'persona_32_pick_bounce_target' && pendingChoice('persona_32_pick_bounce_target');
   const pendingP32Source = pendingP32 ? String(pending?.sourceCardId || '') : '';
 
-  const pendingP37 = pending?.kind === 'persona_37_pick_opponent_persona' && String(pending?.playerId) === String(playerID);
+  const pendingP37 = pending?.kind === 'persona_37_pick_opponent_persona' && pendingChoice('persona_37_pick_opponent_persona');
   const pendingP37Source = pendingP37 ? String(pending?.sourceCardId || '') : '';
 
-  const pendingP13 = pending?.kind === 'persona_13_pick_target' && String(pending?.playerId) === String(playerID);
+  const pendingP13 = pending?.kind === 'persona_13_pick_target' && pendingChoice('persona_13_pick_target');
   const pendingP13Source = pendingP13 ? String(pending?.sourceCardId || '') : '';
   const pendingP13AttackerId = pendingP13 ? String(pending?.attackerId || '') : '';
 
-  const pendingP33 = pending?.kind === 'persona_33_choose_faction' && String(pending?.playerId) === String(playerID);
+  const pendingP33 = pending?.kind === 'persona_33_choose_faction' && pendingChoice('persona_33_choose_faction');
   const pendingP33Source = pendingP33 ? String(pending?.sourceCardId || '') : '';
-  const pendingP34 = pending?.kind === 'persona_34_guess_topdeck' && String(pending?.playerId) === String(playerID);
+  const pendingP34 = pending?.kind === 'persona_34_guess_topdeck' && pendingChoice('persona_34_guess_topdeck');
   const pendingP34Source = pendingP34 ? String(pending?.sourceCardId || '') : '';
   const canUseP39 = !!G.choices?.actions?.persona39RecycleSelf;
 
@@ -415,9 +417,15 @@ useEffect(() => {
     setP34WheelIdx(0);
   }, [pendingP34, p34Remaining.length]);
 
-  const pendingP16 = pending?.kind === 'persona_16_discard3_from_hand' && String(pending?.playerId) === String(playerID);
+  const pendingP16 = pending?.kind === 'persona_16_discard3_from_hand' && pendingChoice('persona_16_discard3_from_hand');
   const pendingP16RequiredDiscard = Number(G.choices?.requiredDiscards || 0);
-  const pendingHandLimit = pending?.kind === 'hand_limit_discard_before_draw' && String(pending?.playerId) === String(playerID);
+  const pendingHandLimit = pending?.kind === 'hand_limit_discard_before_draw' && pendingChoice('hand_limit_discard_before_draw');
+  const pendingDiscardDownTo7 = pending?.kind === 'discard_down_to_7' && pendingChoice('discard_down_to_7');
+  const pendingEvent12bDiscard = pending?.kind === 'event_12b_discard_from_hand' && pendingChoice('event_12b_discard_from_hand');
+  const pendingTargetDiscard = (pending?.kind === 'action_4_discard' || pending?.kind === 'action_9_discard_persona') && pendingChoice(String(pending?.kind));
+  const pendingEvent16Discard = pending?.kind === 'event_16_discard_self_persona_then_draw1' && pendingChoice('event_16_discard_self_persona_then_draw1');
+  const pendingA18 = pending?.kind === 'action_18_pick_persona_from_discard' && pendingChoice('action_18_pick_persona_from_discard');
+  const pendingP20 = pending?.kind === 'persona_20_pick_from_discard' && pendingChoice('persona_20_pick_from_discard');
   const discardDownTo7Remaining = Math.max(0, (Array.isArray(me?.hand) ? me.hand.length : 0) - 7);
   const pendingP16Source = pendingP16 ? String(pending?.sourceCardId || '') : '';
 
@@ -430,18 +438,18 @@ useEffect(() => {
     setP16DiscardPick((prev) => (prev || []).filter((id) => handIds.has(String(id))).slice(0, pendingP16RequiredDiscard));
   }, [pendingP16, pendingP16Source, me?.hand, pendingP16RequiredDiscard]);
 
-  const pendingP12 = pending?.kind === 'persona_12_choose_adjacent_red' && String(pending?.playerId) === String(playerID);
+  const pendingP12 = pending?.kind === 'persona_12_choose_adjacent_red' && pendingChoice('persona_12_choose_adjacent_red');
   const pendingP12Left = pendingP12 ? String(pending?.leftId || '') : '';
   const pendingP12Right = pendingP12 ? String(pending?.rightId || '') : '';
 
-  const pendingP7 = pending?.kind === 'persona_7_swap_two_in_coalition' && String(pending?.playerId) === String(playerID);
+  const pendingP7 = pending?.kind === 'persona_7_swap_two_in_coalition' && pendingChoice('persona_7_swap_two_in_coalition');
   const pendingP7Source = pendingP7 ? String(pending?.sourceCardId || '') : '';
 
-  const pendingP11Offer = pending?.kind === 'persona_11_offer' && String(pending?.playerId) === String(playerID);
-  const pendingP11Pick = pending?.kind === 'persona_11_pick_opponent_persona' && String(pending?.playerId) === String(playerID);
+  const pendingP11Offer = pending?.kind === 'persona_11_offer' && pendingChoice('persona_11_offer');
+  const pendingP11Pick = pending?.kind === 'persona_11_pick_opponent_persona' && pendingChoice('persona_11_pick_opponent_persona');
 
-  const pendingP17PickOpp = pending?.kind === 'persona_17_pick_opponent' && String(pending?.playerId) === String(playerID);
-  const pendingP17PickCard = pending?.kind === 'persona_17_pick_persona_from_hand' && String(pending?.playerId) === String(playerID);
+  const pendingP17PickOpp = pending?.kind === 'persona_17_pick_opponent' && pendingChoice('persona_17_pick_opponent');
+  const pendingP17PickCard = pending?.kind === 'persona_17_pick_persona_from_hand' && pendingChoice('persona_17_pick_persona_from_hand');
   const pendingP17TargetId = pendingP17PickCard ? String(pending?.targetId || '') : '';
 
   useEffect(() => {
@@ -507,7 +515,7 @@ useEffect(() => {
           try { playSfx('ui', 0.25); moves.persona11Skip(); } catch {}
           return;
         }
-        if (G.pending?.kind === 'persona_3_choice' && String(playerID) === String(G.pending.playerId)) {
+        if (pendingP3Choice) {
           try { playSfx('ui', 0.25); moves.persona3Skip(); } catch {}
           return;
         }
@@ -587,7 +595,7 @@ useEffect(() => {
       }
 
       // p3: option B hotkey
-      if (G.pending?.kind === 'persona_3_choice' && String(playerID) === String(G.pending.playerId) && key === 'b') {
+      if (pendingP3Choice && key === 'b') {
         try { moves.persona3ChooseOption('b'); } catch {}
         return;
       }
@@ -979,7 +987,7 @@ useEffect(() => {
 
           const show = oppFanCards.length;
           const stepBack = veryCrowdedTable ? 5 : crowdedTable ? 6 : 8;
-          const flatP5 = opponents.length === 1 && G.pending?.kind === 'persona_5_pick_liberal' && String(playerID) === String(G.pending?.playerId);
+          const flatP5 = opponents.length === 1 && pendingP5;
           const stepFace = flatP5 ? (veryCrowdedTable ? 28 : crowdedTable ? 34 : 42) : (veryCrowdedTable ? 18 : crowdedTable ? 22 : 28);
 
           const calcWidth = () => {
@@ -1172,7 +1180,7 @@ useEffect(() => {
                           try { playSfx('ui', 0.35); moves.persona3ChooseOption('a', String(p.id), it.card.id); } catch {}
                           return;
                         }
-                        if (pendingP3Choice) {
+                        if (G.choices?.actions?.persona3ChooseOptionB) {
                           // Option B: click any opponent card to apply the global token-removal effect.
                           try { playSfx('ui', 0.35); moves.persona3ChooseOption('b'); } catch {}
                           return;
@@ -1333,7 +1341,7 @@ useEffect(() => {
         </div>
       )}
 
-      {G.pending?.kind === 'persona_3_choice' && String(playerID) === String(G.pending.playerId) && (
+      {pendingP3Choice && (
         <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[6000] pointer-events-auto select-none">
           <div className="bg-black/70 border border-amber-900/30 rounded-2xl px-4 py-2 text-amber-100/90 font-mono text-[12px] flex items-center gap-3">
             <span>SVTV: выберите левого персонажа для сброса (A) ИЛИ любую карту оппонента для снятия жетонов (B)</span>
@@ -1637,7 +1645,7 @@ Click their hand. (Esc to cancel)`}</div>
       )}
 
       {/* Action_4 / Action_9 discard prompt (target chooses) */}
-      {(G.pending?.kind === 'action_4_discard' || G.pending?.kind === 'action_9_discard_persona') && String(playerID) === String(G.pending.targetId) && !(responseActive && responseKind === 'cancel_action' && haveAction14 && responseTargetsMe) && (
+      {pendingTargetDiscard && !(responseActive && responseKind === 'cancel_action' && haveAction14 && responseTargetsMe) && (
         <div className="fixed inset-0 z-[3199] pointer-events-none select-none">
           <div className="absolute left-1/2 top-[48%] -translate-x-1/2 -translate-y-1/2 bg-black/55 border border-amber-900/20 rounded-2xl px-5 py-4 backdrop-blur-sm shadow-2xl">
             <div className="text-amber-200/80 text-[10px] uppercase tracking-[0.3em] font-black">Выбор сброса</div>
@@ -1651,7 +1659,7 @@ Click their hand. (Esc to cancel)`}</div>
       )}
 
       {/* Event_12b: each affected player discards 1 card from hand */}
-      {G.pending?.kind === 'event_12b_discard_from_hand' && Array.isArray(G.pending.targetIds) && G.pending.targetIds.includes(String(playerID)) && (
+      {pendingEvent12bDiscard && (
         <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9500] pointer-events-none select-none">
           <div className="pointer-events-auto bg-black/70 border border-amber-900/30 rounded-2xl px-4 py-3 text-amber-100/90 font-mono text-[12px] shadow-2xl flex items-center gap-3">
             <span>Секс-скандал: выбери карту в руке и сбрось её</span>
@@ -1672,7 +1680,7 @@ Click their hand. (Esc to cancel)`}</div>
       )}
 
       {/* Hand limit: discard down to 7 (no modal) */}
-     {(pendingHandLimit || (G.pending?.kind === 'discard_down_to_7' && String(playerID) === String(G.pending.playerId))) && (
+     {(pendingHandLimit || pendingDiscardDownTo7) && (
        <div className="fixed top-[62%] ...">
          <div className="pointer-events-auto bg-black/70 ...">
            <span>У тебя больше 7 карт: сбрось ещё {discardDownTo7Remaining} карт(ы)...</span>
@@ -1722,7 +1730,7 @@ Click their hand. (Esc to cancel)`}</div>
       )}
 
       {/* Persona_5 target prompt */}
-      {G.pending?.kind === 'persona_5_pick_liberal' && String(playerID) === String(G.pending.playerId) && (
+      {pendingP5 && (
         <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9500] pointer-events-none select-none">
           <div className="pointer-events-auto bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
             p5: выберите ЛИБЕРАЛЬНОГО персонажа в коалиции оппонента
@@ -1731,7 +1739,7 @@ Click their hand. (Esc to cancel)`}</div>
       )}
 
       {/* Persona_14 discard prompt (no modal) */}
-      {G.pending?.kind === 'discard_one_persona_from_any_coalition' && String(playerID) === String(G.pending.playerId) && (
+      {pendingP14 && (
         <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9500] pointer-events-none select-none">
           <div className="pointer-events-auto bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
             p14: выберите любого персонажа на столе, чтобы сбросить его
@@ -1769,7 +1777,7 @@ Click their hand. (Esc to cancel)`}</div>
       )}
 
       {/* Event_16: discard one of YOUR personas, then draw 1 (no modal) */}
-      {G.pending?.kind === 'event_16_discard_self_persona_then_draw1' && String(playerID) === String(G.pending.playerId) && (
+      {pendingEvent16Discard && (
         <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9500] pointer-events-none select-none">
           <div className="pointer-events-auto bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
             СОБЫТИЕ {G.pending.sourceCardId}: выберите персонажа в ВАШЕЙ коалиции, чтобы сбросить его (затем взять 1 карту)
@@ -1778,7 +1786,7 @@ Click their hand. (Esc to cancel)`}</div>
       )}
 
       {/* Action_7: click a persona on the table to block (no modal) */}
-      {G.pending?.kind === 'action_7_block_persona' && String(playerID) === String(G.pending.attackerId) && (
+      {pendingA7 && (
         <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9500] pointer-events-none select-none">
           <div className="pointer-events-auto bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
             Экшен 7: ткни по любой персоне на столе чтобы запретить ей способности
@@ -1787,7 +1795,7 @@ Click their hand. (Esc to cancel)`}</div>
       )}
 
       {/* Action_13: shield one of YOUR personas (no modal) */}
-      {G.pending?.kind === 'action_13_shield_persona' && String(playerID) === String(G.pending.attackerId) && (
+      {pendingA13 && (
         <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9500] pointer-events-none select-none">
           <div className="pointer-events-auto bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
             Белое пальто: ткни по персоне в СВОЕЙ коалиции чтобы защитить
@@ -1796,7 +1804,7 @@ Click their hand. (Esc to cancel)`}</div>
       )}
 
       {/* Action_17: click any opponent persona on the table (no modal) */}
-      {G.pending?.kind === 'action_17_choose_opponent_persona' && String(playerID) === String(G.pending.attackerId) && (
+      {pendingA17 && (
         <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9500] pointer-events-none select-none">
           <div className="pointer-events-auto bg-black/70 border border-amber-900/30 rounded-full px-4 py-2 text-amber-100/90 font-mono text-[12px] shadow-2xl">
             Экшен 17: выберите персонажа любого оппонента (Esc — отмена)
@@ -1805,12 +1813,12 @@ Click their hand. (Esc to cancel)`}</div>
       )}
 
       {/* Action_18: return persona from discard to hand */}
-      {G.pending?.kind === 'action_18_pick_persona_from_discard' && String(playerID) === String(G.pending.attackerId) && (
+      {pendingA18 && (
         <DiscardPicker kind="action18" title="Экшен 18 — Возврат из сброса" description="Выберите персонажа из сброса, чтобы вернуть его в руку." cards={choiceCards('pickPersonaFromDiscardForAction18', G.discard)} onPick={(id) => moves.pickPersonaFromDiscardForAction18(id)} displayCardTitle={displayCardTitle} />
       )}
 
       {/* Persona_20: take any card from discard to hand */}
-      {G.pending?.kind === 'persona_20_pick_from_discard' && String(playerID) === String(G.pending.playerId) && (
+      {pendingP20 && (
         <DiscardPicker title="Быков (p20) — Взять из сброса" description="Выберите 1 карту действия из сброса, чтобы взять её в руку." cards={choiceCards('persona20PickFromDiscard', G.discard)} onPick={(id) => moves.persona20PickFromDiscard(id)} displayCardTitle={displayCardTitle} />
       )}
 
@@ -1951,7 +1959,7 @@ Click their hand. (Esc to cancel)`}</div>
         </div>
       )}
 
-      {(pendingHandLimit || (G.pending?.kind === 'discard_down_to_7' && String(playerID) === String(G.pending.playerId))) && mobileHandSelected && (
+      {(pendingHandLimit || pendingDiscardDownTo7) && mobileHandSelected && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[13000] pointer-events-auto select-none">
           <button
             type="button"
@@ -2225,14 +2233,14 @@ Click their hand. (Esc to cancel)`}</div>
                 <div className="w-full h-full rounded-2xl overflow-hidden">
                   <img src={card.img} alt={card.id} className="w-full h-full object-cover" draggable={false} />
                 </div>
-                {((pendingHandLimit || (G.pending?.kind === 'discard_down_to_7' && String(playerID) === String(G.pending.playerId))) && String(mobileHandSelected || '') === String(card.id)) && (
+                {((pendingHandLimit || pendingDiscardDownTo7) && String(mobileHandSelected || '') === String(card.id)) && (
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       try {
                         playSfx('ui', 0.25);
-                        if (G.pending?.kind === 'discard_down_to_7') moves.discardFromHandDownTo7(card.id);
+                        if (pendingDiscardDownTo7) moves.discardFromHandDownTo7(card.id);
                         else moves.discardBeforeDrawForHandLimit(card.id);
                       } catch {}
                       setMobileHandSelected(null);
