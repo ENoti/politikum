@@ -6,6 +6,7 @@ import { SERVER } from '../api.js';
 import TurnControls from './TurnControls.jsx';
 import ResponsePanel from './ResponsePanel.jsx';
 import DiscardPicker from './DiscardPicker.jsx';
+import PersonaHandPicker from './PersonaHandPicker.jsx';
 import { personaName } from '../spineShared.js';
 import { useMatchChoices } from '../hooks/useMatchChoices.js';
 
@@ -1845,27 +1846,7 @@ Click their hand. (Esc to cancel)`}</div>
         const target = (G.players || []).find((pp) => String(pp.id) === String(pendingP17TargetId));
         const cards = choiceCards('persona17StealPersonaFromHand', target?.hand);
         return (
-          <div className="fixed inset-x-0 top-14 z-[9600] flex items-start justify-center pointer-events-none select-none">
-            <div className="pointer-events-auto bg-black/75 border border-amber-900/30 rounded-3xl shadow-2xl p-4 max-w-[96vw]">
-              <div className="text-amber-200/70 text-[11px] font-mono font-black tracking-widest">p17: pick a persona from {target?.name || pendingP17TargetId}</div>
-              <div className="mt-3 flex gap-3 flex-wrap justify-center">
-                {cards.map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    className="w-40 aspect-[2/3] rounded-2xl overflow-hidden border border-emerald-400/40 hover:border-emerald-300 cursor-pointer shadow-2xl hover:scale-[1.02] transition-transform"
-                    onClick={() => { try { moves.persona17StealPersonaFromHand(c.id); } catch {} }}
-                    title={displayCardTitle(c)}
-                  >
-                    <img src={c.img} alt={displayCardTitle(c)} className="w-full h-full object-cover" draggable={false} />
-                  </button>
-                ))}
-                {!cards.length && (
-                  <div className="text-amber-200/70 text-sm">No personas in hand.</div>
-                )}
-              </div>
-            </div>
-          </div>
+          <PersonaHandPicker targetName={target?.name} targetId={pendingP17TargetId} cards={cards} onPick={(id) => { try { moves.persona17StealPersonaFromHand(id); } catch {} }} displayCardTitle={displayCardTitle} />
         );
       })()}
 
