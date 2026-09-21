@@ -68,6 +68,24 @@ class BackendHttpTest {
                 .getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
 
+    @Test
+    void browserClockMovesAreRejectedWhileServerAutomationRemainsAuthoritative() {
+        JsonNode created = post("/games/politikum/create", Map.of("numPlayers", 2));
+        String base = "/games/politikum/" + created.path("matchID").asText();
+        String credentials = post(base + "/join", Map.of("playerID", "0", "playerName", "Clock test"))
+                .path("playerCredentials").asText();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        Map<String, Object> payload = Map.of("playerID", "0", "credentials", credentials, "args", java.util.List.of());
+        for (String move : new String[]{"tick", "tickBot"}) {
+            var response = http.exchange(base + "/move/" + move, HttpMethod.POST,
+                    new HttpEntity<>(payload, headers), JsonNode.class);
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+            assertThat(response.getBody()).isNotNull();
+            assertThat(response.getBody().path("error").asText()).isEqualTo("server_driven_move");
+        }
+    }
+
     private JsonNode get(String path) {
         var response = http.getForEntity(path, JsonNode.class);
         assertThat(response.getStatusCode()).as(path).isEqualTo(HttpStatus.OK);

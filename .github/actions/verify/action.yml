@@ -21,6 +21,7 @@ runs:
       run: |
         node --test scripts/check-native-runtime.test.mjs
         node scripts/check-native-runtime.mjs politikum-main-backend/target/backend.jar
+        node scripts/check-java-moves.mjs
     - name: Frontend dependencies, reference checks and production build
       shell: bash
       working-directory: politikum-main-frontend
