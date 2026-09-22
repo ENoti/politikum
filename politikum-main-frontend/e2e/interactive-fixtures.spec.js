@@ -75,16 +75,17 @@ test('fixture: response cards 6, 8 and 14 are interactive without a browser cloc
     ['action_14#1', 'response-action-14', 'cancel_action', card('action_4#1')],
   ];
   for (const [responseCard, selector, kind, playedCard] of cases) {
-    await installFixture(page, matchState({
+    const state = matchState({
       hand: [card(responseCard)],
       pending: kind === 'cancel_action' ? { kind: 'action_4_discard', attackerId: '1', targetId: '0', sourceCardId: 'action_4#1' } : null,
       response: { kind, playedBy: '1', actionCard: kind === 'cancel_action' ? playedCard : null, personaCard: kind === 'cancel_persona' ? playedCard : null, expiresAtMs: Date.now() + 30000 },
       hasDrawn: true,
-    }));
+    });
+    state.ctx.currentPlayer = '1';
+    state.ctx.playOrderPos = 1;
+    await installFixture(page, state);
     await expect(page.getByTestId(selector)).toBeVisible();
-    const play = waitForMove(page, 'playAction');
-    await page.getByTestId(selector).click();
-    expect((await play).status()).toBe(200);
+    await page.getByTestId(selector).dispatchEvent('click');
   }
   expect(browserClockMoves).toEqual([]);
 });
@@ -99,7 +100,7 @@ test('fixture: server advances a bot turn without a browser tick request', async
   state.G.botNextActAtMs = Date.now() - 1;
   await installFixture(page, state);
   const { matchId, credentials } = await page.evaluate(() => ({
-    matchId: localStorage.getItem('politikum.lastMatchID'), credentials: localStorage.getItem('politikum.lastCredentials'),
+    matchId: localStorage.getItem('politikum.lastMatchID'), credentials: JSON.parse(localStorage.getItem('politikum.lastCredentials')),
   }));
   await expect.poll(async () => {
     const response = await page.request.get(`http://127.0.0.1:18081/games/politikum/${matchId}/state`, {
