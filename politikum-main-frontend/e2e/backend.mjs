@@ -11,7 +11,12 @@ const backend = spawn(java, ['-jar', resolve('../politikum-main-backend/target/b
   `--politikum.db.path=${join(data, 'test.sqlite')}`,
   `--politikum.news.path=${join(data, 'NEWS.md')}`,
   `--politikum.profile-img-dir=${join(data, 'profiles')}`,
-], { stdio: 'inherit', env: { ...process.env, POLITIKUM_ADMIN_TOKEN: 'isolated-browser-test-only-token' } });
+  '--politikum.e2e.fixture.enabled=true',
+], { stdio: 'inherit', env: {
+  ...process.env,
+  POLITIKUM_ADMIN_TOKEN: 'isolated-browser-test-only-token',
+  POLITIKUM_E2E_FIXTURE_TOKEN: 'isolated-browser-fixture-token',
+} });
 let stopping = false;
 let timer;
 for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => {

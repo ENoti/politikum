@@ -1009,7 +1009,7 @@ useEffect(() => {
           };
 
           return (
-            <div key={p.id} className={"flex flex-col items-center gap-2 relative pt-10 " + (veryCrowdedTable ? 'px-1' : crowdedTable ? 'px-2' : 'px-4')}>
+            <div key={p.id} data-testid={`opponent-${p.id}`} className={"flex flex-col items-center gap-2 relative pt-10 " + (veryCrowdedTable ? 'px-1' : crowdedTable ? 'px-2' : 'px-4')}>
               {/* name/points as absolute overlay above cards */}
               {String(p.name || '').trim() && !String(p.name || '').startsWith('[H] Seat') && (
                 <div className="absolute -top-10 left-0 flex items-center gap-2 bg-black/55 border border-amber-900/20 rounded-full px-4 py-1 text-[11px] font-mono font-black tracking-widest text-amber-200/90 z-[2000] whitespace-nowrap justify-center">
@@ -1139,6 +1139,7 @@ useEffect(() => {
                   return (
                     <div
                       key={`${p.id}-${i}-${id}`}
+                      data-testid={it.kind === 'face' ? `opponent-card-${p.id}-${it.card.id}` : undefined}
                       className={"absolute bottom-[20px] aspect-[2/3] rounded-2xl overflow-visible border border-black/40 shadow-2xl " + (canClickFace ? "cursor-pointer ring-2 ring-emerald-400/40" : "") + (isSelected ? " ring-4 ring-amber-300/80" : "")}
                       style={{ width: opponentCardWidth, left, zIndex: z, transform: `rotate(${rot}deg) scale(${scale})`, transformOrigin: 'center center' }}
                       title={it.kind === 'back' ? 'карта' : displayCardTitle(it.card)}
@@ -1486,6 +1487,7 @@ useEffect(() => {
                 {remaining.map((bid) => (
                   <button
                     key={bid}
+                    data-testid={`persona34-guess-${bid}`}
                     type="button"
                     className="px-3 py-2 rounded-xl bg-black/40 hover:bg-black/60 border border-amber-900/25 text-amber-50 text-sm font-semibold text-left"
                     onClick={() => { try { moves.persona34GuessTopdeck(bid); } catch {} }}
@@ -2137,6 +2139,7 @@ Click their hand. (Esc to cancel)`}</div>
             return (
               <button
                 key={card.id}
+                data-testid={`hand-card-${card.id}`}
                 onClick={(e) => {
                   if (!canClick) return;
 

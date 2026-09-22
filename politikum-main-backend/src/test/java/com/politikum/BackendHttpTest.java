@@ -42,6 +42,9 @@ class BackendHttpTest {
                 .isEqualTo(HttpStatus.UNAUTHORIZED);
         assertThat(http.getForEntity("/games/politikum/does-not-exist", JsonNode.class).getStatusCode())
                 .isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(http.postForEntity("/internal/e2e/matches/does-not-exist/state", Map.of(), JsonNode.class).getStatusCode())
+                .as("the E2E fixture endpoint must not exist in a normal backend")
+                .isEqualTo(HttpStatus.NOT_FOUND);
     }
 
     @Test

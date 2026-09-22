@@ -9,7 +9,7 @@ export default function DiscardPicker({ kind, cards = [], title, description, on
         <div className="mt-2 text-amber-100/80 text-sm">{description}</div>
         <div className="mt-4 flex flex-wrap gap-3 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2">
           {cards.map((card) => (
-            <button key={card.id} type="button" className="w-40 aspect-[2/3] rounded-2xl overflow-hidden border border-black/40 shadow-2xl hover:scale-[1.02] transition-transform" onClick={() => onPick(card.id)} title={displayCardTitle(card)}>
+            <button key={card.id} data-testid={`discard-card-${card.id}`} type="button" className="w-40 aspect-[2/3] rounded-2xl overflow-hidden border border-black/40 shadow-2xl hover:scale-[1.02] transition-transform" onClick={() => onPick(card.id)} title={displayCardTitle(card)}>
               <img src={card.img} alt={displayCardTitle(card)} className="w-full h-full object-cover" draggable={false} />
             </button>
           ))}

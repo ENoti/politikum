@@ -114,6 +114,23 @@ public class LiveMatchService {
         return out;
     }
 
+    /**
+     * Test-only state replacement used by the isolated Playwright backend.
+     * The endpoint that calls this method is not registered unless the explicit
+     * e2e fixture property is enabled.
+     */
+    @Transactional
+    public boolean replaceStateForE2e(String matchId, Map<String, Object> rawState) {
+        Map<String, Object> row = loadRow(matchId);
+        if (row == null || rawState == null) return false;
+        Map<String, Object> state = ensureState(rawState);
+        Map<String, Object> metadata = parseMap(row.get("metadata_json"));
+        syncMetadataFromState(state, metadata);
+        jdbc.update("UPDATE live_matches SET state_json=?, metadata_json=?, status='in_progress', updated_at=? WHERE match_id=?",
+                JsonUtils.stringify(state), JsonUtils.stringify(metadata), repository.nowMs(), matchId);
+        return true;
+    }
+
     @Transactional
     public Map<String, Object> joinMatch(String matchId,
                                          String playerId,
