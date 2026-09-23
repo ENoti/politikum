@@ -33,7 +33,7 @@ class NativeTurnLifecycleTest {
         for (var test : legacy) {
             Map<String, Object> result = move(map(test.get("input")), (String) test.get("actor"), (String) test.get("move"), list(test.get("args")));
             map(map(result.get("state")).get("G")).remove("trace");
-            assertEquals(JsonUtils.mapper().valueToTree(test.get("expected")), JsonUtils.mapper().valueToTree(result), String.valueOf(test.get("name")));
+            assertEquals(JsonUtils.mapper().valueToTree(test.get("expected")), LegacyParity.normalize(JsonUtils.mapper().valueToTree(result)), String.valueOf(test.get("name")));
         }
     }
 

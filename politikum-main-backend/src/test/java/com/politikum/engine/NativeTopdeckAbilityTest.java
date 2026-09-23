@@ -27,7 +27,11 @@ class NativeTopdeckAbilityTest {
                 var expected = JsonUtils.mapper().readTree(in);
                 var result = JsonUtils.mapper().readTree(actual);
                 assertEquals(expected.size(), result.size());
-                for (int i = 0; i < expected.size(); i++) assertEquals(expected.get(i), result.get(i), expected.get(i).path("name").asText());
+                for (int i = 0; i < expected.size(); i++) assertEquals(expected.get(i), LegacyParity.normalize(result.get(i)), expected.get(i).path("name").asText());
+                var winner = result.get(3).path("result").path("state").path("G").path("gameOver");
+                assertEquals("0", winner.path("winnerPlayerId").asText());
+                assertEquals("You", winner.path("winnerName").asText());
+                assertEquals("persona_34_guess", winner.path("reason").asText());
             }
         }
     }

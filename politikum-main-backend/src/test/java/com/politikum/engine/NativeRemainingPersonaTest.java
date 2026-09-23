@@ -21,7 +21,7 @@ class NativeRemainingPersonaTest {
             var expected=JsonUtils.mapper().readTree(read("engine/remaining-persona-legacy.json"));
             var result=JsonUtils.mapper().readTree(actual);
             assertEquals(expected.size(),result.size());
-            for(int i=0;i<expected.size();i++) assertEquals(expected.get(i),result.get(i),expected.get(i).path("name").asText());
+            for(int i=0;i<expected.size();i++) assertEquals(expected.get(i),LegacyParity.normalize(result.get(i)),expected.get(i).path("name").asText());
             assertEquals(12,guest.eval("js",read("engine/persona3-regressions.js")).asInt());
         }
     }

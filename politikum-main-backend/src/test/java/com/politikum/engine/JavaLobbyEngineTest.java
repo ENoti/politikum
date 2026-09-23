@@ -29,7 +29,7 @@ class JavaLobbyEngineTest {
                 assertEquals(step.get("error"), result.get("error"));
                 state = map(result.get("state"));
             }
-            assertEquals(JsonUtils.mapper().valueToTree(step.get("expected")), JsonUtils.mapper().readTree(JsonUtils.stringify(normalize(state))), String.valueOf(step.get("move")));
+            assertEquals(JsonUtils.mapper().valueToTree(step.get("expected")), LegacyParity.normalize(JsonUtils.mapper().valueToTree(normalize(state))), String.valueOf(step.get("move")));
         }
     }
 

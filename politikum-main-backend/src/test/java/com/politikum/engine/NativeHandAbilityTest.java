@@ -33,8 +33,8 @@ class NativeHandAbilityTest {
                         assertEquals("move_exception",expected.get(i).path("result").path("error").asText());
                         assertEquals("invalid_move",result.get(i).path("result").path("error").asText());
                         assertFalse(result.get(i).path("result").path("ok").asBoolean());
-                        assertEquals(expected.get(i).path("result").path("state"),result.get(i).path("result").path("state"));
-                    } else assertEquals(expected.get(i), result.get(i), name);
+                        assertEquals(expected.get(i).path("result").path("state"),LegacyParity.normalize(result.get(i).path("result").path("state")));
+                    } else assertEquals(expected.get(i), LegacyParity.normalize(result.get(i)), name);
                 }
             }
         }
