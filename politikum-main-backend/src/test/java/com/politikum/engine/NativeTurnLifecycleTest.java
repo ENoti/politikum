@@ -55,9 +55,7 @@ class NativeTurnLifecycleTest {
         var next = map(dropped.get("state"));
         assertNull(map(next.get("G")).get("pending"));
         assertEquals(7, hand(map(next.get("G")), 0).size());
-        var ended = move(next, "0", "endTurn", List.of());
-        assertEquals(true, ended.get("ok"));
-        assertEquals("1", map(map(ended.get("state")).get("ctx")).get("currentPlayer"));
+        assertEquals("1", map(next.get("ctx")).get("currentPlayer"));
     }
 
     @Test void handLimitCannotReplaceOrClearAnotherChoice() {

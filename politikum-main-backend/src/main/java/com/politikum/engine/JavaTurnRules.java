@@ -24,7 +24,7 @@ public final class JavaTurnRules {
             case "beginTurnDraw" -> beginDraw(g, ctx, actor);
             case "drawCard" -> extraDraw(state, actor);
             case "endTurn" -> endTurn(state, actor);
-            case "discardFromHandDownTo7" -> discardToLimit(g, ctx, actor, args.at(0).text());
+            case "discardFromHandDownTo7" -> discardToLimit(state, actor, args.at(0).text());
             case "tick" -> {
                 if (!ctx.get("phase").text().equals("action")) yield false;
                 expire(g); yield true;
@@ -130,10 +130,13 @@ public final class JavaTurnRules {
         g.set("debugLastEndTurnReject", "hand_limit");
         return false;
     }
-    private boolean discardToLimit(RuleNode g, RuleNode ctx, String actor, String cardId) {
+    private boolean discardToLimit(RuleNode state, String actor, String cardId) {
+        RuleNode g = state.get("G"), ctx = state.get("ctx");
         RuleNode p = player(g, actor), pending = g.get("pending");
         if (p.missing()) return false;
-        if (kind(pending, "discard_down_to_7")) {
+        boolean endingTurn = kind(pending, "discard_down_to_7")
+            && pending.get("sourceCardId").text().equals("hand_limit");
+        if (endingTurn) {
             if (!pending.get("playerId").text().equals(actor)) return false;
         } else if (pending.truthy() || !ctx.get("currentPlayer").text().equals(actor) || p.get("hand").size() <= 7) return false;
         int index = find(p.get("hand"), cardId);
@@ -143,6 +146,7 @@ public final class JavaTurnRules {
         if (dropped.get("type").text().equals("persona")) effects.personaDiscarded(g);
         if (p.get("hand").size() <= 7) g.set("pending", null);
         effects.recalculate(g);
+        if (endingTurn && p.get("hand").size() <= 7) return endTurn(state, actor);
         return true;
     }
     private boolean skipResponse(RuleNode state, String actor) {
