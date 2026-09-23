@@ -1,5 +1,6 @@
 package com.politikum.engine;
 
+import java.util.Map;
 import java.util.function.Function;
 import static com.politikum.engine.GameState.object;
 
@@ -44,11 +45,13 @@ public final class JavaTopdeckAbilityRules {
             String actual = found.get("id").text().split("#", 2)[0];
             log(g, actor(me) + " загадал " + guessName + ". Следующая персона в колоде (" + skipped + " пропущено): " + personaTitle.apply(actual) + ".");
             if (guess.equals(actual)) {
-                g.set("gameOver", true);
                 g.set("winnerId", actorId);
                 log(g, actor(me) + ": угадал — мгновенная победа для " + who(me) + ".");
-                // Same terminal flags as makeEvents.endGame(); do not run round scoring.
-                ctx.set("gameover", true);
+                String name = me.get("name").truthy() ? me.get("name").text() : actorId;
+                Map<String, Object> result = object("winnerPlayerId", actorId,
+                    "winnerName", name, "reason", "persona_34_guess");
+                g.set("gameOver", result);
+                ctx.set("gameover", result);
             }
         }
         g.set("pending", null);
