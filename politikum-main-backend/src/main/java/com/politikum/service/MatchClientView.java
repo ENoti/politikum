@@ -13,7 +13,7 @@ public final class MatchClientView {
         Map<String, Object> source = map(state.get("G"));
         Map<String, Object> g = pick(source, "discard", "activePlayerIds", "log", "chat", "history",
             "hasDrawn", "hasPlayed", "playsThisTurn", "maxPlaysThisTurn", "playVpDelta", "drawsThisTurn",
-            "lastAction", "lastEvent", "gameOver", "winnerId", "roundEnding", "roundEndTurn",
+            "lastAction", "lastEvent", "lastEventOwnerId", "lastEventSequence", "gameOver", "winnerId", "roundEnding", "roundEndTurn",
             "turnN", "turnStartedAtMs", "botNextActAtMs", "botPauseUntilMs");
         // Retain array lengths for card-back/count rendering, without IDs or faces.
         g.put("deck", hiddenCards(source.get("deck")));

@@ -45,7 +45,6 @@ public final class JavaTurnRules {
             RuleNode queue = g.get("persona16AfterEvents");
             if (queue.get("events").size() > 0) {
                 RuleNode event = queue.get("events").removeAt(0);
-                g.set("lastEvent", event);
                 effects.queuedEvent(g, queue, event);
                 array(g, "discard").add(event);
             } else {
@@ -71,7 +70,7 @@ public final class JavaTurnRules {
         if (p.missing() || g.get("deck").size() == 0) return null;
         RuleNode card = g.get("deck").removeAt(0);
         if (card.get("type").text().equals("event")) {
-            g.set("lastEvent", card);
+            JavaEventRules.markLastEvent(g, p, card);
             effects.drawnEvent(g, p, card);
             effects.recalculate(g);
             array(g, "discard").add(card);

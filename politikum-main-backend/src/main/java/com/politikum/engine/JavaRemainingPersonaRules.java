@@ -98,7 +98,7 @@ public final class JavaRemainingPersonaRules {
         for(int i=0;i<k&&g.get("deck").size()>0;i++) {
             RuleNode next=g.get("deck").removeAt(0); if(!next.truthy()) break;
             if(next.get("type").text().equals("event")) {
-                g.set("lastEvent",next);
+                JavaEventRules.markLastEvent(g,me,next);
                 g.get("log").add(who(me)+" "+drew(me)+" "+effects.eventMoveTitle(next)+" из-за способности Волкова.");
                 effects.run(g,me,next); vacuum(g,next);
                 if(g.get("pending").truthy()) break;
@@ -177,7 +177,7 @@ public final class JavaRemainingPersonaRules {
             for(int i=0;i<k&&g.get("deck").size()>0;i++) {
                 RuleNode next=g.get("deck").removeAt(0);if(!next.truthy())break;
                 if(next.get("type").text().equals("event")) {
-                    g.set("lastEvent",next);g.get("log").add(who(me)+" "+drew(me)+" "+effects.eventMoveTitle(next)+" (из \""+effects.cardTitle(pending.get("sourceCardId").text())+"\")");
+                    JavaEventRules.markLastEvent(g,me,next);g.get("log").add(who(me)+" "+drew(me)+" "+effects.eventMoveTitle(next)+" (из \""+effects.cardTitle(pending.get("sourceCardId").text())+"\")");
                     effects.run(g,me,next);vacuum(g,next);g.get("discard").add(next);
                 } else { me.get("hand").add(next);g.get("log").add(who(me)+" взял карту из "+pending.get("sourceCardId").text()+"."); }
             }

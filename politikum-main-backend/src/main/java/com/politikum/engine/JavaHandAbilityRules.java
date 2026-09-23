@@ -23,7 +23,7 @@ public final class JavaHandAbilityRules {
                 if(next.get("type").text().equals("event"))queue.add(next);else me.get("hand").add(next);
             }
             if(queue.size()>0){
-                RuleNode next=queue.removeAt(0);g.set("lastEvent",next);
+                RuleNode next=queue.removeAt(0);JavaEventRules.markLastEvent(g,me,next);
                 String name=(card.get("text").truthy()?card.get("text").text():title(card)).trim();
                 g.get("log").add(who(me)+" вытянул Событие \""+effects.eventTitle(next)+"\" из способности "+name+".");
                 effects.run(g,me,next);g.get("discard").add(next);

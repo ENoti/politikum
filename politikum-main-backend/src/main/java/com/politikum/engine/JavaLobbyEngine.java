@@ -115,7 +115,8 @@ public final class JavaLobbyEngine implements GameEngine {
             GameState.<Object>list(s.player(id).get("hand")).add(pre.remove(0));
         }
         pre.addAll(events); g.put("deck", shuffle(pre)); g.put("discard", new ArrayList<>());
-        for (String key : List.of("pending", "response", "winnerId", "roundEndTurn", "lastEvent", "lastAction")) g.put(key, null);
+        for (String key : List.of("pending", "response", "winnerId", "roundEndTurn", "lastEvent", "lastEventOwnerId", "lastAction")) g.put(key, null);
+        g.put("lastEventSequence", 0);
         g.put("gameOver", false); g.put("roundEnding", false); resetTurn(g);
         g.put("activePlayerIds", ordered(active));
         Map<String, Object> scores = new LinkedHashMap<>(); s.players().forEach(p -> scores.put(String.valueOf(p.get("id")), 0));

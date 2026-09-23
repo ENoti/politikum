@@ -704,9 +704,11 @@ useEffect(() => {
 
   // Event splash: show when lastEvent changes, but do not replay an old event on first render.
   const lastEventSeenRef = useRef(null);
+  const lastEventKey = G.lastEvent?.id
+    ? `${String(G.lastEvent.id)}:${Number(G.lastEventSequence || 0)}`
+    : '';
   useEffect(() => {
-    const id = G.lastEvent?.id ? String(G.lastEvent.id) : '';
-    if (!id) {
+    if (!lastEventKey) {
       setShowEventSplash(false);
       setEventSplashClosedId('');
       lastEventSeenRef.current = null;
@@ -714,29 +716,29 @@ useEffect(() => {
     }
 
     if (lastEventSeenRef.current == null) {
-      lastEventSeenRef.current = id;
+      lastEventSeenRef.current = lastEventKey;
       setShowEventSplash(false);
       return;
     }
 
-    if (String(lastEventSeenRef.current) !== id) {
-      lastEventSeenRef.current = id;
+    if (String(lastEventSeenRef.current) !== lastEventKey) {
+      lastEventSeenRef.current = lastEventKey;
       setEventSplashClosedId('');
       setEventSplashDeadline(Date.now() + 10000);
       setShowEventSplash(true);
       return;
     }
 
-    if (eventSplashClosedId && eventSplashClosedId === id) {
+    if (eventSplashClosedId && eventSplashClosedId === lastEventKey) {
       setShowEventSplash(false);
     }
-  }, [G.lastEvent?.id, eventSplashClosedId]);
+  }, [lastEventKey, eventSplashClosedId]);
 
   useEffect(() => {
     if (!showEventSplash) return;
     const t = setTimeout(() => setShowEventSplash(false), 10000);
     return () => clearTimeout(t);
-  }, [showEventSplash, G.lastEvent?.id]);
+  }, [showEventSplash, lastEventKey]);
 
 
   useEffect(() => {
@@ -1291,7 +1293,7 @@ useEffect(() => {
                 type="button"
                 className="absolute right-3 top-3 z-20 px-3 py-1 rounded-full bg-black/60 hover:bg-black/80 border border-amber-900/25 text-amber-50 font-black text-[11px]"
                 onClick={() => {
-                  setEventSplashClosedId(String(G?.lastEvent?.id || ''));
+                  setEventSplashClosedId(lastEventKey);
                   setShowEventSplash(false);
                 }}
               >
@@ -1300,6 +1302,11 @@ useEffect(() => {
               <div className="px-5 pt-5 text-center">
                 <div className="text-amber-200/70 text-[10px] uppercase tracking-[0.3em] font-black">Событие</div>
                 <div className="mt-2 text-amber-50 text-lg font-black">{String(G?.lastEvent?.text || G?.lastEvent?.name || G?.lastEvent?.id || '')}</div>
+                <div className="mt-1 text-amber-100/70 text-xs font-mono">
+                  {String(G?.lastEventOwnerId || '') === String(playerID)
+                    ? 'Ваше событие'
+                    : `Событие игрока: ${playerNameById[String(G?.lastEventOwnerId)] || 'соперник'}`}
+                </div>
                 {eventSplashSecondsLeft > 0 && (
                   <div className="mt-1 text-amber-200/60 text-[11px] font-mono">{eventSplashSecondsLeft}с</div>
                 )}

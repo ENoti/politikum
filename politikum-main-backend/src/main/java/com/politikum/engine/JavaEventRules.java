@@ -10,6 +10,11 @@ public final class JavaEventRules {
     public JavaEventRules(JavaAbilityRules.Scoring scoring, AbilityEffects effects) {
         this.scoring=scoring;this.effects=effects;
     }
+    public static void markLastEvent(RuleNode g, RuleNode me, RuleNode event) {
+        g.set("lastEvent", event);
+        g.set("lastEventOwnerId", me.get("id").text());
+        g.set("lastEventSequence", g.get("lastEventSequence").number() + 1);
+    }
     private static String base(String id) { return id.split("#",2)[0]; }
     private static String base(RuleNode c) { return base(c.get("id").text()); }
     private static String who(RuleNode p) { return p.get("name").text().equals("You")?"Вы":p.get("name").text(); }
@@ -32,7 +37,7 @@ public final class JavaEventRules {
         RuleNode c=g.get("deck").removeAt(0);if(!c.truthy())return;
         String src=base(source);
         if(c.get("type").text().equals("event")) {
-            g.set("lastEvent",c);
+            markLastEvent(g,me,c);
             if(src.equals("event_15"))g.get("log").add("Вам выпал ЧЕРНЫЙ ЛЕБЕДЬ");
             else if(src.equals("event_10"))g.get("log").add(me.get("name").text()+" попался \"Перевод в криптоколонию\"");
             else if(src.equals("event_11"))doubleDrawLog(g,me,true);
@@ -136,7 +141,7 @@ public final class JavaEventRules {
     private void drawAfterDiscard(RuleNode g,RuleNode me,String source,boolean bot) {
         if(g.get("deck").size()==0)return;RuleNode next=g.get("deck").removeAt(0);if(!next.truthy())return;
         if(next.get("type").text().equals("event")) {
-            g.set("lastEvent",next);String prefix=who(me)+" "+drew(me)+" "+effects.eventMoveTitle(next);
+            markLastEvent(g,me,next);String prefix=who(me)+" "+drew(me)+" "+effects.eventMoveTitle(next);
             g.get("log").add(!bot&&base(source).equals("event_16")&&base(next).equals("event_10")?prefix+", после политический [РОСКОМНАДЗОР].":prefix+" (из \""+effects.cardTitle(source)+"\")");
             effects.run(g,me,next);effects.eventPlayed(g,next);g.get("discard").add(next);
         } else {
@@ -152,7 +157,6 @@ public final class JavaEventRules {
     public void drawnEvent(RuleNode g,RuleNode me,RuleNode card,boolean legacy) {
         String bid=base(card),prefix=who(me)+" "+drew(me)+" ",name=effects.eventMoveTitle(card);
         if(legacy) {
-            g.set("lastEvent",card);
             if(bid.equals("event_10"))g.get("log").add(me.get("name").text()+" попался \"Перевод в криптоколонию\"");
             else if(bid.equals("event_11"))doubleDrawLog(g,me,true);
             else if(bid.equals("event_15"))g.get("log").add(who(me)+": вам выпал ЧЕРНЫЙ ЛЕБЕДЬ");
@@ -168,6 +172,7 @@ public final class JavaEventRules {
     }
     public void queuedEvent(RuleNode g,RuleNode queue,RuleNode card) {
         RuleNode me=player(g,queue.get("playerId").text());
+        markLastEvent(g,me,card);
         g.get("log").add(who(me)+" вытянул Событие \""+effects.eventMoveTitle(card)+"\" из способности "+queue.get("sourceCardId").text()+".");
         effects.run(g,me,card);
     }
