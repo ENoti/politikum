@@ -332,6 +332,7 @@ public class LiveMatchService {
         g.put("players", gPlayers);
 
         List<Object> activeIds = list(g.get("activePlayerIds"));
+        int surrenderedPosition = activeIds.indexOf(seatId);
         List<Object> filteredActive = new ArrayList<>();
         for (Object idObj : activeIds) {
             String id = string(idObj);
@@ -368,15 +369,10 @@ public class LiveMatchService {
         } else {
             g.put("gameOver", false);
             if (seatId.equals(string(ctx.get("currentPlayer")))) {
-                int pos = -1;
-                for (int i = 0; i < filteredActive.size(); i++) {
-                    if (seatId.equals(string(filteredActive.get(i)))) { pos = i; break; }
-                }
-                String nextId = string(filteredActive.get(0));
+                int nextIndex = surrenderedPosition < 0 ? 0 : Math.floorMod(surrenderedPosition, filteredActive.size());
+                String nextId = string(filteredActive.get(nextIndex));
                 ctx.put("currentPlayer", nextId);
-                try {
-                    ctx.put("playOrderPos", Integer.parseInt(nextId));
-                } catch (Exception ignored) {}
+                ctx.put("playOrderPos", nextIndex);
             }
         }
 
