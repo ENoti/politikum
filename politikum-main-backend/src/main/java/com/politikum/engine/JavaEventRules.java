@@ -155,6 +155,7 @@ public final class JavaEventRules {
         drawAfterDiscard(g,me,pending.get("sourceCardId").text(),true);g.set("pending",null);scoring.recalculate(g);g.set("botNextActAtMs",effects.now()+600);return true;
     }
     public void drawnEvent(RuleNode g,RuleNode me,RuleNode card,boolean legacy) {
+        if(legacy) markLastEvent(g,me,card);
         String bid=base(card),prefix=who(me)+" "+drew(me)+" ",name=effects.eventMoveTitle(card);
         if(legacy) {
             if(bid.equals("event_10"))g.get("log").add(me.get("name").text()+" попался \"Перевод в криптоколонию\"");

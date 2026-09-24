@@ -27,7 +27,8 @@ final class LegacyParity {
         for (String name : names) {
             if (name.equals("lastEventOwnerId") || name.equals("lastEventSequence")) {
                 object.remove(name);
-            } else if ((name.equals("gameOver") || name.equals("gameover")) && object.get(name).isObject()) {
+            } else if ((name.equals("gameOver") || name.equals("gameover"))
+                && object.get(name).path("reason").asText().equals("persona_34_guess")) {
                 object.set(name, BooleanNode.TRUE);
             } else {
                 normalizeInPlace(object.get(name));
