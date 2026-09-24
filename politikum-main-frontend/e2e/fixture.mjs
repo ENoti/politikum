@@ -42,9 +42,18 @@ export async function createStartedMatch(page) {
   await page.goto('/');
   const created = page.waitForResponse(response => response.url().endsWith('/games/politikum/create'));
   await page.getByRole('button', { name: 'Начать игру', exact: true }).click();
-  await created;
+  const createResponse = await created;
+  if (!createResponse.ok()) throw new Error(`create match failed: HTTP ${createResponse.status()}`);
+  await page.getByRole('button', { name: 'Добавить бота', exact: true }).waitFor();
+  const botAdded = page.waitForResponse(response => response.url().endsWith('/move/addBot'));
   await page.getByRole('button', { name: 'Добавить бота', exact: true }).click();
+  const botResult = await botAdded;
+  if (!botResult.ok() || !(await botResult.json()).ok) throw new Error('adding fixture bot failed');
+  await page.getByRole('button', { name: 'Старт', exact: true }).waitFor();
+  const gameStarted = page.waitForResponse(response => response.url().endsWith('/move/startGame'));
   await page.getByRole('button', { name: 'Старт', exact: true }).click();
+  const startResult = await gameStarted;
+  if (!startResult.ok() || !(await startResult.json()).ok) throw new Error('starting fixture match failed');
   await page.getByRole('button', { name: 'Закончить ход', exact: true }).waitFor();
 }
 
